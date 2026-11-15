@@ -1,0 +1,20 @@
+# Copy to config.toml, edit values, keep token only in .env / environment.
+[discord]
+# Dedicated Operation Snowfall Discord server ID (not the ordinary MR community server).
+guild_id = 0
+# Add Kat/staff Discord USER IDs here (not MR usernames).
+admin_user_ids = []
+
+[event]
+season_key = "christmas-2026"
+name = "Operation Snowfall"
+# REQUIRED before launching. Use a real UTC date/time, e.g. 2026-12-20T19:00:00+00:00
+starts_at_utc = "REPLACE_WITH_UTC_TIMESTAMP"
+duration_days = 7
+registration_open_hours_before = 168
+identity_mode = "self_declaration"
+prize_mode = "individual_only"
+city_championship = "bragging_rights_only"
+
+[storage]
+database_path = "data/snowfall.sqlite3"

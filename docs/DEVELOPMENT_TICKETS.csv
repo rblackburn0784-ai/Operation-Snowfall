@@ -1,0 +1,33 @@
+ID,Phase,Priority,Epic,Title,Dependencies,Size,Acceptance_Criteria,Status
+SNOW-001,A,P0,Project,"Python package, CI, pytest and lint",,S,Editable project installs; lint and unit tests pass,Todo
+SNOW-002,A,P0,Configuration,One dedicated guild and secure environment config,SNOW-001,S,Foreign guilds and DMs rejected; no token in repo,Todo
+SNOW-003,A,P0,Lifecycle,UTC season clock and registration-open boundary,SNOW-002,M,Registration starts exactly 168h before launch; event lasts 168 effective hours,Todo
+SNOW-004,A,P0,Database,"Schema, migrations and crash-safe SQLite",SNOW-001,L,"Unique MR names per season; WAL, integrity check and migration tests",Todo
+SNOW-005,A,P0,Identity,Self-declared MR username/city registration,SNOW-003;SNOW-004,M,No approval queue; duplicate names case insensitive; explicit declaration,Todo
+SNOW-006,A,P0,Admin,"Dispute flags, staff review and audit log",SNOW-005,M,Staff can flag/clear without silently altering ledger; no standard verification,Todo
+SNOW-007,A,P1,Guild UX,"Welcome, rules and permanent dashboard navigation",SNOW-002;SNOW-005,L,Welcome/rules visible; buttons survive restart and use private replies,Todo
+SNOW-008,A,P0,Operations,Host-only setup and lifecycle controls,SNOW-003;SNOW-006,L,Start/pause/resume/finalize confirmed and audited,Todo
+SNOW-009,B,P0,Economy,Snowball and warmth lazy regeneration,SNOW-004;SNOW-003,M,Caps respected over restart and while at cap,Todo
+SNOW-010,B,P0,Combat,"Transactional PvP, hit/critical RNG and cooldown",SNOW-009,XL,"No duplicate actions, negative ammo, self/same-city hits",Todo
+SNOW-011,B,P0,Safety,Target selection and shields/KO protection,SNOW-010,L,2 scoring hits per pair/day; passive shield and 36h inactivity rules,Todo
+SNOW-012,B,P0,Scoring,"Immutable ledger, daily caps and tie breakers",SNOW-010,L,Scores reconcile; PvP cap 300/day; no score duplicates,Todo
+SNOW-013,B,P1,UI,"Throw selection, confirmation and result view",SNOW-010;SNOW-007,L,"Buttons, slash path share engine; result fallback as text",Todo
+SNOW-014,C,P1,Items,"Inventory, crafting, buffs and guard",SNOW-009;SNOW-010,L,"Costs, usage caps, expiry and guards tested",Todo
+SNOW-015,C,P1,Quests,Three deterministic daily quests and claim logic,SNOW-012,L,"3 x 20 points/day, no duplicate claims",Todo
+SNOW-016,C,P1,Gifts,Daily mystery gifts and Golden Snowball rarity,SNOW-014;SNOW-015,M,"One gift/day and seasonal golden limit, reward odds validated",Todo
+SNOW-017,D,P0,PvE,Daily Snow Don boss with echo fallback,SNOW-012;SNOW-009,L,"6 scored attempts/day; reliable HP, capped awards",Todo
+SNOW-018,D,P0,Cities,Six daily NPC fort sieges,SNOW-012;SNOW-009,L,Each city gets its own fortress; 4 scored throws/player/day,Todo
+SNOW-019,D,P0,Cities,Normalized city leaderboard and snapshots,SNOW-012;SNOW-018,L,"Top-five averages, bonus caps, min-active threshold tested",Todo
+SNOW-020,D,P1,Events,Seven daily themes and idempotent scheduler,SNOW-003;SNOW-015;SNOW-017;SNOW-018,L,One daily rollover; no double rewards after restart,Todo
+SNOW-021,D,P1,UI,Personal and city boards with throttled edits,SNOW-019;SNOW-007,M,Individual prize board separate from city non-prize board,Todo
+SNOW-022,E,P1,Art,Create reusable licensed asset pack and city scenes,SNOW-007,L,Six matched city backgrounds; item art and fallback,Todo
+SNOW-023,E,P1,Graphics,Pillow PNG cards and accessible alt-text,SNOW-022;SNOW-013,L,"Render profile, battle, boss, siege, champions; no state loss on failure",Todo
+SNOW-024,E,P2,Animation,Special hit/boss GIF effects,SNOW-023,M,Static fallback always functional; reasonable file sizes,Todo
+SNOW-025,E,P1,Polish,Mobile layouts and minimal-message navigation,SNOW-021;SNOW-023,M,No chat spam; buttons edit views; screenshot review,Todo
+SNOW-026,F,P0,Prizes,Individual-only awards and export,SNOW-012;SNOW-019;SNOW-006,L,Payout CSV excludes city awards; city champ banner remains,Todo
+SNOW-027,F,P0,Integrity,"Admin corrections, fraud review and reconciliations",SNOW-012;SNOW-006,L,Compensating ledger entries and reproducible standings,Todo
+SNOW-028,F,P0,Operations,"Backup, restore, logging and health checks",SNOW-004;SNOW-020,M,Recovery drill and alerts pass,Todo
+SNOW-029,F,P0,Quality,"7-day simulation, load and crash regression",SNOW-010;SNOW-017;SNOW-018;SNOW-026,XL,"No scoring duplication, fair city scores, results export stable",Todo
+SNOW-030,F,P0,Launch,"Kat approvals, staff training and dry run",SNOW-028;SNOW-029;SNOW-025,M,Checklist signed; server IDs/date/prizes set; dry-run exported,Todo
+SNOW-031,F,P1,Community,Rules post and privacy/identity dispute policies,SNOW-005;SNOW-006,M,Clear unofficial status; usernames public; disputes and retention explained,Todo
+SNOW-032,D,P0,Fairness,Protect late time zones from boss exhaustion,SNOW-017,M,Training echoes earn normal capped points without extra shared boss clear,Todo

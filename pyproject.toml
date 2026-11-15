@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "operation-snowfall"
+version = "0.1.0"
+description = "Starter foundation for Kat's Operation Snowfall Discord event"
+requires-python = ">=3.12"
+dependencies = ["discord.py>=2.6,<3", "Pillow>=11,<13", "python-dotenv>=1,<2"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10", "ruff>=0.9,<1"]
+
+[project.scripts]
+snowfall = "snowfall.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
