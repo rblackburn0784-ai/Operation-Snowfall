@@ -1,12 +1,12 @@
 ID,Phase,Priority,Epic,Title,Dependencies,Size,Acceptance_Criteria,Status
-SNOW-001,A,P0,Project,"Python package, CI, pytest and lint",,S,Editable project installs; lint and unit tests pass,Todo
-SNOW-002,A,P0,Configuration,One dedicated guild and secure environment config,SNOW-001,S,Foreign guilds and DMs rejected; no token in repo,Todo
-SNOW-003,A,P0,Lifecycle,UTC season clock and registration-open boundary,SNOW-002,M,Registration starts exactly 168h before launch; event lasts 168 effective hours,Todo
-SNOW-004,A,P0,Database,"Schema, migrations and crash-safe SQLite",SNOW-001,L,"Unique MR names per season; WAL, integrity check and migration tests",Todo
-SNOW-005,A,P0,Identity,Self-declared MR username/city registration,SNOW-003;SNOW-004,M,No approval queue; duplicate names case insensitive; explicit declaration,Todo
-SNOW-006,A,P0,Admin,"Dispute flags, staff review and audit log",SNOW-005,M,Staff can flag/clear without silently altering ledger; no standard verification,Todo
-SNOW-007,A,P1,Guild UX,"Welcome, rules and permanent dashboard navigation",SNOW-002;SNOW-005,L,Welcome/rules visible; buttons survive restart and use private replies,Todo
-SNOW-008,A,P0,Operations,Host-only setup and lifecycle controls,SNOW-003;SNOW-006,L,Start/pause/resume/finalize confirmed and audited,Todo
+SNOW-001,A,P0,Project,"Python package, CI, pytest and lint",,S,Editable project installs; lint and unit tests pass,Implemented - smoke test pending
+SNOW-002,A,P0,Configuration,One dedicated guild and secure environment config,SNOW-001,S,Foreign guilds and DMs rejected; no token in repo,Implemented - smoke test pending
+SNOW-003,A,P0,Lifecycle,UTC season clock and registration-open boundary,SNOW-002,M,Registration starts exactly 168h before launch; event lasts 168 effective hours,Implemented - smoke test pending
+SNOW-004,A,P0,Database,"Schema, migrations and crash-safe SQLite",SNOW-001,L,"Unique MR names per season; WAL, integrity check and migration tests",Implemented - smoke test pending
+SNOW-005,A,P0,Identity,Self-declared MR username/city registration,SNOW-003;SNOW-004,M,No approval queue; duplicate names case insensitive; explicit declaration,Implemented - smoke test pending
+SNOW-006,A,P0,Admin,"Dispute flags, staff review and audit log",SNOW-005,M,Staff can flag/clear without silently altering ledger; no standard verification,Implemented - smoke test pending
+SNOW-007,A,P1,Guild UX,"Welcome, rules and permanent dashboard navigation",SNOW-002;SNOW-005,L,Welcome/rules visible; buttons survive restart and use private replies,Implemented - smoke test pending
+SNOW-008,A,P0,Operations,Host-only setup and lifecycle controls,SNOW-003;SNOW-006,L,Start/pause/resume/finalize confirmed and audited,Implemented - smoke test pending
 SNOW-009,B,P0,Economy,Snowball and warmth lazy regeneration,SNOW-004;SNOW-003,M,Caps respected over restart and while at cap,Todo
 SNOW-010,B,P0,Combat,"Transactional PvP, hit/critical RNG and cooldown",SNOW-009,XL,"No duplicate actions, negative ammo, self/same-city hits",Todo
 SNOW-011,B,P0,Safety,Target selection and shields/KO protection,SNOW-010,L,2 scoring hits per pair/day; passive shield and 36h inactivity rules,Todo

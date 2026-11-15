@@ -1,14 +1,14 @@
 # Development backlog — Operation Snowfall v1.0
 
 **Scope:** full-feature 7-day event; dedicated Discord server, self-declared MR identities, prizes for individuals only.
-**Status:** all tickets open. Sizes are relative (S/M/L/XL), not delivery promises.
+**Status:** SNOW-001 through SNOW-008 implemented in v0.1.1 (24 local tests passed; on-server smoke test and CI verification pending). SNOW-009 onward remain open. Sizes are relative (S/M/L/XL), not delivery promises.
 **P0:** blocks launch. **P1:** full-feature launch requirement. **P2:** polish if time allows.
 
 ## Milestones / order
 
 | Stage | Target | Exit criterion |
 |---|---|---|
-| A | Foundation | Self-declaration works only within event guild; registration opens 7d before; schema and admin audit present |
+| A | Foundation — v0.1.1 implemented; gateway smoke test pending | Self-declaration works only within event guild; registration opens 7d before; schema and admin audit present |
 | B | Combat | All PvP rules transactionally safe; daily score caps work |
 | C | Economy | Items, crafting, quests and gifts |
 | D | Group gameplay | Boss, sieges, city rankings and seven-day scheduler |
@@ -22,40 +22,56 @@
 - **Depends on:** None
 - **Acceptance:** Editable project installs; lint and unit tests pass
 
+- **Status:** Implemented in v0.1.1; Discord smoke-test/CI gate pending
+
 ### SNOW-002 · One dedicated guild and secure environment config
 - **Phase:** A · **Priority:** P0 · **Size:** S · **Epic:** Configuration
 - **Depends on:** SNOW-001
 - **Acceptance:** Foreign guilds and DMs rejected; no token in repo
+
+- **Status:** Implemented in v0.1.1; Discord smoke-test/CI gate pending
 
 ### SNOW-003 · UTC season clock and registration-open boundary
 - **Phase:** A · **Priority:** P0 · **Size:** M · **Epic:** Lifecycle
 - **Depends on:** SNOW-002
 - **Acceptance:** Registration starts exactly 168h before launch; event lasts 168 effective hours
 
+- **Status:** Implemented in v0.1.1; Discord smoke-test/CI gate pending
+
 ### SNOW-004 · Schema, migrations and crash-safe SQLite
 - **Phase:** A · **Priority:** P0 · **Size:** L · **Epic:** Database
 - **Depends on:** SNOW-001
 - **Acceptance:** Unique MR names per season; WAL, integrity check and migration tests
+
+- **Status:** Implemented in v0.1.1; Discord smoke-test/CI gate pending
 
 ### SNOW-005 · Self-declared MR username/city registration
 - **Phase:** A · **Priority:** P0 · **Size:** M · **Epic:** Identity
 - **Depends on:** SNOW-003;SNOW-004
 - **Acceptance:** No approval queue; duplicate names case insensitive; explicit declaration
 
+- **Status:** Implemented in v0.1.1; Discord smoke-test/CI gate pending
+
 ### SNOW-006 · Dispute flags, staff review and audit log
 - **Phase:** A · **Priority:** P0 · **Size:** M · **Epic:** Admin
 - **Depends on:** SNOW-005
 - **Acceptance:** Staff can flag/clear without silently altering ledger; no standard verification
+
+- **Status:** Implemented in v0.1.1; Discord smoke-test/CI gate pending
 
 ### SNOW-007 · Welcome, rules and permanent dashboard navigation
 - **Phase:** A · **Priority:** P1 · **Size:** L · **Epic:** Guild UX
 - **Depends on:** SNOW-002;SNOW-005
 - **Acceptance:** Welcome/rules visible; buttons survive restart and use private replies
 
+- **Status:** Implemented in v0.1.1; Discord smoke-test/CI gate pending
+
 ### SNOW-008 · Host-only setup and lifecycle controls
 - **Phase:** A · **Priority:** P0 · **Size:** L · **Epic:** Operations
 - **Depends on:** SNOW-003;SNOW-006
 - **Acceptance:** Start/pause/resume/finalize confirmed and audited
+
+- **Status:** Implemented in v0.1.1; Discord smoke-test/CI gate pending
 
 ### SNOW-009 · Snowball and warmth lazy regeneration
 - **Phase:** B · **Priority:** P0 · **Size:** M · **Epic:** Economy
