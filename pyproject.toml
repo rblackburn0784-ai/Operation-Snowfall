@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "operation-snowfall"
-version = "0.1.0"
-description = "Starter foundation for Kat's Operation Snowfall Discord event"
+version = "0.1.1"
+description = "Foundation release for Kat's community Christmas snowball Discord bot"
 requires-python = ">=3.12"
 dependencies = ["discord.py>=2.6,<3", "Pillow>=11,<13", "python-dotenv>=1,<2"]
 
@@ -24,3 +24,6 @@ pythonpath = ["src"]
 
 [tool.ruff]
 line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]

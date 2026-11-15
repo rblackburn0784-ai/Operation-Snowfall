@@ -1,14 +1,16 @@
-# Copy to config.toml, edit values, keep token only in .env / environment.
+# Copy to config.toml. NEVER paste your bot token here.
 [discord]
-# Dedicated Operation Snowfall Discord server ID (not the ordinary MR community server).
+# Dedicated event Discord server ID (not ordinary MafiaReturns community Discord)
 guild_id = 0
-# Add Kat/staff Discord USER IDs here (not MR usernames).
+# Kat and trusted hosts: Discord *user* IDs, full lifecycle controls
 admin_user_ids = []
+# Optional trusted staff *role* IDs; may review disputes, not start or finalize
+staff_role_ids = []
 
 [event]
 season_key = "christmas-2026"
 name = "Operation Snowfall"
-# REQUIRED before launching. Use a real UTC date/time, e.g. 2026-12-20T19:00:00+00:00
+# UTC kickoff; registration opens automatically 168 hours before this time
 starts_at_utc = "REPLACE_WITH_UTC_TIMESTAMP"
 duration_days = 7
 registration_open_hours_before = 168

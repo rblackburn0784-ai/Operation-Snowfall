@@ -1,4 +1,4 @@
-"""Load dedicated guild + season configuration; token is only read from env."""
+"""Dedicated guild config. Secrets are never read from the TOML file."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -19,18 +19,23 @@ class Settings:
     database_path: Path
     duration_days: int = 7
     registration_open_hours_before: int = 168
+    staff_role_ids: frozenset[int] = frozenset()
 
 
 def load_settings(config_path: str | Path | None = None) -> Settings:
     path = Path(config_path or os.getenv("SNOWFALL_CONFIG", "config.toml")).resolve()
     with path.open("rb") as handle:
         config = tomllib.load(handle)
-    guild_id = int(config["discord"]["guild_id"])
     token = os.getenv("DISCORD_TOKEN", "").strip()
     if not token or token == "PASTE_YOUR_BOT_TOKEN_LOCALLY":
-        raise ValueError("Set DISCORD_TOKEN in your environment; never put it in config.toml")
+        raise ValueError("Set DISCORD_TOKEN in .env / environment; never put it in config.toml")
+    guild_id = int(config["discord"]["guild_id"])
+    hosts = frozenset(int(n) for n in config["discord"].get("admin_user_ids", []))
+    staff = frozenset(int(n) for n in config["discord"].get("staff_role_ids", []))
     if guild_id <= 0:
-        raise ValueError("Set the dedicated event Discord guild_id in config.toml")
+        raise ValueError("Set the dedicated event guild_id in config.toml")
+    if not hosts or any(value <= 0 for value in hosts | staff):
+        raise ValueError("Configure at least one valid host Discord USER ID in admin_user_ids")
     try:
         start = datetime.fromisoformat(config["event"]["starts_at_utc"])
     except (TypeError, ValueError) as exc:
@@ -43,21 +48,16 @@ def load_settings(config_path: str | Path | None = None) -> Settings:
         raise ValueError("v1.0 only permits individual prizes")
     if config["event"].get("city_championship") != "bragging_rights_only":
         raise ValueError("v1.0 city competition is for bragging rights only")
-    duration = int(config["event"].get("duration_days", 7))
-    open_hours = int(config["event"].get("registration_open_hours_before", 168))
-    if duration != 7 or open_hours != 168:
-        raise ValueError("Approved v1.0 requires a 7-day event and 7-day preregistration")
+    days = int(config["event"].get("duration_days", 7))
+    hours = int(config["event"].get("registration_open_hours_before", 168))
+    if days != 7 or hours != 168:
+        raise ValueError("Approved specification requires 7-day event and 7-day registration")
     db_path = Path(config["storage"].get("database_path", "data/snowfall.sqlite3"))
     if not db_path.is_absolute():
         db_path = path.parent / db_path
-    return Settings(
-        token=token,
-        guild_id=guild_id,
-        admin_user_ids=frozenset(int(n) for n in config["discord"].get("admin_user_ids", [])),
-        season_key=config["event"].get("season_key", "christmas-2026"),
-        event_name=config["event"].get("name", "Operation Snowfall"),
-        starts_at_utc=start.astimezone(timezone.utc),
-        database_path=db_path,
-        duration_days=duration,
-        registration_open_hours_before=open_hours,
-    )
+    season_key = config["event"].get("season_key", "christmas-2026")
+    if not isinstance(season_key, str) or not season_key.strip():
+        raise ValueError("season_key must be a nonempty string")
+    return Settings(token, guild_id, hosts, season_key,
+                    config["event"].get("name", "Operation Snowfall"),
+                    start.astimezone(timezone.utc), db_path, days, hours, staff)

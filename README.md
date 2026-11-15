@@ -1,80 +1,88 @@
-# ❄️ Operation Snowfall — foundation starter (0.1.0)
+# ❄️ Operation Snowfall — v0.1.1 Foundation (Milestone A)
 
-Kat (MK)'s **MafiaReturns fan-community Christmas snowball event**, built as a dedicated-server Discord bot.
+Kat (MK)'s unofficial MafiaReturns Christmas snowball event for **one dedicated Discord server**.
 
-> **Important:** This zip is a functioning **foundation**, not the full v1.0 game. It implements registration, staff dispute review, UTC preregistration gating, city signup counts, basic dashboard and pure city score math. **It does not yet provide PvP, points, quests, bosses, sieges, assets, prize payout or a full 7-day runtime scheduler.** Follow `docs/DEVELOPMENT_TICKETS.md` to implement the rest. Full setup, Discord smoke tests, and release gates are documented in `docs/SETUP_AND_RELEASE.md`.
+**This is the completed FOUNDATION milestone (SNOW-001 to SNOW-008), not the finished game.**
+You can register, review claims, publish a restart-safe welcome/dashboard, and control the game clock.
+PvP, resources, quests, bosses, sieges, graphics and prize payout are **not enabled** until subsequent milestones.
 
-## Locked v1.0 decisions
+## Approved rules
 
-- One dedicated event Discord server; commands are guild-scoped and guild-checked.
-- Registration automatically opens **168 hours before** configured event start; participants self-declare MR username and city. Late joining remains possible while LIVE.
-- **Individual prizes only.** City standings are for titles and bragging rights.
-- Seven-day / 168-hour main game, with six participating cities.
+- **168 hours (seven days)** of effective play after the host presses START on or after the configured kickoff.
+- Registration automatically opens **168 hours before** the planned kickoff, stays open during the season and does not need routine approval.
+- Players self-declare their **MafiaReturns username and city**; no MR login or password collection.
+- The **six cities** compete for bragging rights; **only individuals receive prizes** in the finished game.
+- Kat and explicitly configured **host user IDs** control start, pause, resume, finalise and scheduling.
+- Optional **staff role IDs** can flag/clear/disqualify claims, but **cannot** control event lifecycle.
+- The game runs **only in the configured dedicated Discord guild**, never in DMs or other guilds.
 
-## Setup in PyCharm / PowerShell
+## Installation on Windows / PyCharm Python 3.13
 
-1. Create your separate Discord server and application at the Discord Developer Portal.
-2. Copy `config.example.toml` to `config.toml`; set `guild_id`, a real `starts_at_utc` in UTC, and `admin_user_ids` (Kat/staff Discord IDs).
-3. Copy `.env.example` to `.env`; set `DISCORD_TOKEN`. Do **not** commit `.env`.
-4. Use Python 3.12 or newer, then install and run:
+1. Open the existing `Operation-Snowfall` project in PyCharm. **Back up `data/snowfall.sqlite3` if you're upgrading a real database.**
+2. Copy `config.example.toml` to `config.toml`, configure your **dedicated server guild ID**, Kat's/hosts' **Discord USER IDs**, optional staff **role IDs**, and a real future UTC start date.
+3. Copy `.env.example` to `.env`, and put your **Discord bot token** there only. Both files are ignored by Git.
+4. In PyCharm's terminal with its venv activated:
 
 ```powershell
-py -3.12 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev]" python-dotenv
+python -m pip install -e ".[dev]"
 python -m pytest -q
 python bot.py
 ```
 
-For Linux/macOS, activate `.venv/bin/activate` and run the same pip/pytest/bot commands.
+To connect the bot to Discord, invite it to your **dedicated server** with `bot` and `applications.commands` scopes, and grant View Channel, Send Messages, Embed Links, and Read Message History in your chosen dashboard channel. No admin privilege and no Message Content intent required.
 
-**Bot permissions:** `bot` and `applications.commands` install scopes, View Channels, Send Messages, Use Application Commands; no Administrator permission required. The bot only registers slash commands in the configured guild. Private responses use ephemeral messages.
+### Bot commands
 
-## Available starter commands
-
-| Command | Starter behavior |
+| Command | What it does |
 |---|---|
-| `/snow dashboard` | Private interactive welcome/dashboard |
-| `/snow join` | City dropdown + MR username self-declaration modal |
-| `/snow profile` | Displays your stored signup |
-| `/snow cities` | Registration counts only (not city competition score) |
-| `/snow rules` | Policy summary |
-| `/snowadmin status` | Private event and registration status |
-| `/snowadmin review` | Staff flag / clear / disqualify with audit reason |
-| `/snowadmin export-registrations` | Private staff CSV (NOT the eventual prize payout file) |
+| `/snow dashboard` | Private event dashboard with persistent buttons |
+| `/snow join` | MR username + six-city self-declaration (registration window checked transactionally) |
+| `/snow profile` | Private registration details |
+| `/snow cities` | Registration counts per city, not prize standings |
+| `/snow rules` | Identity, prizes, event status and fair-play policy |
+| `/snowadmin status` | Staff-only lifecycle, signups and disputes |
+| `/snowadmin review` | Staff flag/clear/disqualify with audit reason and old/new status |
+| `/snowadmin export-registrations` | Staff-only private CSV (not prize payout) |
+| `/snowadmin setup` | **Host only**; schedule a future UTC kickoff before registration opens, confirmation `SETUP` |
+| `/snowadmin start` | **Host only**; start on or after scheduled kickoff, confirmation `START` |
+| `/snowadmin pause` | **Host only**; freeze effective game time, confirmation `PAUSE` |
+| `/snowadmin resume` | **Host only**; resume game time, confirmation `RESUME` |
+| `/snowadmin finalize` | **Host only**; finalize only after 168 effective hours, confirmation `FINALIZE` |
+| `/snowadmin publish-dashboard` | **Host only**; publish/update persistent public dashboard and welcome/rules in a channel |
 
-## Code layout
+**Start is deliberately manual.** At the scheduled kickoff the game enters **READY** until a host calls `/snowadmin start START`; if started late, the full 168-hour play window starts at actual start. During a pause the clock stops, and the end shifts by the paused duration. The stored schedule (including host changes) survives a bot restart; `config.toml` is only used to seed a new season.
+
+### Post-install smoke check
+
+1. Before registration opens, `/snow join` should say registration isn't open.
+2. As a host, `/snowadmin status` shows registration/opening/kickoff, counts, and phase.
+3. `/snowadmin publish-dashboard #your-channel` creates the welcome and rules card. Manually pin it if desired; publishing again updates it, not a second new post.
+4. Restart `python bot.py` and check the public buttons still work.
+5. At or after the planned kickoff, `/snowadmin start START`. Check that `/snowadmin pause PAUSE reason` and `/snowadmin resume RESUME` preserve the projected end. Do this **in a development season only** if the real event hasn't begun.
+6. Confirm a regular player can't run host controls; a staff role can review but not start.
+
+**Never put your token or users' MR passwords in GitHub.** A claim is *not* proof of MR ownership; staff can investigate disputed usernames. Registering in v0.1.1 does not make gameplay available.
+
+## Data migrations and recovery
+
+On startup, SQLite uses WAL and upgrades v0.1.0 databases to **schema version 2** without deleting registrations or existing audits. Migrations are transactional, repeat-safe, and followed by `PRAGMA quick_check`. Back up the DB including any active WAL state before migrating a production deployment. Database file and journal files are ignored by Git. Audit entries include before/after review state and lifecycle changes. Later gameplay needs its own idempotent transaction ledger.
+
+## Project structure
 
 ```text
-Operation_Snowfall_v1.0_Starter/
-├── bot.py
-├── .env.example
-├── config.example.toml
-├── Dockerfile
-├── pyproject.toml
-├── docs/
-│   ├── GAME_DESIGN_SPEC_v1.0_APPROVED.md
-│   ├── DEVELOPMENT_TICKETS.md
-│   ├── DEVELOPMENT_TICKETS.csv
-│   ├── ORGANISER_DECISIONS.md
-│   └── SETUP_AND_RELEASE.md
+Operation-Snowfall/
+├── bot.py                    # entry point
+├── config.example.toml       # safe template; copy locally
 ├── src/snowfall/
-│   ├── app.py, config.py
+│   ├── app.py                 # dedicated-guild command tree + persistent views
+│   ├── config.py              # TOML and environment validation
 │   ├── commands/{public,admin}.py
-│   ├── core/{clock,scoring}.py
-│   ├── db/store.py, db/migrations/
-│   ├── ui/dashboard.py
-│   ├── services/, jobs/, graphics/   # planned modules
-│   └── __main__.py
-├── assets/
-└── tests/{test_clock,test_registration,test_scoring}.py
+│   ├── core/{clock,permissions,scoring}.py
+│   ├── db/store.py            # schema migrations, reviews, lifecycle, publication IDs
+│   └── ui/dashboard.py        # persistent buttons and modal
+├── tests/                    # foundational core tests
+├── docs/RELEASE_v0.1.1.md
+└── docs/DEVELOPMENT_TICKETS.md
 ```
 
-## Technical notes
-
-- DB stored at `data/snowfall.sqlite3` by default; do not commit it. SQLite uses WAL mode and case-normalised MR-name uniqueness per season.
-- No MR credentials, no automatic verification, no external MR integration. The community event is unofficial unless authorised by MafiaReturns.
-- Staff reviews are recorded in an audit table. Future moderation and award processing must use the same auditable workflow.
-- Dashboard uses classic Embed + persistent View as a starter. Full rich Components v2 art cards are a separate tracked milestone; do not combine traditional embed fields with Components v2 messages.
-- Pause/resume logical time and fully transactional gameplay are **not** in this foundation build and must be implemented before the actual event.
-- Discord user IDs and MR usernames are personally identifiable game metadata. Restrict export to staff, set retention policy, and protect DB backups.
+Full roadmap: [`docs/DEVELOPMENT_TICKETS.md`](docs/DEVELOPMENT_TICKETS.md). Next: **Milestone B** combat and score ledger (SNOW-009 to SNOW-013).
