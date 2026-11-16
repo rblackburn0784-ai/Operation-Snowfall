@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "operation-snowfall"
-version = "0.1.4.post1"
+version = "0.1.5"
 description = "Two-channel event broadcasts and five-minute leaderboard refresh"
 requires-python = ">=3.12"
 dependencies = ["discord.py>=2.6,<3", "Pillow>=11,<13", "python-dotenv>=1,<2"]
@@ -14,6 +14,9 @@ dev = ["pytest>=8,<10", "ruff>=0.9,<1", "setuptools>=68"]
 
 [project.scripts]
 snowfall = "snowfall.app:main"
+
+[tool.setuptools.package-data]
+"snowfall.graphics" = ["art/cities/*.webp", "art/items/*.png"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

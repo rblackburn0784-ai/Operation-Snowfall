@@ -20,10 +20,10 @@ SNOW-018,D,P0,Cities,Six daily NPC fort sieges,SNOW-012;SNOW-009,L,Each city get
 SNOW-019,D,P0,Cities,Normalized city leaderboard and snapshots,SNOW-012;SNOW-018,L,"Top-five averages, bonus caps, min-active threshold tested",Implemented v0.1.4 - Discord smoke test pending
 SNOW-020,D,P1,Events,Seven daily themes and idempotent scheduler,SNOW-003;SNOW-015;SNOW-017;SNOW-018,L,One daily rollover; no double rewards after restart,Implemented v0.1.4 - Discord smoke test pending
 SNOW-021,D,P1,UI,Personal and city boards with throttled edits,SNOW-019;SNOW-007,M,Individual prize board separate from city non-prize board,Implemented v0.1.4 - Discord smoke test pending
-SNOW-022,E,P1,Art,Create reusable licensed asset pack and city scenes,SNOW-007,L,Six matched city backgrounds; item art and fallback,Todo
-SNOW-023,E,P1,Graphics,Pillow PNG cards and accessible alt-text,SNOW-022;SNOW-013,L,"Render profile, battle, boss, siege, champions; no state loss on failure",Todo
-SNOW-024,E,P2,Animation,Special hit/boss GIF effects,SNOW-023,M,Static fallback always functional; reasonable file sizes,Todo
-SNOW-025,E,P1,Polish,Mobile layouts and minimal-message navigation,SNOW-021;SNOW-023,M,No chat spam; buttons edit views; screenshot review,Todo
+SNOW-022,E,P1,Art,Create reusable licensed asset pack and city scenes,SNOW-007,L,Six matched city backgrounds; item art and fallback,Implemented in v0.1.5; gateway smoke test pending
+SNOW-023,E,P1,Graphics,Pillow PNG cards and accessible alt-text,SNOW-022;SNOW-013,L,"Render profile, battle, boss, siege, champions; no state loss on failure",Implemented in v0.1.5; gateway smoke test pending
+SNOW-024,E,P2,Animation,Special hit/boss GIF effects,SNOW-023,M,Static fallback always functional; reasonable file sizes,Implemented in v0.1.5; gateway smoke test pending
+SNOW-025,E,P1,Polish,Mobile layouts and minimal-message navigation,SNOW-021;SNOW-023,M,No chat spam; buttons edit views; screenshot review,Implemented in v0.1.5; gateway smoke test pending
 SNOW-026,F,P0,Prizes,Individual-only awards and export,SNOW-012;SNOW-019;SNOW-006,L,Payout CSV excludes city awards; city champ banner remains,Todo
 SNOW-027,F,P0,Integrity,"Admin corrections, fraud review and reconciliations",SNOW-012;SNOW-006,L,Compensating ledger entries and reproducible standings,Todo
 SNOW-028,F,P0,Operations,"Backup, restore, logging and health checks",SNOW-004;SNOW-020,M,Recovery drill and alerts pass,Todo

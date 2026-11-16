@@ -15,6 +15,7 @@ from snowfall.ui.world import send_world, city_board_text, individual_board_text
 from snowfall.ui.combat import ThrowMenu, send_target_menu
 from snowfall.ui.economy import send_inventory, send_quests
 from snowfall.ui.dashboard import CityPicker, Dashboard, dashboard_embed, escape_name, rules_text
+from snowfall.graphics.delivery import send_profile, send_champions
 
 
 def _now() -> datetime:
@@ -81,9 +82,9 @@ class SnowGroup(app_commands.Group):
         except CombatError as exc:
             await interaction.followup.send(str(exc), ephemeral=True)
             return
-        await interaction.followup.send(
-            _profile(p.mr_username, p.city, p.review_state, resources, total),
-            ephemeral=True, allowed_mentions=discord.AllowedMentions.none(),
+        await send_profile(
+            interaction, _profile(p.mr_username, p.city, p.review_state, resources, total),
+            p.mr_username, p.city, resources, total, review=p.review_state,
         )
 
     @app_commands.command(name="ready", description="Enter the arena and allow rival attacks for 36h")
@@ -223,6 +224,21 @@ class SnowGroup(app_commands.Group):
                                        self.settings.season_key, _now())
         await interaction.followup.send(city_board_text(rows), ephemeral=True,
                                         allowed_mentions=discord.AllowedMentions.none())
+
+    @app_commands.command(name="champions", description="View provisional individual podium and honorary city leader")
+    async def champions(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        season = await asyncio.to_thread(self.store.season, self.settings.season_key)
+        player_rows = await asyncio.to_thread(CombatEngine(self.store).leaderboard,
+                                              self.settings.season_key, 10)
+        city_rows = await asyncio.to_thread(WorldEngine(self.store).standings,
+                                            self.settings.season_key, _now())
+        final = season.phase(_now()) in ("closed", "finalized")
+        label = ("Competition complete; awards require staff verification."
+                 if final else "Provisional preview, not an award or prize declaration.")
+        winners = individual_board_text(player_rows[:3]) + "\n\n" + city_board_text(city_rows[:3])
+        await send_champions(interaction, label + "\n" + winners,
+                             player_rows, city_rows, final=final)
 
     @app_commands.command(name="rules", description="Read event rules and identity policy")
     async def rules(self, interaction: discord.Interaction):

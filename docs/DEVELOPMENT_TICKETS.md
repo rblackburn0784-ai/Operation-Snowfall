@@ -1,7 +1,7 @@
 # Development backlog — Operation Snowfall v1.0
 
 **Scope:** full-feature 7-day event; dedicated Discord server, self-declared MR identities, prizes for individuals only.
-**Status:** Milestones A–C implemented in v0.1.1–v0.1.3; **Milestone D SNOW-017–021 and SNOW-032 implemented in v0.1.4** (automated tests; live-server smoke test pending). Remaining SNOW-022–031 are open. Sizes are relative (S/M/L/XL), not delivery promises.
+**Status:** Milestones A–C implemented in v0.1.1–v0.1.3; **Milestone D SNOW-017–021 and SNOW-032 implemented in v0.1.4** (automated tests; live-server smoke test pending). Milestone E SNOW-022–025 implemented in v0.1.5 (live Discord review pending). Milestone F SNOW-026–031 is open. Sizes are relative (S/M/L/XL), not delivery promises.
 **P0:** blocks launch. **P1:** full-feature launch requirement. **P2:** polish if time allows.
 
 ## Milestones / order
@@ -12,7 +12,7 @@
 | B | Snowball Combat — v0.1.2 implemented; Discord smoke test pending | All PvP rules transactionally safe; daily score caps work |
 | C | Economy — v0.1.3 implemented; Discord smoke test pending | Items, crafting, quests and gifts |
 | D | Group gameplay — v0.1.4 implemented; Discord smoke test pending | Boss, sieges, city rankings, late-player echo and seven-day scheduler |
-| E | Presentation | Art, cards, mobile UI and animation fallback |
+| E | Presentation — v0.1.5 implemented (Discord smoke test pending) | Art, cards, mobile UI and animation fallback |
 | F | Launch | Individual prize export, abuse tests, backups, load simulation, Kat approval |
 
 ## Issue list
@@ -172,20 +172,28 @@
 - **Depends on:** SNOW-007
 - **Acceptance:** Six matched city backgrounds; item art and fallback
 
+- **Status:** Implemented in v0.1.5; Discord gateway and mobile screenshot test pending
+
 ### SNOW-023 · Pillow PNG cards and accessible alt-text
 - **Phase:** E · **Priority:** P1 · **Size:** L · **Epic:** Graphics
 - **Depends on:** SNOW-022;SNOW-013
 - **Acceptance:** Render profile, battle, boss, siege, champions; no state loss on failure
+
+- **Status:** Implemented in v0.1.5; Discord gateway and mobile screenshot test pending
 
 ### SNOW-024 · Special hit/boss GIF effects
 - **Phase:** E · **Priority:** P2 · **Size:** M · **Epic:** Animation
 - **Depends on:** SNOW-023
 - **Acceptance:** Static fallback always functional; reasonable file sizes
 
+- **Status:** Implemented in v0.1.5; Discord gateway and mobile screenshot test pending
+
 ### SNOW-025 · Mobile layouts and minimal-message navigation
 - **Phase:** E · **Priority:** P1 · **Size:** M · **Epic:** Polish
 - **Depends on:** SNOW-021;SNOW-023
 - **Acceptance:** No chat spam; buttons edit views; screenshot review
+
+- **Status:** Implemented in v0.1.5; Discord gateway and mobile screenshot test pending
 
 ### SNOW-026 · Individual-only awards and export
 - **Phase:** F · **Priority:** P0 · **Size:** L · **Epic:** Prizes

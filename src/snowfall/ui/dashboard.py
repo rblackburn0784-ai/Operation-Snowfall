@@ -29,7 +29,7 @@ def rules_text() -> str:
         "• **PvP limit:** 300 scored PvP points per player per game day.\n"
         "• **Economy:** Craft cocoa, forts, mittens and bombs; Golden is a rare present.\n"
         "• **Quests:** Three daily objectives (20 points + 2 Snowflakes each); one gift after a claim.\n"
-        "• **Release:** v0.1.4a adds scheduled announcements alongside Snow Don, city sieges, honorary city standings and daily themes; prize exports come later.\n"
+        "• **Release:** v0.1.5 adds snowy city art, battle/boss cards, accessible fallbacks and mobile menus; prize exports come later.\n"
         "This is a fan-community game, not a direct MafiaReturns account integration."
     )
 
@@ -52,7 +52,7 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
         ),
         color=0x78B9EA,
     )
-    embed.set_footer(text="v0.1.4a • Snow Don, city sieges, daily themes, quests and snowball battles.")
+    embed.set_footer(text="v0.1.5 • City scenes, battle cards, boss events and daily challenges.")
     return embed
 
 
@@ -131,6 +131,8 @@ class Dashboard(discord.ui.View):
     @discord.ui.button(label="My Profile", style=discord.ButtonStyle.secondary,
                        custom_id="snowfall:v1:profile")
     async def profile_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        from snowfall.graphics.delivery import send_profile
+        await interaction.response.defer(ephemeral=True)
         p = await asyncio.to_thread(self.store.get_player, self.settings.season_key, interaction.user.id)
         if p:
             from snowfall.services.combat import CombatEngine, CombatError
@@ -145,12 +147,15 @@ class Dashboard(discord.ui.View):
                        f"❄️ {r.snowballs}/12 snowballs • 🌡️ {r.warmth}/100 warmth\n"
                        f"**Day PvP:** {r.today_pvp}/300 • **Total:** {total} points\n"
                        "Use `/snow ready` to enter the arena; `/snow throw` to attack.")
+                await send_profile(interaction, msg, p.mr_username, p.city, r, total,
+                                   review=p.review_state)
+                return
             except CombatError as exc:
                 msg = str(exc)
         else:
             msg = "Not registered. Click Join."
-        await interaction.response.send_message(msg, ephemeral=True,
-                                                allowed_mentions=discord.AllowedMentions.none())
+        await interaction.followup.send(msg, ephemeral=True,
+                                        allowed_mentions=discord.AllowedMentions.none())
 
     @discord.ui.button(label="Rules", style=discord.ButtonStyle.secondary,
                        custom_id="snowfall:v1:rules")
@@ -168,12 +173,13 @@ class Dashboard(discord.ui.View):
     @discord.ui.button(label="Refresh", style=discord.ButtonStyle.secondary,
                        custom_id="snowfall:v1:refresh")
     async def refresh_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
+        # Refresh the existing menu rather than creating another Discord message.
+        await interaction.response.defer()
         now = datetime.now(timezone.utc)
         season = await asyncio.to_thread(self.store.season, self.settings.season_key)
         players = await asyncio.to_thread(self.store.registrations, self.settings.season_key)
-        await interaction.followup.send(embed=dashboard_embed(self.settings, season, now, len(players)),
-                                        ephemeral=True)
+        await interaction.edit_original_response(
+            embed=dashboard_embed(self.settings, season, now, len(players)), view=self)
 
     @discord.ui.button(label="Inventory", emoji="🎒", style=discord.ButtonStyle.secondary,
                        custom_id="snowfall:v1:inventory", row=1)
@@ -202,6 +208,24 @@ class Dashboard(discord.ui.View):
         from snowfall.ui.world import send_world
         await interaction.response.defer(ephemeral=True)
         await send_world(interaction, self.settings, self.store)
+
+    @discord.ui.button(label="Podium", emoji="🥇", style=discord.ButtonStyle.secondary,
+                       custom_id="snowfall:v1:podium", row=2)
+    async def podium_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        from snowfall.graphics.delivery import send_champions
+        from snowfall.services.combat import CombatEngine
+        from snowfall.services.world import WorldEngine
+        await interaction.response.defer(ephemeral=True)
+        now = datetime.now(timezone.utc)
+        season = await asyncio.to_thread(self.store.season, self.settings.season_key)
+        people = await asyncio.to_thread(CombatEngine(self.store).leaderboard,
+                                         self.settings.season_key, 3)
+        cities = await asyncio.to_thread(WorldEngine(self.store).standings,
+                                         self.settings.season_key, now)
+        final = season.phase(now) in ("closed", "finalized")
+        await send_champions(interaction,
+            "Podium preview (staff review required before prizes). "
+            "City standings are honorary only.", people, cities, final=final)
 
     @discord.ui.button(label="City Standings", emoji="🏆", style=discord.ButtonStyle.secondary,
                        custom_id="snowfall:v1:cities", row=2)

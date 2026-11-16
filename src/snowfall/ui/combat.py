@@ -12,6 +12,7 @@ import discord
 
 from snowfall.services.combat import ATTACKS, CombatEngine, CombatError, CombatResult
 from snowfall.ui.dashboard import escape_name
+from snowfall.graphics import cards, delivery
 
 
 def _now():
@@ -64,12 +65,13 @@ class CombatMenu(discord.ui.View):
         if not targets:
             await interaction.response.edit_message(
                 content="No eligible rivals right now. Ask people to `/snow ready`, or return later.",
-                view=None,
+                view=None, embed=None, attachments=[],
             )
             return
         await interaction.response.edit_message(
             content="🎯 **Choose a rival from another city:**",
             view=TargetPicker(self.settings, self.store, interaction.user.id, targets),
+            embed=None, attachments=[],
         )
 
 
@@ -90,6 +92,7 @@ class TargetPicker(CombatMenu):
                         "Select the throw to preview its accuracy and damage:",
                 view=ThrowMenu(settings, store, owner_id, int(selector.values[0]),
                                self.names[selector.values[0]]),
+                embed=None, attachments=[],
             )
 
         selector.callback = chosen
@@ -113,6 +116,7 @@ class ThrowMenu(CombatMenu):
                      "Target eligibility and protection are checked on confirmation."),
             view=ConfirmThrow(self.settings, self.store, self.owner_id,
                               self.target_id, self.name, style),
+            embed=None, attachments=[],
         )
 
     @discord.ui.button(label="Quick Lob · 75%", style=discord.ButtonStyle.success)
@@ -158,9 +162,14 @@ class ConfirmThrow(CombatMenu):
                 ),
             )
             return
-        await interaction.edit_original_response(
-            content=_result_text(result, self.name),
-            view=RetryView(self.settings, self.store, self.owner_id),
+        await delivery.edit_result(
+            interaction, _result_text(result, self.name),
+            RetryView(self.settings, self.store, self.owner_id),
+            lambda: cards.battle_card(result, self.name),
+            alt=(f"{self.style} throw against {self.name}: "
+                 f"{'hit' if result.hit else 'miss'}; "
+                 f"{result.warmth_damage} damage, {result.points_awarded} points"),
+            animate=lambda: cards.hit_animation(result, self.name),
         )
 
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)

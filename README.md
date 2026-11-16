@@ -1,8 +1,32 @@
-# ❄️ Operation Snowfall — v0.1.4a Two-Channel Broadcasts (Milestones A–D)
+# ❄️ Operation Snowfall — v0.1.5 Graphics & Presentation (Milestones A–E)
 
-Kat (MK)'s **unofficial** MafiaReturns Christmas event for **one dedicated Discord server**. This release implements Milestones A (registration/admin), B (transactional combat), C (inventory/quests/gifts), and **D (daily Snow Don boss, six independent city sieges, normalized city standings and themed challenges)**. No MR credentials or API integration; **individual prizes only**, city competition is honorary.
+Kat (MK)'s **unofficial** MafiaReturns Christmas event for **one dedicated Discord server**. This release implements Milestones A (registration/admin), B (transactional combat), C (inventory/quests/gifts), D (daily Snow Don, sieges and city standings), and **E (illustrated cards, GIF effects and mobile-first menus)**. No MR credentials or API integration; **individual prizes only**, city competition is honorary.
 
-## Upgrade to v0.1.4a in PyCharm (Python 3.13)
+## Milestone E — illustrated Discord game screens
+
+Six original 1930s winter city scenes now ship with the Python package, along
+with icons for cocoa, forts, mittens, bombs, golden snowballs, the Snow Don and
+sieges. Profile, PvP, Snow Don, fortress and provisional winners cards render
+locally (960×540) in Pillow. Critical/KO and final-blow events can use small
+480×270 GIF effects, falling back to static PNG and then full text when needed.
+
+- `/snow profile` and dashboard **My Profile** display personal illustrated cards.
+- `/snow throw` shows battle artwork after confirmation; **no artwork affects the RNG**.
+- `/snow world`, `/snow boss`, `/snow siege` show the illustrated battlefield
+  status and attack results.
+- `/snow champions` and dashboard **Podium** show the top three individual
+  competitors and the honorary leading city. Before finalisation, this is
+  **provisional** and cannot issue prizes.
+- Dashboard **Refresh** edits the existing message rather than posting again.
+- Worlds' **Inventory** button navigates within the current private menu.
+
+Grant the bot **Attach Files** and **Embed Links** in addition to its existing
+channel permissions. Text-only fallbacks retain complete stats and action
+results if images fail. The five-minute leaderboard and daily announcements
+remain unchanged. See `docs/RELEASE_v0.1.5.md` and `docs/ASSET_LICENSE.md`.
+
+
+## Upgrade to v0.1.5 in PyCharm (Python 3.13)
 
 1. **Stop the bot** before updating. Back up `data/snowfall.sqlite3` safely after shutdown (or via SQLite's online backup API). Schema remains at **v5**; this release needs no database migration and preserves existing game data and published-message references.
 2. Run:
@@ -25,7 +49,7 @@ python bot.py
    The channels must belong to the configured dedicated event server. Both IDs must be different. Setting an ID to 0 disables that channel's automation. Give the bot **View Channel, Send Messages, Embed Links and Read Message History** permissions in both channels.
 5. **Test with a disposable `season_key` and separate database** before starting the real 168-hour Christmas season. The actual start and completion clock is host-operated; do not use `/snowadmin start` on the real season to test.
 
-## v0.1.4a: automatic leaderboard and announcements
+## v0.1.5: automatic leaderboard and announcements
 
 **#leaderboard — `1571697566842748970`:** The bot automatically creates one combined Discord embed (top 10 individuals, six cities, boss HP, city siege summary), immediately refreshes it when online, and then **edits that same message every five minutes**, including across restarts. Message ID is stored in SQLite. A missing/deleted message is recreated; previously published `individual_board` content in the same channel is reused when possible and the obsolete `city_board` message is retired. An ordinary refresh never posts again.
 
@@ -46,7 +70,7 @@ python bot.py
 | `/snowadmin publish-leaderboards` | Host manually creates/refreshes the **single** combined message in configured `#leaderboard`; background job edits it every 5 minutes |
 | `/snowadmin announce-day` | Host manually creates/updates the current day's existing post in configured `#Announcements` |
 
-The permanent main dashboard includes **Snow Don**, **City Siege** and **City Standings** buttons. Individual NPC interactions stay **ephemeral** and edit one message instead of spamming the channel. PvE and scoreboards have text-only fallbacks; graphic assets arrive in Milestone E.
+The permanent main dashboard includes **Snow Don**, **City Siege** and **City Standings** buttons. Individual NPC interactions stay **ephemeral** and edit one message instead of spamming the channel. PvE, PvP, profiles and podiums now have illustrated cards with complete text-only fallbacks.
 
 All existing `/snow join`, `ready`, `targets`, `throw`, `profile`, `inventory`, `craft`, `use`, `guard`, `quests`, `claim`, `present`, and host lifecycle commands remain available.
 
@@ -88,6 +112,7 @@ The third daily quest now accepts **a boss or siege attempt** as community parti
 - All scored gameplay, shared boss HP, fort HP and ammo changes run in **one `BEGIN IMMEDIATE` SQLite transaction**. `pve_events` are immutable; interaction IDs are idempotent and the same ID cannot perform different NPC actions. Individual rewards are in `score_ledger` and can be reconciled from there.
 - A single persisted daily spawn is created for boss + six forts per game day. The built-in UTC scheduler checks each minute, locks previous days once, publishes optional themed announcements once, and edits existing standings at most once per five minutes. Both restart and late startup reconcile missed day boundaries. Daily NPC state never resets on reconnect.
 - Discord intents are minimal. Public posts should have no role pings; daily theme channels must be within the configured server.
-- **This is not full v1.0 launch-ready:** the actual Discord gateway UI still needs live-server testing; artwork, graphics, final individual prize exports, anti-abuse load simulation, backed-up restore drills, and Kat's dry run are Milestones E and F. An earlier reported **403 Missing Access** requires the bot installation/server permissions to be corrected separately.
+- **This is not full v1.0 launch-ready:** the actual Discord gateway UI still needs live-server testing; individual prize exports, anti-abuse load simulation, backed-up restore drills, and Kat's dry run are Milestone F. An earlier reported **403 Missing Access** requires the bot installation/server permissions to be corrected separately.
 
-See [`docs/RELEASE_v0.1.4a.md`](docs/RELEASE_v0.1.4a.md) and [`docs/RELEASE_v0.1.4.md`](docs/RELEASE_v0.1.4.md), [`docs/DEVELOPMENT_TICKETS.md`](docs/DEVELOPMENT_TICKETS.md), and the approved [`docs/GAME_DESIGN_SPEC_v1.0_APPROVED.md`](docs/GAME_DESIGN_SPEC_v1.0_APPROVED.md).
+See [`docs/RELEASE_v0.1.5.md`](docs/RELEASE_v0.1.5.md) and [`docs/RELEASE_v0.1.4.md`](docs/RELEASE_v0.1.4.md), [`docs/DEVELOPMENT_TICKETS.md`](docs/DEVELOPMENT_TICKETS.md), and the approved [`docs/GAME_DESIGN_SPEC_v1.0_APPROVED.md`](docs/GAME_DESIGN_SPEC_v1.0_APPROVED.md).
+

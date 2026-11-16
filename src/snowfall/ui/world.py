@@ -8,6 +8,7 @@ import discord
 
 from snowfall.services.world import WorldEngine, WorldError, BOSS_LIMIT, SIEGE_LIMIT
 from snowfall.ui.dashboard import escape_name
+from snowfall.graphics import cards, delivery
 
 
 def now():
@@ -78,7 +79,8 @@ class WorldView(discord.ui.View):
         await interaction.response.edit_message(
             content=f'Confirm one **{kind.title()}** attack? Costs 1 snowball, '
                     'uses the shared 30-second cooldown and counts as a legal NPC attempt.',
-            view=WorldConfirm(self.settings, self.store, self.owner_id, kind))
+            view=WorldConfirm(self.settings, self.store, self.owner_id, kind),
+            embed=None, attachments=[])
 
     @discord.ui.button(label='Attack Snow Don', emoji='☃️', style=discord.ButtonStyle.primary)
     async def boss(self, interaction, _):
@@ -88,14 +90,32 @@ class WorldView(discord.ui.View):
     async def siege(self, interaction, _):
         await self._attack(interaction, 'siege')
 
+    @discord.ui.button(label='My Inventory', emoji='🎒', style=discord.ButtonStyle.secondary)
+    async def inventory(self, interaction, _):
+        from snowfall.services.economy import EconomyEngine, EconomyError
+        from snowfall.ui.economy import inventory_text, InventoryMenu
+        await interaction.response.defer()
+        try:
+            data = await asyncio.to_thread(EconomyEngine(self.store).inventory,
+                                           self.settings.season_key, self.owner_id, now())
+            await interaction.edit_original_response(
+                content=inventory_text(data), embed=None, attachments=[],
+                view=InventoryMenu(self.settings, self.store, self.owner_id))
+        except EconomyError as exc:
+            await interaction.edit_original_response(content=f'⚠️ {exc}',
+                                                     embed=None, attachments=[], view=None)
+
     @discord.ui.button(label='Refresh', style=discord.ButtonStyle.secondary)
     async def refresh(self, interaction, _):
         await interaction.response.defer()
         try:
             state = await asyncio.to_thread(WorldEngine(self.store).status,
                                             self.settings.season_key, self.owner_id, now())
-            await interaction.edit_original_response(content=status_text(state),
-                                                     view=WorldView(self.settings,self.store,self.owner_id))
+            await delivery.edit_result(
+                interaction, status_text(state), WorldView(self.settings, self.store, self.owner_id),
+                lambda: cards.world_status_card(state),
+                alt=f"Day {state.day}: Snow Don and {state.city} fortress health",
+            )
         except WorldError as exc:
             await interaction.edit_original_response(content=f'⚠️ {exc}', view=None)
 
@@ -118,27 +138,37 @@ class WorldConfirm(discord.ui.View):
             result = await asyncio.to_thread(WorldEngine(self.store).attack,
                                              self.settings.season_key, self.owner_id,
                                              self.kind, str(interaction.id), now())
-            message = result_text(result)
         except WorldError as exc:
-            message = f'⚠️ {exc} No snowballs were spent.'
-        await interaction.edit_original_response(content=message,
-                                                 view=WorldView(self.settings,self.store,self.owner_id))
+            await interaction.edit_original_response(
+                content=f'⚠️ {exc} No snowballs were spent.',
+                view=WorldView(self.settings, self.store, self.owner_id))
+            return
+        await delivery.edit_result(
+            interaction, result_text(result), WorldView(self.settings, self.store, self.owner_id),
+            lambda: cards.world_result_card(result),
+            alt=(f"{self.kind} attempt: {'hit' if result.hit else 'miss'}, "
+                 f"{result.damage} damage, {result.points} points"),
+            animate=lambda: cards.world_animation(result),
+        )
 
     @discord.ui.button(label='Cancel', style=discord.ButtonStyle.secondary)
     async def cancel(self, interaction, _):
         await interaction.response.defer()
         state = await asyncio.to_thread(WorldEngine(self.store).status,
                                         self.settings.season_key, self.owner_id, now())
-        await interaction.edit_original_response(content=status_text(state),
-                                                 view=WorldView(self.settings,self.store,self.owner_id))
+        await delivery.edit_result(interaction, status_text(state),
+            WorldView(self.settings, self.store, self.owner_id),
+            lambda: cards.world_status_card(state),
+            alt=f"Day {state.day}: Snow Don and {state.city} fortress health")
 
 
 async def send_world(interaction, settings, store):
     try:
         state = await asyncio.to_thread(WorldEngine(store).status,settings.season_key,
                                         interaction.user.id,now())
-        await interaction.followup.send(status_text(state),
-             view=WorldView(settings,store,interaction.user.id),ephemeral=True,
-             allowed_mentions=discord.AllowedMentions.none())
+        await delivery.send_world_status(
+            interaction, status_text(state), state,
+            WorldView(settings, store, interaction.user.id),
+        )
     except WorldError as exc:
         await interaction.followup.send(f'⚠️ {exc}',ephemeral=True)

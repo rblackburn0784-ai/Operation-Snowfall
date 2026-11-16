@@ -1,4 +1,4 @@
-"""Guild-only Discord application entry point for v0.1.4a broadcasts."""
+"""Guild-only Discord application entry point for v0.1.5 graphical presentation."""
 from __future__ import annotations
 
 import logging
