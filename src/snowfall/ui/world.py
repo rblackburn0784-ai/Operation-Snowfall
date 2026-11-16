@@ -64,12 +64,19 @@ def individual_board_text(rows):
     return '\n'.join(text) if rows else text[0] + '\nNo registered competitors yet.'
 
 
+from snowfall.practice import pin, practice_expired
+
+
 class WorldView(discord.ui.View):
     def __init__(self, settings, store, owner_id):
         super().__init__(timeout=180)
-        self.settings, self.store, self.owner_id = settings, store, owner_id
+        self.settings, self.store = pin(settings, store)
+        self.owner_id = owner_id
 
     async def interaction_check(self, interaction):
+        if practice_expired(self.settings, self.store):
+            await interaction.response.send_message("This test day has ended.", ephemeral=True)
+            return False
         if interaction.guild_id != self.settings.guild_id or interaction.user.id != self.owner_id:
             await interaction.response.send_message('This is another player’s private menu.', ephemeral=True)
             return False
@@ -123,9 +130,13 @@ class WorldView(discord.ui.View):
 class WorldConfirm(discord.ui.View):
     def __init__(self, settings, store, owner_id, kind):
         super().__init__(timeout=120)
-        self.settings,self.store,self.owner_id,self.kind=settings,store,owner_id,kind
+        self.settings, self.store = pin(settings, store)
+        self.owner_id, self.kind = owner_id, kind
 
     async def interaction_check(self, interaction):
+        if practice_expired(self.settings, self.store):
+            await interaction.response.send_message("This test day has ended.", ephemeral=True)
+            return False
         if interaction.guild_id != self.settings.guild_id or interaction.user.id != self.owner_id:
             await interaction.response.send_message('Not your attack confirmation.', ephemeral=True)
             return False

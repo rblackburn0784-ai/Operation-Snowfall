@@ -57,15 +57,22 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
     return embed
 
 
+from snowfall.practice import pin, practice_expired
+
+
 class JoinModal(discord.ui.Modal, title="Operation Snowfall — Register"):
     mr_username = discord.ui.TextInput(label="MafiaReturns username", min_length=2, max_length=32)
     declaration = discord.ui.TextInput(label="Type I AGREE to self-declare", min_length=7, max_length=7)
 
     def __init__(self, settings, store, city: str):
         super().__init__(timeout=180)
-        self.settings, self.store, self.city = settings, store, city
+        self.settings, self.store = pin(settings, store)
+        self.city = city
 
     async def on_submit(self, interaction: discord.Interaction) -> None:
+        if practice_expired(self.settings, self.store):
+            await interaction.response.send_message("This test day has ended.", ephemeral=True)
+            return
         if not permitted_guild(interaction.guild_id, self.settings.guild_id):
             await interaction.response.send_message("Wrong event server.", ephemeral=True)
             return
@@ -90,11 +97,15 @@ class JoinModal(discord.ui.Modal, title="Operation Snowfall — Register"):
 class CityPicker(discord.ui.View):
     def __init__(self, settings, store):
         super().__init__(timeout=180)
+        settings, store = pin(settings, store)
         picker = discord.ui.Select(
             placeholder="Choose your MafiaReturns city",
             options=[discord.SelectOption(label=c, value=c) for c in CITIES])
 
         async def selected(interaction: discord.Interaction):
+            if practice_expired(settings, store):
+                await interaction.response.send_message("This test day has ended.", ephemeral=True)
+                return
             if not permitted_guild(interaction.guild_id, settings.guild_id):
                 await interaction.response.send_message("Wrong event server.", ephemeral=True)
                 return
@@ -110,10 +121,27 @@ class CityPicker(discord.ui.View):
 
 class Dashboard(discord.ui.View):
     def __init__(self, settings, store):
-        super().__init__(timeout=None)
+        settings, store = pin(settings, store)
+        super().__init__(timeout=900 if settings.mode == "practice" else None)
         self.settings, self.store = settings, store
+        if settings.mode == "practice":
+            # Do not reuse IDs of persistent production buttons in test messages.
+            for i, child in enumerate(self.children):
+                if getattr(child, "custom_id", None):
+                    child.custom_id = f"snowfall:rehearsal:{settings.session_id[:12]}:{i}"
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if practice_expired(self.settings, self.store):
+            await interaction.response.send_message("This test day has ended.", ephemeral=True)
+            return False
+        manager = getattr(interaction.client, "practice", None)
+        current = manager.session if manager is not None else None
+        if (self.settings.mode == "production" and current is not None and
+                interaction.channel_id == current.channel_id):
+            await interaction.response.send_message(
+                "This is the production dashboard. Use `/snow dashboard` for the TEST day.",
+                ephemeral=True)
+            return False
         if not permitted_guild(interaction.guild_id, self.settings.guild_id):
             await interaction.response.send_message("Wrong event server.", ephemeral=True)
             return False

@@ -252,7 +252,7 @@
 - SNOW-029: Implemented (seven-day disposable simulation, concurrency/migration tests; live server dry run pending).
 - SNOW-030: Launch tooling ready, **Kat sign-off outstanding**; completion requires her approval and event-server rehearsal.
 - SNOW-031: Implemented (privacy/fair-play text and `/snow privacy`; retention date must still be published by Kat).
-- Extra: `python bot.py --test` / `/snowadmin test-stop STOP_TEST` uses separate test token, server and SQLite state.
+- Extra v0.1.6a: host-selectable Day 1–7 practice within the same Discord application, with channel-scoped disposable database, optional verified archive and in-app start/stop commands.
 
 ## Definition of done
 
@@ -260,4 +260,4 @@ A feature is complete only when it has deterministic automated tests, staff-faci
 
 ## Recommended first development sprint
 
-Milestones A–F have code and regression tests. Use `docs/TEST_MODE_v0.1.6.md` to rehearse in a separate Discord test server. Obtain Kat approval and complete all live launch checks before starting the actual season.
+Milestones A–F have code and regression tests. Use `docs/TEST_MODE_v0.1.6a.md` to rehearse in a dedicated test channel within the existing Discord server. Obtain Kat approval and complete all live launch checks before starting the actual season.

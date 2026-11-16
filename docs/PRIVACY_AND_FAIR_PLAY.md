@@ -9,7 +9,7 @@ This is an unofficial **MafiaReturns community** game. Discord membership is not
 - organiser audit entries and reasons for identity/score disputes;
 - prize fulfilment notes (individual awards only).
 
-The public boards show declared MR names, city affiliation and scores. Only staff/hosts can invoke exports, audits and correction tools. A separate TEST server and test database contain demonstration-only records.
+The public boards show declared MR names, city affiliation and scores. Only staff/hosts can invoke exports, audits and correction tools. A TEST channel in the same server uses a separate disposable SQLite database and test-only scores.
 
 ## Identity disputes and moderation
 
@@ -29,4 +29,4 @@ Prizes are for **individual players only**. City standings are for titles and br
 
 ## Test environment
 
-**TEST / NO PRIZES** in the separate test server does not constitute an official event or award. Staff should never copy real user records from production into the test database.
+**TEST / NO PRIZES** in the designated testing channel is not an official event or award. Test participants self-declare in the disposable session; switching days retains test-only registrations. Ending a test deletes all temporary records by default, or a host may retain a private local archive for debugging, subject to the same privacy and retention obligations. No production participant data is copied into practice.

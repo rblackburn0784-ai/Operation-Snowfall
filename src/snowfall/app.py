@@ -1,4 +1,4 @@
-"""Dedicated guild Discord app with isolated production and TEST launch modes."""
+"""One Discord application with channel-scoped, disposable test-day sessions."""
 from __future__ import annotations
 
 import logging
@@ -19,6 +19,7 @@ from snowfall.ui.dashboard import Dashboard
 from snowfall.services.world import WorldEngine
 from snowfall.ui.broadcast import BroadcastPublisher
 from snowfall.ops import backup_sqlite, restore_sqlite
+from snowfall.practice import PracticeManager, ScopedSettings, ScopedStore
 
 log = logging.getLogger(__name__)
 
@@ -38,13 +39,16 @@ class SnowfallBot(discord.Client):
         super().__init__(intents=intents, allowed_mentions=discord.AllowedMentions.none())
         self.settings = settings
         self.store = store
+        self.practice = PracticeManager(settings, store)
+        self.practice.clean_orphans()
         self.tree = GuildCommandTree(self)
         self.broadcast = BroadcastPublisher(self, settings, store)
 
     async def setup_hook(self):
         guild = discord.Object(id=self.settings.guild_id)
-        self.tree.add_command(SnowGroup(self.settings, self.store), guild=guild)
-        self.tree.add_command(SnowAdminGroup(self.settings, self.store), guild=guild)
+        routes = (ScopedSettings(self.practice), ScopedStore(self.practice))
+        self.tree.add_command(SnowGroup(*routes, practice=self.practice), guild=guild)
+        self.tree.add_command(SnowAdminGroup(*routes, practice=self.practice), guild=guild)
         # All buttons must have fixed custom_ids and timeout=None so old messages work.
         self.add_view(Dashboard(self.settings, self.store))
         try:
@@ -109,19 +113,22 @@ class SnowfallBot(discord.Client):
 def main(argv: list[str] | None = None):
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    parser = argparse.ArgumentParser(description="Operation Snowfall v0.1.6")
-    parser.add_argument("--test", action="store_true", help="Use separate bot, guild and test DB")
+    parser = argparse.ArgumentParser(description="Operation Snowfall v0.1.6a")
+    parser.add_argument("--test", action="store_true", help="Obsolete: use /snowadmin test-start in the main bot")
     parser.add_argument("--backup-now", action="store_true", help="Create a verified backup then exit")
     parser.add_argument("--restore", metavar="BACKUP", help="Offline restore from a verified backup")
     parser.add_argument("--confirm-restore", default="", help="Explicitly type RESTORE")
     parser.add_argument("--simulate", action="store_true", help="Run disposable seven-day simulation")
     args = parser.parse_args(argv)
+    if args.test:
+        parser.error("Separate test applications are obsolete. Run python bot.py, then "
+                     "use /snowadmin test-start in your event server.")
     if args.simulate:
         from snowfall.simulate import run_simulation
         print(run_simulation())
         return
     load_dotenv()
-    settings = load_settings(test_mode=args.test)
+    settings = load_settings()
     if args.restore:
         restored = restore_sqlite(args.restore, settings.database_path,
                                   confirmation=args.confirm_restore)
@@ -143,8 +150,6 @@ def main(argv: list[str] | None = None):
             log.info("Pre-migration v%s backup: %s", old_version, saved)
     store.initialize()
     store.ensure_season(settings.season_key, settings.starts_at_utc)
-    if args.test:
-        log.warning("SANDBOX MODE: separate Discord bot/server/database; no real prizes")
     SnowfallBot(settings, store).run(settings.token, log_handler=None)
 
 

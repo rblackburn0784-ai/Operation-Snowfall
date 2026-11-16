@@ -1,25 +1,37 @@
-## v0.1.6 — RUN / STOP A TEST VERSION (ISOLATED)
+# ❄️ Operation Snowfall — v0.1.6a (Milestones A–F + in-app test days)
 
-**Recommended:** use a SECOND Discord bot and server for the test, never the live event.
-Copy `config.test.example.toml` to `config.test.toml` and add `DISCORD_TEST_TOKEN` to `.env`.
-The test config must have different guild, season, SQLite database, and channel IDs.
+**One Discord bot, one token, one event server.** Kat can rehearse any event day **inside the existing bot**, in a separate `#snowfall-testing` text channel, without changing live registrations, dates, scores, announcements or prizes.
 
 ```powershell
-python bot.py --test
+git pull origin main
+python -m pip install -e ".[dev]"
+python -m pytest -q
+python bot.py
 ```
 
-In the TEST Discord server: `/snowadmin status`, then `/snowadmin start confirmation:START`.
-To **STOP TEST ONLY**: `/snowadmin test-stop confirmation:STOP_TEST`, or Ctrl+C in its terminal.
-`python bot.py --simulate` runs a disposable seven-day dry run (no Discord token required).
+Start a practice day as a host:
 
-**Production:** run `python bot.py` unchanged. The live start now requires `/snowadmin approve-launch`.
-See [dedicated test-mode instructions](docs/TEST_MODE_v0.1.6.md),
-[launch checklist](docs/LAUNCH_CHECKLIST_v0.1.6.md), and
-[v0.1.6 release notes](docs/RELEASE_v0.1.6.md).
+```text
+/snowadmin test-start day:1 channel:#snowfall-testing confirmation:TEST
+```
 
-# ❄️ Operation Snowfall — v0.1.6 (Milestones A–F, pending live sign-off)
+Switch freely between all seven days (test-only items and scores reset; test registrations retained):
 
-Kat (MK)'s **unofficial** MafiaReturns Christmas event for **one dedicated Discord server**. This release implements Milestones A (registration/admin), B (transactional combat), C (inventory/quests/gifts), D (daily Snow Don, sieges and city standings), E (illustrated cards, GIF effects and mobile-first menus), and **F (test server isolation, audited score correction, backups and individual award exports)**. No MR credentials or API integration; **individual prizes only**, city competition is honorary.
+```text
+/snowadmin test-day day:5 confirmation:RESET_TEST_DAY
+```
+
+Stop and **delete** the test data without stopping the bot:
+
+```text
+/snowadmin test-end confirmation:END_TEST archive:false
+```
+
+Or use `archive:true` to keep a verified **test-only** local SQLite archive. `/snowadmin test-status` reports the active day and its bonuses. Practice is available **before** the real event has started. The original `/snow` controls work in the selected test channel; the official five-minute `#leaderboard` and daily `#Announcements` stay unaffected.
+
+**Do not create a second Discord application or token.** The former `python bot.py --test`, `DISCORD_TEST_TOKEN` and `config.test.toml` setup is obsolete. Details: [Test Day Guide](docs/TEST_MODE_v0.1.6a.md) and [Release Notes](docs/RELEASE_v0.1.6a.md).
+
+Kat (MK)'s **unofficial** MafiaReturns Christmas event runs for 168 effective hours. It includes registration, combat, crafting, quests, gifts, boss fights, city sieges, city standings, illustrated cards and individual prize exports. **City titles are honorary, not prize payouts.** Launch still requires Kat's checklist and recorded approval.
 
 ## Milestone E — illustrated Discord game screens
 
@@ -45,9 +57,9 @@ results if images fail. The five-minute leaderboard and daily announcements
 remain unchanged. See `docs/RELEASE_v0.1.5.md` and `docs/ASSET_LICENSE.md`.
 
 
-## Upgrade to v0.1.6 in PyCharm (Python 3.13)
+## Upgrade to v0.1.6a in PyCharm (Python 3.13)
 
-1. **Stop the bot** before updating. Back up `data/snowfall.sqlite3` safely after shutdown (or via SQLite's online backup API). Schema remains at **v5**; this release needs no database migration and preserves existing game data and published-message references.
+1. **Stop the bot** before updating. Back up `data/snowfall.sqlite3` safely after shutdown (or via SQLite's online backup API). Schema remains at **v6**; this update needs no database migration and preserves existing game data and published-message references.
 2. Run:
 
 ```powershell
@@ -66,7 +78,7 @@ python bot.py
    ```
 
    The channels must belong to the configured dedicated event server. Both IDs must be different. Setting an ID to 0 disables that channel's automation. Give the bot **View Channel, Send Messages, Embed Links and Read Message History** permissions in both channels.
-5. **Test with a disposable `season_key` and separate database** before starting the real 168-hour Christmas season. The actual start and completion clock is host-operated; do not use `/snowadmin start` on the real season to test.
+5. **Use `/snowadmin test-start` inside the existing bot** to rehearse Day 1–7 in a separate test channel. Practice manages its own disposable season/database and does not touch the official season. Do not run `/snowadmin start` on the real season to rehearse.
 
 ## v0.1.4a: automatic leaderboard and announcements
 
@@ -131,7 +143,7 @@ The third daily quest now accepts **a boss or siege attempt** as community parti
 - All scored gameplay, shared boss HP, fort HP and ammo changes run in **one `BEGIN IMMEDIATE` SQLite transaction**. `pve_events` are immutable; interaction IDs are idempotent and the same ID cannot perform different NPC actions. Individual rewards are in `score_ledger` and can be reconciled from there.
 - A single persisted daily spawn is created for boss + six forts per game day. The built-in UTC scheduler checks each minute, locks previous days once, publishes optional themed announcements once, and edits existing standings at most once per five minutes. Both restart and late startup reconcile missed day boundaries. Daily NPC state never resets on reconnect.
 - Discord intents are minimal. Public posts should have no role pings; daily theme channels must be within the configured server.
-- **Not yet externally approved for launch:** the actual Discord gateway UI needs live-server testing, an off-site restore drill and Kat's signed dry-run approval. The individual prize exports, backup tooling, isolated test bot and synthetic seven-day simulation are now implemented. The earlier **403 Missing Access** requires the bot installation/server permissions to be corrected separately.
+- **Not yet externally approved for launch:** the actual Discord gateway UI needs live-server testing, an off-site restore drill and Kat's signed dry-run approval. The individual prize exports, backup tooling, in-app isolated test days and synthetic seven-day simulation are now implemented. The earlier **403 Missing Access** requires the bot installation/server permissions to be corrected separately.
 
 See [`docs/RELEASE_v0.1.5.md`](docs/RELEASE_v0.1.5.md) and [`docs/RELEASE_v0.1.4.md`](docs/RELEASE_v0.1.4.md), [`docs/DEVELOPMENT_TICKETS.md`](docs/DEVELOPMENT_TICKETS.md), and the approved [`docs/GAME_DESIGN_SPEC_v1.0_APPROVED.md`](docs/GAME_DESIGN_SPEC_v1.0_APPROVED.md).
 

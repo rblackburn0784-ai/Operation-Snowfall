@@ -5,6 +5,7 @@ import asyncio
 import csv
 from datetime import datetime, timezone
 import io
+import sqlite3
 
 import discord
 from discord import app_commands
@@ -13,6 +14,9 @@ from snowfall.core.permissions import is_host, is_staff, permitted_guild
 from snowfall.db.store import LifecycleError, RegistrationError
 from snowfall.ui.dashboard import Dashboard, dashboard_embed, rules_text
 from snowfall.services.world import WorldEngine, WorldError
+from snowfall.practice import PracticeError
+from snowfall.services.broadcast import DAY_DETAILS
+from snowfall.services.world import THEMES
 from snowfall.ops import (
     OperationsError, approve_launch, is_approved, check_health, backup_sqlite,
     adjust_personal_score, reconcile, capture_final_awards, mark_prize, award_csv,
@@ -24,11 +28,13 @@ def _now():
 
 
 class SnowAdminGroup(app_commands.Group):
-    def __init__(self, settings, store):
+    def __init__(self, settings, store, practice=None):
         super().__init__(name="snowadmin", description="Operation Snowfall organisers and staff")
-        self.settings, self.store = settings, store
+        self.settings, self.store, self.practice = settings, store, practice
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if self.practice is not None:
+            self.practice.for_interaction(interaction.channel_id)
         if not permitted_guild(interaction.guild_id, self.settings.guild_id):
             await interaction.response.send_message("Wrong event server.", ephemeral=True)
             return False
@@ -153,6 +159,12 @@ class SnowAdminGroup(app_commands.Group):
         if channel.guild.id != self.settings.guild_id:
             await interaction.response.send_message("Channel must be in the event server.", ephemeral=True)
             return
+        if (self.settings.mode == "practice" and self.practice is not None and
+                self.practice.session is not None and
+                channel.id != self.practice.session.channel_id):
+            await interaction.response.send_message(
+                "Practice dashboards may only be posted in the active TEST channel.", ephemeral=True)
+            return
         await interaction.response.defer(ephemeral=True)
         now = _now()
         season = await asyncio.to_thread(self.store.season, self.settings.season_key)
@@ -256,23 +268,118 @@ class SnowAdminGroup(app_commands.Group):
             "Private staff registration export — **not** a prize list.",
             file=discord.File(blob, filename="snowfall_registrations.csv"), ephemeral=True)
 
-    @app_commands.command(name="test-stop", description="Host: gracefully stop ONLY the test bot")
-    async def test_stop(self, interaction: discord.Interaction, confirmation: str):
+    @app_commands.command(name="test-start", description="Host: start one disposable Day 1–7 rehearsal in a test channel")
+    @app_commands.describe(day="Choose Day 1 to Day 7", channel="Dedicated TEST text channel",
+                           confirmation="Type TEST")
+    async def test_start(self, interaction: discord.Interaction, day: int,
+                         channel: discord.TextChannel, confirmation: str):
         if not await self.require_host(interaction):
             return
-        if not self.settings.is_test:
-            await interaction.response.send_message(
-                "Refused: this is the PRODUCTION bot. Test-stop cannot shut it down.",
-                ephemeral=True)
+        if self.practice is None:
+            await interaction.response.send_message("Test sessions unavailable.", ephemeral=True)
             return
-        if confirmation != "STOP_TEST":
-            await interaction.response.send_message("Type STOP_TEST to shut down the sandbox bot.",
-                                                    ephemeral=True)
+        if confirmation != "TEST" or channel.guild.id != self.settings.guild_id:
+            await interaction.response.send_message("Type TEST and select a channel in this server.", ephemeral=True)
+            return
+        await interaction.response.defer(ephemeral=True)
+        try:
+            session = await asyncio.to_thread(self.practice.start, day, channel.id,
+                                              interaction.user.id, _now())
+            await channel.send(f"🧪 **OPERATION SNOWFALL — TEST DAY {day}/7**\n"
+                               f"**{THEMES[day - 1]}** — {DAY_DETAILS[day - 1][0]}\n"
+                               f"{DAY_DETAILS[day - 1][1]}\n\n"
+                               "**PRACTICE ONLY — NO REAL SCORES OR PRIZES.**\n"
+                               "Use `/snow join`, `/snow ready`, `/snow throw`, `/snow boss`, "
+                               "`/snow siege`, `/snow inventory`, `/snow quests`, "
+                               "`/snow present` and `/snow leaderboard` **in this channel**. "
+                               "The real #leaderboard and #Announcements stay untouched.",
+                               allowed_mentions=discord.AllowedMentions.none())
+        except (PracticeError, ValueError, discord.HTTPException) as exc:
+            # A Discord posting failure should not secretly terminate a started test.
+            await interaction.followup.send(f"⚠️ Test setup: {exc}\n"
+                                            "Use /snowadmin test-status to inspect its state.", ephemeral=True)
+            return
+        await interaction.followup.send(
+            f"✅ **TEST DAY {day}** running in {channel.mention}. "
+            f"Session `{session.id[:8]}`. Stop using `/snowadmin test-end`.", ephemeral=True)
+
+    @app_commands.command(name="test-day", description="Host: reset practice scores and switch to another event day")
+    async def test_day(self, interaction: discord.Interaction, day: int,
+                       confirmation: str):
+        if not await self.require_host(interaction):
+            return
+        if self.practice is None or confirmation != "RESET_TEST_DAY":
+            await interaction.response.send_message("Type RESET_TEST_DAY to discard the previous "
+                                                    "practice day and select Day 1–7.", ephemeral=True)
+            return
+        await interaction.response.defer(ephemeral=True)
+        try:
+            session = await asyncio.to_thread(self.practice.change_day, day,
+                                              interaction.user.id, _now())
+            channel = interaction.client.get_channel(session.channel_id)
+            if channel is not None:
+                await channel.send(f"🧪 **NEW TEST DAY {day}/7 — ALL PREVIOUS TEST SCORES RESET**\n"
+                                   f"**{THEMES[day - 1]}**\n{DAY_DETAILS[day - 1][1]}\n"
+                                   "Use `/snow dashboard` to open new practice controls.",
+                                   allowed_mentions=discord.AllowedMentions.none())
+        except (PracticeError, ValueError, discord.HTTPException) as exc:
+            await interaction.followup.send(f"⚠️ {exc}", ephemeral=True)
+            return
+        await interaction.followup.send(f"✅ Now testing **Day {day}**. "
+                                        "MR registrations were carried over; practice points/items reset.",
+                                        ephemeral=True)
+
+    @app_commands.command(name="test-status", description="Host: show active practice day and its daily bonuses")
+    async def test_status(self, interaction: discord.Interaction):
+        if not await self.require_host(interaction):
+            return
+        state = self.practice.snapshot(_now()) if self.practice else {"active": False}
+        if not state["active"]:
+            await interaction.response.send_message(
+                "No practice session is active. Use `/snowadmin test-start`.", ephemeral=True)
             return
         await interaction.response.send_message(
-            "🧪 Test bot closing. No production event state or awards were touched.",
-            ephemeral=True)
-        await interaction.client.close()
+            f"🧪 **TEST DAY {state['day']}/7 — {state['theme']}**\n"
+            f"Test channel: <#{state['channel_id']}> | Test players: {state['players']}\n"
+            f"**Today's special feature:** {state['bonus']}\n"
+            "All combat, inventory, quest, gift, boss and siege actions in the test channel "
+            "are disposable. Outside it, the production event is unchanged.\n"
+            "`/snowadmin test-day` selects another day and resets practice scores.\n"
+            "`/snowadmin test-end` deletes or archives practice data.", ephemeral=True)
+
+    @app_commands.command(name="test-end", description="Host: stop the test day and delete/archive only practice data")
+    @app_commands.describe(archive="Keep a local SQLite archive for review, otherwise erase test data")
+    async def test_end(self, interaction: discord.Interaction, confirmation: str,
+                       archive: bool = False):
+        if not await self.require_host(interaction):
+            return
+        if confirmation != "END_TEST" or self.practice is None:
+            await interaction.response.send_message("Type END_TEST to finish the practice day. "
+                                                    "Production will be unaffected.", ephemeral=True)
+            return
+        await interaction.response.defer(ephemeral=True)
+        try:
+            old = self.practice.session
+            saved = await asyncio.to_thread(self.practice.end, archive=archive)
+            if old is not None:
+                channel = interaction.client.get_channel(old.channel_id)
+                if channel is not None:
+                    await channel.send("✅ **TEST COMPLETE — PRACTICE DATA "
+                                       + ("ARCHIVED" if saved else "DELETED") + "**\n"
+                                       "Normal production commands remain available. "
+                                       "Old practice menus are disabled.",
+                                       allowed_mentions=discord.AllowedMentions.none())
+        except (PracticeError, OSError, sqlite3.Error, discord.HTTPException) as exc:
+            await interaction.followup.send(f"⚠️ Test end: {exc}", ephemeral=True)
+            return
+        await interaction.followup.send("✅ Practice ended. " +
+                                        (f"Archive: `{saved.name}` (local, not prize data)."
+                                         if saved else "Disposable database erased.") +
+                                        " The LIVE bot remains online and unchanged.", ephemeral=True)
+
+    @app_commands.command(name="test-stop", description="Alias: end a test day (does NOT stop the Discord bot)")
+    async def test_stop(self, interaction: discord.Interaction, confirmation: str):
+        await self.test_end.callback(self, interaction, confirmation, False)
 
     @app_commands.command(name="launch-check", description="Host: inspect launch and data integrity")
     async def launch_check(self, interaction: discord.Interaction):

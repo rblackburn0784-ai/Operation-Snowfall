@@ -4,8 +4,8 @@
 
 - [ ] Python 3.12/3.13 tests and Ruff lint green in GitHub Actions; `python -m pytest -q` locally green.
 - [ ] `python bot.py --simulate` returns `ledger_ok: true`, 7 days and 42 city-day snapshots.
-- [ ] TEST server/bot runs using `python bot.py --test`; host can `/snowadmin start START` and `/snowadmin test-stop STOP_TEST`.
-- [ ] All test commands, UI buttons, role restrictions, cooldowns, item caps and retry protection checked in the TEST server.
+- [ ] Same application: host starts `/snowadmin test-start day:1 channel:#snowfall-testing confirmation:TEST`, can choose Days 1–7 and ends with `/snowadmin test-end confirmation:END_TEST archive:false`.
+- [ ] All test commands, UI buttons, role restrictions, cooldowns, item caps and retry protection checked in the existing server’s TEST channel, including Day 1–7 bonuses and test-data deletion.
 - [ ] SQLite backup made using `/snowadmin backup` (or `python bot.py --backup-now`); SHA256 sidecar verified and off-site copy arranged.
 - [ ] Offline **restore drill** passed with a disposable copy. Do not test restoring over a running production database.
 - [ ] Production Discord guild ID, bot application scopes and permissions confirmed (previous `403 Missing Access` must be resolved); bot has Attach Files in art channels.

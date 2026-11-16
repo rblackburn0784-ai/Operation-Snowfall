@@ -38,12 +38,19 @@ def quests_text(quests) -> str:
     return "\n".join(lines)
 
 
+from snowfall.practice import pin, practice_expired
+
+
 class EconomyView(discord.ui.View):
     def __init__(self, settings, store, owner_id):
         super().__init__(timeout=180)
-        self.settings, self.store, self.owner_id = settings, store, owner_id
+        self.settings, self.store = pin(settings, store)
+        self.owner_id = owner_id
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if practice_expired(self.settings, self.store):
+            await interaction.response.send_message("This test day has ended.", ephemeral=True)
+            return False
         if (interaction.guild_id != self.settings.guild_id or
                 interaction.user.id != self.owner_id):
             await interaction.response.send_message("This is another player's private menu.", ephemeral=True)
@@ -112,6 +119,7 @@ class InventoryMenu(EconomyView):
 class ItemPicker(EconomyView):
     def __init__(self, settings, store, owner_id, operation):
         super().__init__(settings, store, owner_id)
+        settings, store = self.settings, self.store
         self.operation = operation
         options = [discord.SelectOption(label=ITEM_NAMES[k], value=k,
                    description=f"{ITEM_COSTS[k]} Snowflakes" if operation == "craft"

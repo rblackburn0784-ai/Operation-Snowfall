@@ -24,10 +24,11 @@ class Settings:
     leaderboard_channel_id: int = 0
     mode: str = "production"
     backup_dir: Path | None = None
+    session_id: str = ""
 
     @property
     def is_test(self) -> bool:
-        return self.mode == "test"
+        return self.mode in ("test", "practice")
 
 
 def load_settings(config_path: str | Path | None = None, *, test_mode: bool = False) -> Settings:

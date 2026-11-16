@@ -40,15 +40,20 @@ def _result_text(result: CombatResult, target: str) -> str:
             + "\nCooldown: 30s. Your attack was saved safely.")
 
 
+from snowfall.practice import pin, practice_expired
+
+
 class CombatMenu(discord.ui.View):
     """Selection, confirmation and result are edited in the same private message."""
     def __init__(self, settings, store, owner_id: int, timeout=180):
         super().__init__(timeout=timeout)
-        self.settings = settings
-        self.store = store
+        self.settings, self.store = pin(settings, store)
         self.owner_id = owner_id
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if practice_expired(self.settings, self.store):
+            await interaction.response.send_message("This test day has ended.", ephemeral=True)
+            return False
         if interaction.guild_id != self.settings.guild_id or interaction.user.id != self.owner_id:
             await interaction.response.send_message("This is someone else's private snowball menu.", ephemeral=True)
             return False
@@ -78,6 +83,7 @@ class CombatMenu(discord.ui.View):
 class TargetPicker(CombatMenu):
     def __init__(self, settings, store, owner_id: int, targets):
         super().__init__(settings, store, owner_id)
+        settings, store = self.settings, self.store
         self.names = {str(t.discord_user_id): t.mr_username for t in targets}
         options = [discord.SelectOption(
             label=f"{t.mr_username} — {t.city}"[:100],

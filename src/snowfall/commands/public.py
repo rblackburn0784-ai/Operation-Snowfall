@@ -36,11 +36,13 @@ def _profile(name, city, state, resource, total) -> str:
 
 
 class SnowGroup(app_commands.Group):
-    def __init__(self, settings, store):
+    def __init__(self, settings, store, practice=None):
         super().__init__(name="snow", description="Operation Snowfall player commands")
-        self.settings, self.store = settings, store
+        self.settings, self.store, self.practice = settings, store, practice
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if self.practice is not None:
+            self.practice.for_interaction(interaction.channel_id)
         if not permitted_guild(interaction.guild_id, self.settings.guild_id):
             await interaction.response.send_message("Use the dedicated Snowfall event server.", ephemeral=True)
             return False
