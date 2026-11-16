@@ -16,7 +16,7 @@ from snowfall.commands.admin import SnowAdminGroup  # noqa: E402
 from snowfall.db.store import Store  # noqa: E402
 from snowfall.practice import PracticeManager  # noqa: E402
 from snowfall.ui.dashboard import Dashboard, CityPicker  # noqa: E402
-from snowfall.ui.combat import TargetPicker, ThrowMenu, ConfirmThrow, RetryView  # noqa: E402
+from snowfall.ui.combat import ThrowMenu, ConfirmThrow, RetryView  # noqa: E402
 from snowfall.ui.economy import InventoryMenu, ItemPicker, QuestsMenu  # noqa: E402
 from snowfall.ui.world import WorldView, WorldConfirm  # noqa: E402
 from snowfall.ui.navigation import (  # noqa: E402
