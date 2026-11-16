@@ -1,4 +1,4 @@
-"""Transactional SQLite persistence for Operation Snowfall v0.1.4.
+"""Transactional SQLite persistence for Operation Snowfall v0.1.6.
 
 All wall-clock values are UTC ISO strings. Existing v0.1.0 player records
 remain intact when the version-2 schema is migrated.
@@ -16,7 +16,7 @@ import unicodedata
 from snowfall.core.clock import as_utc
 
 CITIES = ("Chicago", "New York", "Detroit", "Philadelphia", "Las Vegas", "Los Angeles")
-DB_VERSION = 5
+DB_VERSION = 6
 
 
 class RegistrationError(ValueError):
@@ -344,6 +344,24 @@ class Store:
                         BEFORE DELETE ON {table} BEGIN
                         SELECT RAISE(ABORT,'immutable group history'); END""")
                 con.execute("PRAGMA user_version=5")
+            if version < 6:
+                con.execute("""CREATE TABLE IF NOT EXISTS launch_approvals (
+                    season_key TEXT PRIMARY KEY, host_id INTEGER NOT NULL,
+                    approved_at_utc TEXT NOT NULL, planned_start_utc TEXT NOT NULL,
+                    reason TEXT NOT NULL
+                )""")
+                con.execute("""CREATE TABLE IF NOT EXISTS prize_awards (
+                    season_key TEXT NOT NULL, place INTEGER NOT NULL CHECK(place BETWEEN 1 AND 10),
+                    discord_user_id INTEGER NOT NULL, mr_username TEXT NOT NULL,
+                    city TEXT NOT NULL, points INTEGER NOT NULL CHECK(points>=0),
+                    reward TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('pending','paid')),
+                    updated_at_utc TEXT,
+                    PRIMARY KEY(season_key,place), UNIQUE(season_key,discord_user_id)
+                )""")
+                con.execute("""CREATE TRIGGER IF NOT EXISTS prize_awards_immutable_delete
+                    BEFORE DELETE ON prize_awards BEGIN
+                    SELECT RAISE(ABORT,'immutable prize history'); END""")
+                con.execute("PRAGMA user_version=6")
         with self.connect() as con:
             result = con.execute("PRAGMA quick_check").fetchone()[0]
             if result != "ok":

@@ -22,14 +22,13 @@ def rules_text() -> str:
         "• **Registration:** Opens 168 hours before scheduled kickoff; late entry is allowed.\n"
         "• **Prizes:** Only individual awards receive prizes. City titles are for bragging rights.\n"
         "• **Fair play:** One MR name per Discord account; impersonation reports go to staff.\n"
-        "• **Privacy:** MR usernames, Discord IDs and city choices are stored; staff can review disputes.\n"
+        "• **Privacy:** Declared names, Discord IDs and scores are stored; see `/snow privacy`.\n"
         "• **Combat:** `/snow ready` opts in to being targeted for 36 effective hours.\n"
         "• **Attacks:** Quick 75% / Standard 60% / Power 40%; 30s cooldown.\n"
         "• **Protection:** Two scoring hits per target/day, 15m anti-camping shield, 30m KO recovery.\n"
         "• **PvP limit:** 300 scored PvP points per player per game day.\n"
         "• **Economy:** Craft cocoa, forts, mittens and bombs; Golden is a rare present.\n"
         "• **Quests:** Three daily objectives (20 points + 2 Snowflakes each); one gift after a claim.\n"
-        "• **Release:** v0.1.5 adds snowy city art, battle/boss cards, accessible fallbacks and mobile menus; prize exports come later.\n"
         "This is a fan-community game, not a direct MafiaReturns account integration."
     )
 
@@ -40,7 +39,8 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
     starts = int(season.planned_start.timestamp())
     ending = season.projected_end(now)
     embed = discord.Embed(
-        title="❄️ Operation Snowfall — Event Headquarters",
+        title=("🧪 Operation Snowfall — TEST ARENA" if settings.is_test else
+               "❄️ Operation Snowfall — Event Headquarters"),
         description=(
             f"**Phase:** {stage.replace('_', ' ').title()}\n"
             f"**Registration:** <t:{opens}:F>\n"
@@ -52,7 +52,8 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
         ),
         color=0x78B9EA,
     )
-    embed.set_footer(text="v0.1.5 • City scenes, battle cards, boss events and daily challenges.")
+    embed.set_footer(text="v0.1.6 • TEST — NO PRIZES" if settings.is_test else
+                     "v0.1.6 • Live event, individual prizes only")
     return embed
 
 

@@ -1,6 +1,25 @@
-# ❄️ Operation Snowfall — v0.1.5 Graphics & Presentation (Milestones A–E)
+## v0.1.6 — RUN / STOP A TEST VERSION (ISOLATED)
 
-Kat (MK)'s **unofficial** MafiaReturns Christmas event for **one dedicated Discord server**. This release implements Milestones A (registration/admin), B (transactional combat), C (inventory/quests/gifts), D (daily Snow Don, sieges and city standings), and **E (illustrated cards, GIF effects and mobile-first menus)**. No MR credentials or API integration; **individual prizes only**, city competition is honorary.
+**Recommended:** use a SECOND Discord bot and server for the test, never the live event.
+Copy `config.test.example.toml` to `config.test.toml` and add `DISCORD_TEST_TOKEN` to `.env`.
+The test config must have different guild, season, SQLite database, and channel IDs.
+
+```powershell
+python bot.py --test
+```
+
+In the TEST Discord server: `/snowadmin status`, then `/snowadmin start confirmation:START`.
+To **STOP TEST ONLY**: `/snowadmin test-stop confirmation:STOP_TEST`, or Ctrl+C in its terminal.
+`python bot.py --simulate` runs a disposable seven-day dry run (no Discord token required).
+
+**Production:** run `python bot.py` unchanged. The live start now requires `/snowadmin approve-launch`.
+See [dedicated test-mode instructions](docs/TEST_MODE_v0.1.6.md),
+[launch checklist](docs/LAUNCH_CHECKLIST_v0.1.6.md), and
+[v0.1.6 release notes](docs/RELEASE_v0.1.6.md).
+
+# ❄️ Operation Snowfall — v0.1.6 (Milestones A–F, pending live sign-off)
+
+Kat (MK)'s **unofficial** MafiaReturns Christmas event for **one dedicated Discord server**. This release implements Milestones A (registration/admin), B (transactional combat), C (inventory/quests/gifts), D (daily Snow Don, sieges and city standings), E (illustrated cards, GIF effects and mobile-first menus), and **F (test server isolation, audited score correction, backups and individual award exports)**. No MR credentials or API integration; **individual prizes only**, city competition is honorary.
 
 ## Milestone E — illustrated Discord game screens
 
@@ -26,7 +45,7 @@ results if images fail. The five-minute leaderboard and daily announcements
 remain unchanged. See `docs/RELEASE_v0.1.5.md` and `docs/ASSET_LICENSE.md`.
 
 
-## Upgrade to v0.1.5 in PyCharm (Python 3.13)
+## Upgrade to v0.1.6 in PyCharm (Python 3.13)
 
 1. **Stop the bot** before updating. Back up `data/snowfall.sqlite3` safely after shutdown (or via SQLite's online backup API). Schema remains at **v5**; this release needs no database migration and preserves existing game data and published-message references.
 2. Run:
@@ -49,7 +68,7 @@ python bot.py
    The channels must belong to the configured dedicated event server. Both IDs must be different. Setting an ID to 0 disables that channel's automation. Give the bot **View Channel, Send Messages, Embed Links and Read Message History** permissions in both channels.
 5. **Test with a disposable `season_key` and separate database** before starting the real 168-hour Christmas season. The actual start and completion clock is host-operated; do not use `/snowadmin start` on the real season to test.
 
-## v0.1.5: automatic leaderboard and announcements
+## v0.1.4a: automatic leaderboard and announcements
 
 **#leaderboard — `1571697566842748970`:** The bot automatically creates one combined Discord embed (top 10 individuals, six cities, boss HP, city siege summary), immediately refreshes it when online, and then **edits that same message every five minutes**, including across restarts. Message ID is stored in SQLite. A missing/deleted message is recreated; previously published `individual_board` content in the same channel is reused when possible and the obsolete `city_board` message is retired. An ordinary refresh never posts again.
 
@@ -112,7 +131,7 @@ The third daily quest now accepts **a boss or siege attempt** as community parti
 - All scored gameplay, shared boss HP, fort HP and ammo changes run in **one `BEGIN IMMEDIATE` SQLite transaction**. `pve_events` are immutable; interaction IDs are idempotent and the same ID cannot perform different NPC actions. Individual rewards are in `score_ledger` and can be reconciled from there.
 - A single persisted daily spawn is created for boss + six forts per game day. The built-in UTC scheduler checks each minute, locks previous days once, publishes optional themed announcements once, and edits existing standings at most once per five minutes. Both restart and late startup reconcile missed day boundaries. Daily NPC state never resets on reconnect.
 - Discord intents are minimal. Public posts should have no role pings; daily theme channels must be within the configured server.
-- **This is not full v1.0 launch-ready:** the actual Discord gateway UI still needs live-server testing; individual prize exports, anti-abuse load simulation, backed-up restore drills, and Kat's dry run are Milestone F. An earlier reported **403 Missing Access** requires the bot installation/server permissions to be corrected separately.
+- **Not yet externally approved for launch:** the actual Discord gateway UI needs live-server testing, an off-site restore drill and Kat's signed dry-run approval. The individual prize exports, backup tooling, isolated test bot and synthetic seven-day simulation are now implemented. The earlier **403 Missing Access** requires the bot installation/server permissions to be corrected separately.
 
 See [`docs/RELEASE_v0.1.5.md`](docs/RELEASE_v0.1.5.md) and [`docs/RELEASE_v0.1.4.md`](docs/RELEASE_v0.1.4.md), [`docs/DEVELOPMENT_TICKETS.md`](docs/DEVELOPMENT_TICKETS.md), and the approved [`docs/GAME_DESIGN_SPEC_v1.0_APPROVED.md`](docs/GAME_DESIGN_SPEC_v1.0_APPROVED.md).
 

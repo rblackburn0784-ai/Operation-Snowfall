@@ -56,7 +56,7 @@ def credit(db, city, user, amount, day=1):
 
 
 def test_migration_v5_and_day_initialised_once(store):
-    assert store.schema_version() == 5
+    assert store.schema_version() == 6
     first = WorldEngine(store).tick(KEY,START)
     assert first == (1,[1],[])
     assert WorldEngine(store).tick(KEY, START + timedelta(minutes=1)) == (1,[],[])
@@ -294,7 +294,7 @@ def test_restart_schema_and_immutable_pve_records(store):
     shot=attempt(store,1,n=0)
     reopened=Store(store.path)
     reopened.initialize()
-    assert reopened.schema_version()==5
+    assert reopened.schema_version()==6
     assert WorldEngine(reopened).attack(KEY,1,'boss',shot.interaction_id,START).repeated
     with reopened.connect() as c:
         with pytest.raises(sqlite3.IntegrityError,match='immutable'):
@@ -347,7 +347,7 @@ def test_schema_v4_restarts_to_v5_without_rewriting_old_combat(store):
         c.execute('DROP TABLE world_settings')
         c.execute('PRAGMA user_version=4')
     store.initialize()
-    assert store.schema_version()==5
+    assert store.schema_version()==6
     with store.connect() as c:
         after=dict(c.execute("SELECT * FROM combat_events WHERE interaction_id='v4-old-shot'").fetchone())
         assert before==after

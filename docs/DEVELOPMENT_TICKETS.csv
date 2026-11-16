@@ -24,10 +24,10 @@ SNOW-022,E,P1,Art,Create reusable licensed asset pack and city scenes,SNOW-007,L
 SNOW-023,E,P1,Graphics,Pillow PNG cards and accessible alt-text,SNOW-022;SNOW-013,L,"Render profile, battle, boss, siege, champions; no state loss on failure",Implemented in v0.1.5; gateway smoke test pending
 SNOW-024,E,P2,Animation,Special hit/boss GIF effects,SNOW-023,M,Static fallback always functional; reasonable file sizes,Implemented in v0.1.5; gateway smoke test pending
 SNOW-025,E,P1,Polish,Mobile layouts and minimal-message navigation,SNOW-021;SNOW-023,M,No chat spam; buttons edit views; screenshot review,Implemented in v0.1.5; gateway smoke test pending
-SNOW-026,F,P0,Prizes,Individual-only awards and export,SNOW-012;SNOW-019;SNOW-006,L,Payout CSV excludes city awards; city champ banner remains,Todo
-SNOW-027,F,P0,Integrity,"Admin corrections, fraud review and reconciliations",SNOW-012;SNOW-006,L,Compensating ledger entries and reproducible standings,Todo
-SNOW-028,F,P0,Operations,"Backup, restore, logging and health checks",SNOW-004;SNOW-020,M,Recovery drill and alerts pass,Todo
-SNOW-029,F,P0,Quality,"7-day simulation, load and crash regression",SNOW-010;SNOW-017;SNOW-018;SNOW-026,XL,"No scoring duplication, fair city scores, results export stable",Todo
-SNOW-030,F,P0,Launch,"Kat approvals, staff training and dry run",SNOW-028;SNOW-029;SNOW-025,M,Checklist signed; server IDs/date/prizes set; dry-run exported,Todo
-SNOW-031,F,P1,Community,Rules post and privacy/identity dispute policies,SNOW-005;SNOW-006,M,Clear unofficial status; usernames public; disputes and retention explained,Todo
+SNOW-026,F,P0,Prizes,Individual-only awards and export,SNOW-012;SNOW-019;SNOW-006,L,Payout CSV excludes city awards; city champ banner remains,Implemented in v0.1.6; live operator verification pending
+SNOW-027,F,P0,Integrity,"Admin corrections, fraud review and reconciliations",SNOW-012;SNOW-006,L,Compensating ledger entries and reproducible standings,Implemented in v0.1.6; live operator verification pending
+SNOW-028,F,P0,Operations,"Backup, restore, logging and health checks",SNOW-004;SNOW-020,M,Recovery drill and alerts pass,Implemented in v0.1.6; live operator verification pending
+SNOW-029,F,P0,Quality,"7-day simulation, load and crash regression",SNOW-010;SNOW-017;SNOW-018;SNOW-026,XL,"No scoring duplication, fair city scores, results export stable",Implemented in v0.1.6; live operator verification pending
+SNOW-030,F,P0,Launch,"Kat approvals, staff training and dry run",SNOW-028;SNOW-029;SNOW-025,M,Checklist signed; server IDs/date/prizes set; dry-run exported,Tooling implemented in v0.1.6; Kat approval and live dry run pending
+SNOW-031,F,P1,Community,Rules post and privacy/identity dispute policies,SNOW-005;SNOW-006,M,Clear unofficial status; usernames public; disputes and retention explained,Implemented in v0.1.6; live operator verification pending
 SNOW-032,D,P0,Fairness,Protect late time zones from boss exhaustion,SNOW-017,M,Training echoes earn normal capped points without extra shared boss clear,Implemented v0.1.4 - Discord smoke test pending

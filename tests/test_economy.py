@@ -61,7 +61,7 @@ def set_quest_eligible(store, user=1, day=1, quest="community"):
 
 
 def test_version_4_migrated_and_existing_combat_survives(store):
-    assert store.schema_version() == 5
+    assert store.schema_version() == 6
     action = CombatEngine(store, Rng(.1)).throw(KEY, 1, 2, "quick", "base-combat", START)
     assert action.points_awarded >= 8
     store.initialize()
@@ -410,7 +410,7 @@ def test_migration_from_v3_keeps_combat_and_players(tmp_path):
         c.execute("PRAGMA user_version=3")
     store.initialize()
     store.initialize()
-    assert store.schema_version() == 5
+    assert store.schema_version() == 6
     assert CombatEngine(store).ledger_total(KEY, 1) == before
     with store.connect() as c:
         event = c.execute("SELECT city_credit FROM combat_events "

@@ -46,6 +46,19 @@ class SnowGroup(app_commands.Group):
             return False
         return True
 
+    @app_commands.command(name="privacy", description="Read privacy, dispute and data-retention rules")
+    async def privacy(self, interaction: discord.Interaction):
+        await interaction.response.send_message(
+            "**Operation Snowfall — Privacy & Fair Play**\n"
+            "This is an unofficial MR community game. We collect your declared MR username, "
+            "Discord user ID, city, action logs and scores for moderation and rankings. "
+            "Other players can see names, cities and points; only staff can access exports "
+            "and the full audit trail.\n"
+            "You can dispute impersonation and request a data copy or deletion from Kat/staff. "
+            "Data is held through the event and appeal/payout window; see the posted "
+            "retention policy and organiser for the scheduled deletion date. "
+            "No MR passwords or payment data are requested.", ephemeral=True)
+
     @app_commands.command(name="dashboard", description="Open the Snowfall menu")
     async def dashboard(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)

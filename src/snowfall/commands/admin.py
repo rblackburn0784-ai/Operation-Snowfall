@@ -13,6 +13,10 @@ from snowfall.core.permissions import is_host, is_staff, permitted_guild
 from snowfall.db.store import LifecycleError, RegistrationError
 from snowfall.ui.dashboard import Dashboard, dashboard_embed, rules_text
 from snowfall.services.world import WorldEngine, WorldError
+from snowfall.ops import (
+    OperationsError, approve_launch, is_approved, check_health, backup_sqlite,
+    adjust_personal_score, reconcile, capture_final_awards, mark_prize, award_csv,
+)
 
 
 def _now():
@@ -45,6 +49,12 @@ class SnowAdminGroup(app_commands.Group):
                       confirmation: str, reason: str, new_start: datetime | None = None):
         if not await self.require_host(interaction):
             return
+        if action == "start" and not self.settings.is_test:
+            if not await asyncio.to_thread(is_approved, self.store, self.settings.season_key):
+                await interaction.response.send_message(
+                    "Launch not approved. Kat must run `/snowadmin approve-launch` "
+                    "after the checklist before starting production.", ephemeral=True)
+                return
         if confirmation.strip().upper() != action.upper():
             await interaction.response.send_message(
                 f"Not changed. To confirm, enter exactly `{action.upper()}`.", ephemeral=True)
@@ -72,7 +82,8 @@ class SnowAdminGroup(app_commands.Group):
         now = _now()
         projected = season.projected_end(now)
         await interaction.followup.send(
-            f"**{self.settings.event_name}**\n"
+            f"**{self.settings.event_name}**"
+            f" {'🧪 TEST INSTANCE — NO REAL PRIZES' if self.settings.is_test else 'PRODUCTION'}\n"
             f"Phase: **{season.phase(now)}** | Game day: **{season.day(now) or '—'}**\n"
             f"Registration: <t:{int(season.registration_opens().timestamp())}:F>\n"
             f"Scheduled start: <t:{int(season.planned_start.timestamp())}:F>\n"
@@ -244,3 +255,141 @@ class SnowAdminGroup(app_commands.Group):
         await interaction.followup.send(
             "Private staff registration export — **not** a prize list.",
             file=discord.File(blob, filename="snowfall_registrations.csv"), ephemeral=True)
+
+    @app_commands.command(name="test-stop", description="Host: gracefully stop ONLY the test bot")
+    async def test_stop(self, interaction: discord.Interaction, confirmation: str):
+        if not await self.require_host(interaction):
+            return
+        if not self.settings.is_test:
+            await interaction.response.send_message(
+                "Refused: this is the PRODUCTION bot. Test-stop cannot shut it down.",
+                ephemeral=True)
+            return
+        if confirmation != "STOP_TEST":
+            await interaction.response.send_message("Type STOP_TEST to shut down the sandbox bot.",
+                                                    ephemeral=True)
+            return
+        await interaction.response.send_message(
+            "🧪 Test bot closing. No production event state or awards were touched.",
+            ephemeral=True)
+        await interaction.client.close()
+
+    @app_commands.command(name="launch-check", description="Host: inspect launch and data integrity")
+    async def launch_check(self, interaction: discord.Interaction):
+        if not await self.require_host(interaction):
+            return
+        await interaction.response.defer(ephemeral=True)
+        state = await asyncio.to_thread(self.store.season, self.settings.season_key)
+        health = await asyncio.to_thread(check_health, self.store, self.settings.season_key,
+                                         self.settings.backup_dir)
+        checked = await asyncio.to_thread(reconcile, self.store, self.settings.season_key)
+        approved = await asyncio.to_thread(is_approved, self.store, self.settings.season_key)
+        phase = state.phase(_now())
+        await interaction.followup.send(
+            f"**Launch check — {'TEST' if self.settings.is_test else 'PRODUCTION'}**\n"
+            f"Phase: `{phase}` • SQLite `{health['sqlite_check']}` • Schema {health['schema_version']}\n"
+            f"Season: `{self.settings.season_key}` • Participants: {health['players']}\n"
+            f"Ledger check: {'PASS' if checked['ok'] else 'FAIL'} "
+            f"({checked['combat_events']} PvP events)\n"
+            f"Backup: {health['latest_backup'] or 'NONE (create one before launch)'}\n"
+            f"Kat approval: {'YES' if approved else 'NO'}\n"
+            "Live gateway permissions and all seven-day dry-run steps must also be checked.",
+            ephemeral=True)
+
+    @app_commands.command(name="approve-launch", description="Host: record approval after Kat's dry run")
+    async def approve(self, interaction: discord.Interaction, confirmation: str, reason: str):
+        if not await self.require_host(interaction):
+            return
+        if confirmation != "APPROVE":
+            await interaction.response.send_message("Type APPROVE to confirm.", ephemeral=True)
+            return
+        await interaction.response.defer(ephemeral=True)
+        try:
+            await asyncio.to_thread(approve_launch, self.store, self.settings.season_key,
+                                    interaction.user.id, reason, _now())
+        except OperationsError as exc:
+            await interaction.followup.send(f"⚠️ {exc}", ephemeral=True)
+            return
+        await interaction.followup.send("✅ Launch approval recorded and audited. "
+                                        "The host can now start at kickoff.", ephemeral=True)
+
+    @app_commands.command(name="adjust-score", description="Host: append a reasoned score correction")
+    async def adjust_score(self, interaction: discord.Interaction, player: discord.User,
+                           day: int, delta: int, reason: str):
+        if not await self.require_host(interaction):
+            return
+        await interaction.response.defer(ephemeral=True)
+        try:
+            await asyncio.to_thread(adjust_personal_score, self.store, self.settings.season_key,
+                                    interaction.user.id, player.id, day, delta, reason,
+                                    str(interaction.id), _now())
+        except (OperationsError, RegistrationError) as exc:
+            await interaction.followup.send(f"⚠️ {exc}", ephemeral=True)
+            return
+        await interaction.followup.send(
+            f"✅ {delta:+d} points recorded for {player.mention}, day {day}. "
+            "Original scoring rows remain immutable. Audit saved.", ephemeral=True,
+            allowed_mentions=discord.AllowedMentions.none())
+
+    @app_commands.command(name="reconcile", description="Host: check PvP, caps and scoring history")
+    async def check_ledger(self, interaction: discord.Interaction):
+        if not await self.require_host(interaction):
+            return
+        await interaction.response.defer(ephemeral=True)
+        result = await asyncio.to_thread(reconcile, self.store, self.settings.season_key)
+        await interaction.followup.send(
+            f"**Scoring verification: {'PASS' if result['ok'] else 'FAIL'}**\n"
+            f"PvP events: {result['combat_events']} • Ledger entries: {result['ledger_entries']}\n"
+            f"Mismatched events: {result['mismatched_combat_ids']}\n"
+            f"PvP over cap: {result['pvp_over_cap']}\n"
+            f"Quest over cap: {result['quest_over_cap_count']}", ephemeral=True)
+
+    @app_commands.command(name="backup", description="Host: create an immediate verified database backup")
+    async def backup(self, interaction: discord.Interaction):
+        if not await self.require_host(interaction):
+            return
+        await interaction.response.defer(ephemeral=True)
+        try:
+            path = await asyncio.to_thread(backup_sqlite, self.store.path,
+                                           self.settings.backup_dir)
+        except (OperationsError, OSError, RuntimeError) as exc:
+            await interaction.followup.send(f"Backup failed: {exc}", ephemeral=True)
+            return
+        await interaction.followup.send(f"✅ Backup and SHA256 manifest saved: `{path.name}`. "
+                                        "Keep private and off-site copies.", ephemeral=True)
+
+    @app_commands.command(name="export-prizes", description="Host: export finalized individual awards (CSV)")
+    async def export_prizes(self, interaction: discord.Interaction):
+        if not await self.require_host(interaction):
+            return
+        await interaction.response.defer(ephemeral=True)
+        try:
+            rows = await asyncio.to_thread(capture_final_awards, self.store,
+                                           self.settings.season_key, interaction.user.id, _now())
+        except OperationsError as exc:
+            await interaction.followup.send(f"⚠️ {exc}", ephemeral=True)
+            return
+        await interaction.followup.send(
+            "Private **individual-only** award snapshot. No prizes were sent automatically.",
+            file=discord.File(io.BytesIO(award_csv(rows)), filename="snowfall_individual_prizes.csv"),
+            ephemeral=True)
+
+    @app_commands.command(name="prize-status", description="Host: record an individual reward payout")
+    @app_commands.choices(status=[
+        app_commands.Choice(name="Pending", value="pending"),
+        app_commands.Choice(name="Paid (manual MR delivery)", value="paid"),
+    ])
+    async def prize_status(self, interaction: discord.Interaction, place: int, reward: str,
+                           status: app_commands.Choice[str], reason: str):
+        if not await self.require_host(interaction):
+            return
+        await interaction.response.defer(ephemeral=True)
+        try:
+            await asyncio.to_thread(mark_prize, self.store, self.settings.season_key,
+                                    interaction.user.id, place, reward, status.value,
+                                    reason, _now())
+        except OperationsError as exc:
+            await interaction.followup.send(f"⚠️ {exc}", ephemeral=True)
+            return
+        await interaction.followup.send("✅ Individual prize status updated; audit saved. "
+                                        "No MR API payout was attempted.", ephemeral=True)

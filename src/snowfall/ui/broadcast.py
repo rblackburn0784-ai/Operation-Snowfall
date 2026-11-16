@@ -76,7 +76,8 @@ class BroadcastPublisher:
             stage = "Registration opens seven days before kickoff"
         description = (f"{stage} • Phase: **{phase.upper()}**\n"
                        "Individual rankings determine prizes. City standings are honorary only.")
-        embed = discord.Embed(title="❄️ OPERATION SNOWFALL • LEADERBOARD",
+        embed = discord.Embed(title=("🧪 TEST / NO PRIZES • LEADERBOARD" if settings.is_test else
+                                     "❄️ OPERATION SNOWFALL • LEADERBOARD"),
                               description=description, colour=discord.Colour.from_rgb(91, 169, 214),
                               timestamp=now)
         indiv = individual_board_text(players).split("\n", 1)

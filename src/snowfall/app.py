@@ -1,8 +1,9 @@
-"""Guild-only Discord application entry point for v0.1.5 graphical presentation."""
+"""Dedicated guild Discord app with isolated production and TEST launch modes."""
 from __future__ import annotations
 
 import logging
 import asyncio
+import argparse
 from datetime import datetime, timezone
 import discord
 from discord import app_commands
@@ -17,6 +18,7 @@ from snowfall.commands.admin import SnowAdminGroup
 from snowfall.ui.dashboard import Dashboard
 from snowfall.services.world import WorldEngine
 from snowfall.ui.broadcast import BroadcastPublisher
+from snowfall.ops import backup_sqlite, restore_sqlite
 
 log = logging.getLogger(__name__)
 
@@ -55,11 +57,15 @@ class SnowfallBot(discord.Client):
             raise
 
     async def on_ready(self):
-        log.info("Connected as %s in dedicated guild %s", self.user, self.settings.guild_id)
+        log.info("[%s] Connected as %s in guild %s, season %s, database %s",
+                 self.settings.mode.upper(), self.user, self.settings.guild_id,
+                 self.settings.season_key, self.settings.database_path)
         if not self.refresh_world.is_running():
             self.refresh_world.start()
         if not self.refresh_leaderboard.is_running():
             self.refresh_leaderboard.start()
+        if not self.backup_loop.is_running():
+            self.backup_loop.start()
 
     @tasks.loop(minutes=1)
     async def refresh_world(self):
@@ -86,14 +92,59 @@ class SnowfallBot(discord.Client):
         await self.wait_until_ready()
 
 
-def main():
+    @tasks.loop(hours=24)
+    async def backup_loop(self):
+        try:
+            saved = await asyncio.to_thread(backup_sqlite, self.store.path,
+                                             self.settings.backup_dir)
+            log.info("[%s] Daily backup stored: %s", self.settings.mode, saved)
+        except (OSError, RuntimeError, ValueError) as exc:
+            log.exception("Daily SQLite backup failed: %s", exc)
+
+    @backup_loop.before_loop
+    async def before_backup_loop(self):
+        await self.wait_until_ready()
+
+
+def main(argv: list[str] | None = None):
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    parser = argparse.ArgumentParser(description="Operation Snowfall v0.1.6")
+    parser.add_argument("--test", action="store_true", help="Use separate bot, guild and test DB")
+    parser.add_argument("--backup-now", action="store_true", help="Create a verified backup then exit")
+    parser.add_argument("--restore", metavar="BACKUP", help="Offline restore from a verified backup")
+    parser.add_argument("--confirm-restore", default="", help="Explicitly type RESTORE")
+    parser.add_argument("--simulate", action="store_true", help="Run disposable seven-day simulation")
+    args = parser.parse_args(argv)
+    if args.simulate:
+        from snowfall.simulate import run_simulation
+        print(run_simulation())
+        return
     load_dotenv()
-    settings = load_settings()
+    settings = load_settings(test_mode=args.test)
+    if args.restore:
+        restored = restore_sqlite(args.restore, settings.database_path,
+                                  confirmation=args.confirm_restore)
+        print(f"Restored checked database: {restored}")
+        return
     store = Store(settings.database_path)
+    if args.backup_now:
+        # Must run BEFORE migrations to preserve the original schema as-is.
+        print("Backup:", backup_sqlite(settings.database_path, settings.backup_dir))
+        return
+    if store.path.is_file():
+        import sqlite3
+        from contextlib import closing
+        from snowfall.db.store import DB_VERSION
+        with closing(sqlite3.connect(store.path)) as con:
+            old_version = con.execute("PRAGMA user_version").fetchone()[0]
+        if old_version < DB_VERSION:
+            saved = backup_sqlite(store.path, settings.backup_dir)
+            log.info("Pre-migration v%s backup: %s", old_version, saved)
     store.initialize()
     store.ensure_season(settings.season_key, settings.starts_at_utc)
+    if args.test:
+        log.warning("SANDBOX MODE: separate Discord bot/server/database; no real prizes")
     SnowfallBot(settings, store).run(settings.token, log_handler=None)
 
 

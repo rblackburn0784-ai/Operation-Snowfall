@@ -18,3 +18,5 @@ config.toml
 data/
 *.log
 *.sqlite3-journal
+# Test bot config and credentials (never committed)
+config.test.toml

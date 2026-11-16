@@ -1,7 +1,7 @@
 # Development backlog — Operation Snowfall v1.0
 
 **Scope:** full-feature 7-day event; dedicated Discord server, self-declared MR identities, prizes for individuals only.
-**Status:** Milestones A–C implemented in v0.1.1–v0.1.3; **Milestone D SNOW-017–021 and SNOW-032 implemented in v0.1.4** (automated tests; live-server smoke test pending). Milestone E SNOW-022–025 implemented in v0.1.5 (live Discord review pending). Milestone F SNOW-026–031 is open. Sizes are relative (S/M/L/XL), not delivery promises.
+**Status:** Milestones A–C implemented in v0.1.1–v0.1.3; **Milestone D SNOW-017–021 and SNOW-032 implemented in v0.1.4** (automated tests; live-server smoke test pending). Milestone E SNOW-022–025 implemented in v0.1.5 (live Discord review pending). Milestone F tools SNOW-026–031 implemented in v0.1.6; **Kat sign-off, live Discord gateway and off-site recovery drill remain external launch gates**. Sizes are relative (S/M/L/XL), not delivery promises.
 **P0:** blocks launch. **P1:** full-feature launch requirement. **P2:** polish if time allows.
 
 ## Milestones / order
@@ -13,7 +13,7 @@
 | C | Economy — v0.1.3 implemented; Discord smoke test pending | Items, crafting, quests and gifts |
 | D | Group gameplay — v0.1.4 implemented; Discord smoke test pending | Boss, sieges, city rankings, late-player echo and seven-day scheduler |
 | E | Presentation — v0.1.5 implemented (Discord smoke test pending) | Art, cards, mobile UI and animation fallback |
-| F | Launch | Individual prize export, abuse tests, backups, load simulation, Kat approval |
+| F | Launch tooling — v0.1.6; external sign-off pending | Individual prize export, correction audits, backups, simulation; Kat approval and on-server test required |
 
 ## Issue list
 
@@ -200,30 +200,42 @@
 - **Depends on:** SNOW-012;SNOW-019;SNOW-006
 - **Acceptance:** Payout CSV excludes city awards; city champ banner remains
 
+- **Status:** Implemented in v0.1.6; external live checks pending
+
 ### SNOW-027 · Admin corrections, fraud review and reconciliations
 - **Phase:** F · **Priority:** P0 · **Size:** L · **Epic:** Integrity
 - **Depends on:** SNOW-012;SNOW-006
 - **Acceptance:** Compensating ledger entries and reproducible standings
+
+- **Status:** Implemented in v0.1.6; external live checks pending
 
 ### SNOW-028 · Backup, restore, logging and health checks
 - **Phase:** F · **Priority:** P0 · **Size:** M · **Epic:** Operations
 - **Depends on:** SNOW-004;SNOW-020
 - **Acceptance:** Recovery drill and alerts pass
 
+- **Status:** Implemented in v0.1.6; external live checks pending
+
 ### SNOW-029 · 7-day simulation, load and crash regression
 - **Phase:** F · **Priority:** P0 · **Size:** XL · **Epic:** Quality
 - **Depends on:** SNOW-010;SNOW-017;SNOW-018;SNOW-026
 - **Acceptance:** No scoring duplication, fair city scores, results export stable
+
+- **Status:** Implemented in v0.1.6; external live checks pending
 
 ### SNOW-030 · Kat approvals, staff training and dry run
 - **Phase:** F · **Priority:** P0 · **Size:** M · **Epic:** Launch
 - **Depends on:** SNOW-028;SNOW-029;SNOW-025
 - **Acceptance:** Checklist signed; server IDs/date/prizes set; dry-run exported
 
+- **Status:** Launch controls implemented; Kat sign-off and live dry run pending
+
 ### SNOW-031 · Rules post and privacy/identity dispute policies
 - **Phase:** F · **Priority:** P1 · **Size:** M · **Epic:** Community
 - **Depends on:** SNOW-005;SNOW-006
 - **Acceptance:** Clear unofficial status; usernames public; disputes and retention explained
+
+- **Status:** Implemented in v0.1.6; external live checks pending
 
 ### SNOW-032 · Protect late time zones from boss exhaustion
 - **Phase:** D · **Priority:** P0 · **Size:** M · **Epic:** Fairness
@@ -232,10 +244,20 @@
 
 - **Status:** Implemented in v0.1.4; Discord smoke test pending
 
+## Milestone F acceptance status
+
+- SNOW-026: Implemented (individual award CSV requires finalized season, paid/pending audit; prize values remain Kat's decision).
+- SNOW-027: Implemented (append-only adjustments, reconciliation and dispute review; post-finalization corrections refused).
+- SNOW-028: Implemented (online backup + SHA256 sidecar, offline restore and health status; offsite drill pending).
+- SNOW-029: Implemented (seven-day disposable simulation, concurrency/migration tests; live server dry run pending).
+- SNOW-030: Launch tooling ready, **Kat sign-off outstanding**; completion requires her approval and event-server rehearsal.
+- SNOW-031: Implemented (privacy/fair-play text and `/snow privacy`; retention date must still be published by Kat).
+- Extra: `python bot.py --test` / `/snowadmin test-stop STOP_TEST` uses separate test token, server and SQLite state.
+
 ## Definition of done
 
 A feature is complete only when it has deterministic automated tests, staff-facing error states, audit for administrative mutations, no secrets in output, and a restart-safety demonstration where applicable. No city credit/perk prize may be emitted.
 
 ## Recommended first development sprint
 
-Milestones A and B are implemented in v0.1.2. Continue with SNOW-014 through SNOW-016 (inventory, quests and gifts); graphics, boss, siege and prize exports are future milestones. Discord gateway smoke test is required before launch.
+Milestones A–F have code and regression tests. Use `docs/TEST_MODE_v0.1.6.md` to rehearse in a separate Discord test server. Obtain Kat approval and complete all live launch checks before starting the actual season.

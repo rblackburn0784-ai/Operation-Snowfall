@@ -1,0 +1,24 @@
+# Copy to config.test.toml; ignored by git.
+# IMPORTANT: make a SECOND Discord application/bot and a SECOND private server.
+# Put DISCORD_TEST_TOKEN in .env; do NOT re-use DISCORD_TOKEN.
+[discord]
+guild_id = 0
+admin_user_ids = []
+staff_role_ids = []
+leaderboard_channel_id = 0
+announcement_channel_id = 0
+
+[event]
+season_key = "snowfall-sandbox-001"
+name = "Operation Snowfall [TEST - NO PRIZES]"
+# AUTO seeds an immediately startable test season once; it does not reset on restart.
+starts_at_utc = "AUTO"
+duration_days = 7
+registration_open_hours_before = 168
+identity_mode = "self_declaration"
+prize_mode = "individual_only"
+city_championship = "bragging_rights_only"
+
+[storage]
+database_path = "data/test/snowfall-test.sqlite3"
+backup_dir = "data/test/backups"
