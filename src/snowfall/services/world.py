@@ -382,11 +382,11 @@ class WorldEngine:
                 raise WorldError('Daily NPC score cap reached.')
             if kind == 'boss':
                 npc = self._world_day(con, season_key, day)
-                hp, max_hp, npc_key = npc['boss_hp'], npc['boss_initial_hp'], None
+                hp, max_hp = npc['boss_hp'], npc['boss_initial_hp']
             else:
                 npc = con.execute("SELECT * FROM world_sieges WHERE season_key=? AND day=? "
                                   "AND city=?", (season_key, day, player['city'])).fetchone()
-                hp, max_hp, npc_key = npc['hp'], npc['initial_hp'], player['city']
+                hp, max_hp = npc['hp'], npc['initial_hp']
             echo = hp == 0
             roll = self.rng.random()
             if not 0 <= roll < 1:

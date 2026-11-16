@@ -8,10 +8,9 @@ import discord
 from discord import app_commands
 
 from snowfall.core.permissions import permitted_guild
-from snowfall.db.store import CITIES
 from snowfall.services.combat import CombatEngine, CombatError
 from snowfall.services.economy import EconomyEngine, EconomyError, ITEM_NAMES
-from snowfall.services.world import WorldEngine, WorldError
+from snowfall.services.world import WorldEngine
 from snowfall.ui.world import send_world, city_board_text, individual_board_text
 from snowfall.ui.combat import ThrowMenu, send_target_menu
 from snowfall.ui.economy import send_inventory, send_quests

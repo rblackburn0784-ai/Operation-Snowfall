@@ -150,7 +150,9 @@ def test_city_score_five_slot_denominator_bonus_and_minimum(store):
 
 
 def test_city_participation_bonus_capped_at_forty(tmp_path):
-    db=Store(tmp_path/'big.sqlite3');db.initialize();db.ensure_season(KEY,START)
+    db=Store(tmp_path/'big.sqlite3')
+    db.initialize()
+    db.ensure_season(KEY,START)
     for i in range(1,21):
         db.register(KEY,i,f'user_{i}','Chicago',START-timedelta(days=1))
     db.transition(KEY,800,'start',START,'test')
@@ -167,7 +169,8 @@ def test_city_participation_bonus_capped_at_forty(tmp_path):
 
 def test_rollover_freezes_score_day_and_does_not_double_lock(store):
     WorldEngine(store).tick(KEY,START)
-    for user in (1,4,5):credit(store,'Chicago',user,150)
+    for user in (1,4,5):
+        credit(store,'Chicago',user,150)
     score=WorldEngine(store).standings(KEY,START)[0].todays_score_x100
     res=WorldEngine(store).tick(KEY,START+timedelta(days=1))
     assert res[0]==2 and res[1]==[2] and set(res[2])=={1}
@@ -181,11 +184,15 @@ def test_rollover_freezes_score_day_and_does_not_double_lock(store):
 
 
 def test_prior_day_active_count_drives_day_two_boss(tmp_path):
-    db=Store(tmp_path/'active.sqlite3');db.initialize();db.ensure_season(KEY,START)
-    for i in range(1,9):db.register(KEY,i,f'player{i}',CITIES[i%6],START-timedelta(days=1))
+    db=Store(tmp_path/'active.sqlite3')
+    db.initialize()
+    db.ensure_season(KEY,START)
+    for i in range(1,9):
+        db.register(KEY,i,f'player{i}',CITIES[i%6],START-timedelta(days=1))
     db.transition(KEY,800,'start',START,'test')
     WorldEngine(db).tick(KEY,START)
-    for i in range(1,9):credit(db,CITIES[i%6],i,8)
+    for i in range(1,9):
+        credit(db,CITIES[i%6],i,8)
     WorldEngine(db).tick(KEY,START+timedelta(days=1))
     assert snapshot(db,2)['boss_initial_hp']==224
     assert snapshot(db,2)['theme']==THEMES[1]
@@ -274,7 +281,8 @@ def test_seven_days_close_and_snapshot_all(store):
 
 def test_disqualified_or_flagged_players_excluded_from_city_scores(store):
     WorldEngine(store).tick(KEY,START)
-    for i in (1,4,5):credit(store,'Chicago',i,100)
+    for i in (1,4,5):
+        credit(store,'Chicago',i,100)
     assert next(r for r in WorldEngine(store).standings(KEY,START) if r.city=='Chicago').qualifying_today
     store.review(KEY,800,5,'flagged','Duplicate identity allegation',START)
     assert not next(r for r in WorldEngine(store).standings(KEY,START) if r.city=='Chicago').qualifying_today
