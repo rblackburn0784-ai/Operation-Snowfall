@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 
 import discord
 
+from snowfall.practice import pin, practice_expired
+
 from snowfall.core.permissions import permitted_guild
 from snowfall.db.store import CITIES, RegistrationError
 
@@ -55,9 +57,6 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
     embed.set_footer(text="v0.1.6 • TEST — NO PRIZES" if settings.is_test else
                      "v0.1.6 • Live event, individual prizes only")
     return embed
-
-
-from snowfall.practice import pin, practice_expired
 
 
 class JoinModal(discord.ui.Modal, title="Operation Snowfall — Register"):

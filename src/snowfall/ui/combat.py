@@ -10,6 +10,8 @@ from datetime import datetime, timezone
 
 import discord
 
+from snowfall.practice import pin, practice_expired
+
 from snowfall.services.combat import ATTACKS, CombatEngine, CombatError, CombatResult
 from snowfall.ui.dashboard import escape_name
 from snowfall.graphics import cards, delivery
@@ -38,9 +40,6 @@ def _result_text(result: CombatResult, target: str) -> str:
             f"**Your points:** +{result.points_awarded}{bonus}"
             + (f" • Defender +{result.defense_points} defence" if result.defense_points else "")
             + "\nCooldown: 30s. Your attack was saved safely.")
-
-
-from snowfall.practice import pin, practice_expired
 
 
 class CombatMenu(discord.ui.View):

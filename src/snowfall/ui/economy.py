@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 
 import discord
 
+from snowfall.practice import pin, practice_expired
+
 from snowfall.services.economy import (EconomyEngine, EconomyError, ITEM_COSTS,
                                        ITEM_NAMES)
 
@@ -36,9 +38,6 @@ def quests_text(quests) -> str:
         lines.append(f"• **{q.name}:** {q.progress}/{q.target} — {state}")
     lines.append("Community: attempt the Snow Don or city siege. Existing winter preparation also counts.")
     return "\n".join(lines)
-
-
-from snowfall.practice import pin, practice_expired
 
 
 class EconomyView(discord.ui.View):

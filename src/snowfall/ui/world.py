@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 
 import discord
 
+from snowfall.practice import pin, practice_expired
+
 from snowfall.services.world import WorldEngine, WorldError, BOSS_LIMIT, SIEGE_LIMIT
 from snowfall.ui.dashboard import escape_name
 from snowfall.graphics import cards, delivery
@@ -62,9 +64,6 @@ def individual_board_text(rows):
     text.extend(f"**{i}.** {escape_name(name)} ({city}): **{points}** points"
                 for i, (name, city, _user, points) in enumerate(rows, 1))
     return '\n'.join(text) if rows else text[0] + '\nNo registered competitors yet.'
-
-
-from snowfall.practice import pin, practice_expired
 
 
 class WorldView(discord.ui.View):
