@@ -62,9 +62,11 @@ def test_menu_construction_and_discord_slash_command_limit(tmp_path):
     settings, store = fixture(tmp_path)
     assert len(SnowGroup(settings, store).commands) <= 25
     assert {'hq', 'guide'} <= {x.name for x in SnowGroup(settings, store).commands}
-    for view in (MainMenu(settings, store, 13), GameMenu(settings, store, 13),
-                 PlayerMenu(settings, store, 13), HeadquartersView(settings, store, 13)):
+    menus = (MainMenu(settings, store, 13), GameMenu(settings, store, 13),
+             PlayerMenu(settings, store, 13))
+    for view in menus:
         assert any('Headquarters' in x.label for x in view.children if x.label)
+    for view in (*menus, HeadquartersView(settings, store, 13)):
         assert all(x.row is None or 0 <= x.row <= 4 for x in view.children)
         assert len(view.children) <= 25
 

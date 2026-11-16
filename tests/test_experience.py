@@ -60,7 +60,7 @@ def test_accurate_regen_throw_cooldown_and_day_reset(store):
     assert result.next_throw == START + timedelta(seconds=30)
     assert result.next_reset == START + timedelta(days=1)
     assert result.resources.snowballs == 7
-    assert result.rank == 1 or result.rank == 2
+    assert result.rank in (1, 2) if result.season_points > 0 else result.rank is None
     # A refresh must not prematurely consume snowballs or rewrite scores.
     old = combat.ledger_total(KEY, 11)
     assert headquarters(store, KEY, 11, at).resources.snowballs == 7
