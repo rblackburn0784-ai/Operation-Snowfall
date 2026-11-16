@@ -203,3 +203,35 @@ def test_embedded_discord_schedule_is_exactly_five_minutes():
     from snowfall.app import SnowfallBot
     assert SnowfallBot.refresh_leaderboard.minutes == 5.0
     assert SnowfallBot.refresh_world.minutes == 1.0
+
+
+
+def test_boss_personality_milestones_are_once_only_and_restart_safe(tmp_path):
+    async def scenario():
+        store, _, notices, publisher = setup(tmp_path)
+        store.transition(KEY, 900, 'start', START, 'test')
+        WorldEngine(store).tick(KEY, START)
+        await publisher.ensure_announcements(START)
+        assert notices.sends == 1
+        with store.connect() as con:
+            con.execute('''UPDATE world_days SET boss_hp=CAST(boss_initial_hp*75/100 AS INTEGER)
+                WHERE season_key=? AND day=1''', (KEY,))
+        await publisher.ensure_announcements(START + timedelta(seconds=5))
+        assert notices.sends == 2
+        assert '75%' in list(notices.messages.values())[-1].content
+        restarted = BroadcastPublisher(publisher.bot, publisher.settings, store)
+        await restarted.ensure_announcements(START + timedelta(seconds=10))
+        assert notices.sends == 2
+        with store.connect() as con:
+            con.execute('''UPDATE world_days SET boss_hp=CAST(boss_initial_hp/2 AS INTEGER)
+                WHERE season_key=? AND day=1''', (KEY,))
+        await restarted.ensure_announcements(START + timedelta(seconds=20))
+        assert notices.sends == 3
+        assert '50%' in list(notices.messages.values())[-1].content
+        with store.connect() as con:
+            con.execute('''UPDATE world_days SET boss_hp=0
+                WHERE season_key=? AND day=1''', (KEY,))
+        await restarted.ensure_announcements(START + timedelta(seconds=30))
+        assert notices.sends == 4  # Defeat notice, no 25% burst.
+        assert 'DEFEATED' in list(notices.messages.values())[-1].content
+    asyncio.run(scenario())
