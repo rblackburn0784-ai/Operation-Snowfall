@@ -21,8 +21,8 @@ from snowfall.ui.economy import InventoryMenu, ItemPicker, QuestsMenu  # noqa: E
 from snowfall.ui.world import WorldView, WorldConfirm  # noqa: E402
 from snowfall.ui.navigation import (  # noqa: E402
     MainMenu, GameMenu, PlayerMenu, RankingsMenu, HelpMenu,
-    AdminPanel, BroadcastMenu, BroadcastConfirm, TestCentre, TestDaySelect,
-    TestConfirm,
+    AdminPanel, BroadcastMenu, BroadcastConfirm, TestCentre as SnowTestCentre,
+    TestDaySelect as SnowTestDaySelect, TestConfirm as SnowTestConfirm,
 )
 
 
@@ -107,7 +107,7 @@ def test_host_panel_is_private_and_does_not_use_practice_store_for_live_status(t
         host = FakeInteraction(manager)
         assert await panel.interaction_check(host)
         await button(panel, "Test Centre").callback(host)
-        assert isinstance(host.edits[-1]["view"], TestCentre)
+        assert isinstance(host.edits[-1]["view"], SnowTestCentre)
         assert host.edits[-1]["view"].store is store
     asyncio.run(guarded())
     manager.end()
@@ -116,7 +116,7 @@ def test_host_panel_is_private_and_does_not_use_practice_store_for_live_status(t
 def test_test_panel_confirms_day_switch_delete_and_archive_without_live_mutation(tmp_path):
     settings, live, manager = prepare(tmp_path)
     before = live.season(settings.season_key)
-    starting = TestConfirm(settings, live, 77, manager, "start", day=1, channel_id=444)
+    starting = SnowTestConfirm(settings, live, 77, manager, "start", day=1, channel_id=444)
 
     async def play():
         event = FakeInteraction(manager)
@@ -124,19 +124,19 @@ def test_test_panel_confirms_day_switch_delete_and_archive_without_live_mutation
         assert manager.session is not None and manager.session.day == 1
         first = manager.session.store
         assert "TEST Day 1" in event.edits[-1]["content"]
-        switch = TestConfirm(settings, live, 77, manager, "switch", day=7)
+        switch = SnowTestConfirm(settings, live, 77, manager, "switch", day=7)
         await button(switch, "✅ Confirm Test Action").callback(event)
         assert manager.session is not None and manager.session.day == 7
         assert first.active is False
         assert not first.path.exists()
-        stop = TestConfirm(settings, live, 77, manager, "delete")
+        stop = SnowTestConfirm(settings, live, 77, manager, "delete")
         old_path = manager.session.store.path
         await button(stop, "✅ Confirm Test Action").callback(event)
         assert manager.session is None and not old_path.exists()
-        archive_start = TestConfirm(settings, live, 77, manager, "start", day=4,
+        archive_start = SnowTestConfirm(settings, live, 77, manager, "start", day=4,
                                     channel_id=444)
         await button(archive_start, "✅ Confirm Test Action").callback(event)
-        archive = TestConfirm(settings, live, 77, manager, "archive")
+        archive = SnowTestConfirm(settings, live, 77, manager, "archive")
         await button(archive, "✅ Confirm Test Action").callback(event)
         assert manager.session is None
         assert len(list(manager.archive_dir.glob("test-day-4-*.sqlite3"))) == 1
@@ -175,9 +175,9 @@ def test_nested_navigation_and_discord_button_limits(tmp_path):
         Dashboard(settings, store), MainMenu(settings, store, 77), GameMenu(settings, store, 77),
         PlayerMenu(settings, store, 77), RankingsMenu(settings, store, 77),
         HelpMenu(settings, store, 77), AdminPanel(settings, store, 77, manager),
-        TestCentre(settings, store, 77, manager),
-        TestDaySelect(settings, store, 77, manager, "start"),
-        TestConfirm(settings, store, 77, manager, "delete"),
+        SnowTestCentre(settings, store, 77, manager),
+        SnowTestDaySelect(settings, store, 77, manager, "start"),
+        SnowTestConfirm(settings, store, 77, manager, "delete"),
         CityPicker(settings, store, 77),
         ThrowMenu(settings, store, 77, 88, "rival"),
         ConfirmThrow(settings, store, 77, 88, "rival", "power"),

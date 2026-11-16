@@ -98,21 +98,6 @@ class WorldView(discord.ui.View):
     async def siege(self, interaction, _):
         await self._attack(interaction, 'siege')
 
-    @discord.ui.button(label='My Inventory', emoji='🎒', style=discord.ButtonStyle.secondary)
-    async def inventory(self, interaction, _):
-        from snowfall.services.economy import EconomyEngine, EconomyError
-        from snowfall.ui.economy import inventory_text, InventoryMenu
-        await interaction.response.defer()
-        try:
-            data = await asyncio.to_thread(EconomyEngine(self.store).inventory,
-                                           self.settings.season_key, self.owner_id, now())
-            await interaction.edit_original_response(
-                content=inventory_text(data), embed=None, attachments=[],
-                view=InventoryMenu(self.settings, self.store, self.owner_id))
-        except EconomyError as exc:
-            await interaction.edit_original_response(content=f'⚠️ {exc}',
-                                                     embed=None, attachments=[], view=None)
-
     @discord.ui.button(label='Refresh', style=discord.ButtonStyle.secondary)
     async def refresh(self, interaction, _):
         await interaction.response.defer()
