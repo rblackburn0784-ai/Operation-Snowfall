@@ -1,4 +1,4 @@
-"""Transactional SQLite persistence for Operation Snowfall v0.1.2.
+"""Transactional SQLite persistence for Operation Snowfall v0.1.3.
 
 All wall-clock values are UTC ISO strings. Existing v0.1.0 player records
 remain intact when the version-2 schema is migrated.
@@ -16,7 +16,7 @@ import unicodedata
 from snowfall.core.clock import as_utc
 
 CITIES = ("Chicago", "New York", "Detroit", "Philadelphia", "Las Vegas", "Los Angeles")
-DB_VERSION = 3
+DB_VERSION = 4
 
 
 class RegistrationError(ValueError):
@@ -227,6 +227,72 @@ class Store:
                         BEFORE DELETE ON {table} BEGIN
                         SELECT RAISE(ABORT, 'immutable combat history'); END""")
                 con.execute("PRAGMA user_version=3")
+            if version < 4:
+                con.execute("""CREATE TABLE IF NOT EXISTS player_economy (
+                    season_key TEXT NOT NULL, discord_user_id INTEGER NOT NULL,
+                    guard_until TEXT, guard_last_started_at TEXT,
+                    mittens_armed INTEGER NOT NULL DEFAULT 0 CHECK(mittens_armed IN (0,1)),
+                    bomb_armed INTEGER NOT NULL DEFAULT 0 CHECK(bomb_armed IN (0,1)),
+                    golden_awarded INTEGER NOT NULL DEFAULT 0 CHECK(golden_awarded BETWEEN 0 AND 1),
+                    PRIMARY KEY(season_key,discord_user_id),
+                    FOREIGN KEY(season_key,discord_user_id)
+                        REFERENCES players(season_key,discord_user_id)
+                )""")
+                con.execute("""CREATE TABLE IF NOT EXISTS player_inventory (
+                    season_key TEXT NOT NULL, discord_user_id INTEGER NOT NULL,
+                    item_key TEXT NOT NULL, quantity INTEGER NOT NULL DEFAULT 0
+                        CHECK(quantity BETWEEN 0 AND 3),
+                    PRIMARY KEY(season_key,discord_user_id,item_key),
+                    FOREIGN KEY(season_key,discord_user_id)
+                        REFERENCES players(season_key,discord_user_id)
+                )""")
+                con.execute("""CREATE TABLE IF NOT EXISTS item_events (
+                    interaction_id TEXT PRIMARY KEY, season_key TEXT NOT NULL,
+                    discord_user_id INTEGER NOT NULL, day INTEGER NOT NULL CHECK(day BETWEEN 1 AND 7),
+                    operation TEXT NOT NULL, item_key TEXT NOT NULL,
+                    detail TEXT NOT NULL, happened_at_utc TEXT NOT NULL,
+                    effective_at_utc TEXT NOT NULL
+                )""")
+                con.execute("""CREATE TABLE IF NOT EXISTS quest_claims (
+                    season_key TEXT NOT NULL, discord_user_id INTEGER NOT NULL,
+                    day INTEGER NOT NULL CHECK(day BETWEEN 1 AND 7),
+                    quest_key TEXT NOT NULL, points INTEGER NOT NULL DEFAULT 20,
+                    claimed_at_utc TEXT NOT NULL,
+                    PRIMARY KEY(season_key,discord_user_id,day,quest_key)
+                )""")
+                con.execute("""CREATE TABLE IF NOT EXISTS mystery_gifts (
+                    season_key TEXT NOT NULL, discord_user_id INTEGER NOT NULL,
+                    day INTEGER NOT NULL CHECK(day BETWEEN 1 AND 7),
+                    source TEXT NOT NULL CHECK(source IN ('daily','bonus')),
+                    interaction_id TEXT NOT NULL UNIQUE,
+                    reward TEXT NOT NULL, actual_reward TEXT NOT NULL,
+                    roll REAL NOT NULL, amount INTEGER NOT NULL DEFAULT 0,
+                    claimed_at_utc TEXT NOT NULL,
+                    PRIMARY KEY(season_key,discord_user_id,day,source)
+                )""")
+                con.execute("CREATE INDEX IF NOT EXISTS idx_item_events_user_day ON "
+                            "item_events(season_key,discord_user_id,day,operation,item_key)")
+                con.execute("CREATE INDEX IF NOT EXISTS idx_claims_user_day ON "
+                            "quest_claims(season_key,discord_user_id,day)")
+                for table in ("item_events", "quest_claims", "mystery_gifts"):
+                    con.execute(f"""CREATE TRIGGER IF NOT EXISTS {table}_immutable_update
+                        BEFORE UPDATE ON {table} BEGIN
+                        SELECT RAISE(ABORT, 'immutable event history'); END""")
+                    con.execute(f"""CREATE TRIGGER IF NOT EXISTS {table}_immutable_delete
+                        BEFORE DELETE ON {table} BEGIN
+                        SELECT RAISE(ABORT, 'immutable event history'); END""")
+                for column, definition in (
+                    ("modifier_item", "TEXT"), ("guarded", "INTEGER NOT NULL DEFAULT 0"),
+                    ("item_bonus_points", "INTEGER NOT NULL DEFAULT 0"),
+                    ("city_credit", "INTEGER"),
+                ):
+                    cols = {r[1] for r in con.execute("PRAGMA table_info(combat_events)")}
+                    if column not in cols:
+                        con.execute(f"ALTER TABLE combat_events ADD COLUMN {column} {definition}")
+                # Historical v3 combat rows intentionally retain NULL city_credit.
+                # Do not UPDATE immutable combat history; future city aggregation
+                # should use COALESCE(city_credit, points_awarded).
+                con.execute("PRAGMA user_version=4")
         with self.connect() as con:
             result = con.execute("PRAGMA quick_check").fetchone()[0]
             if result != "ok":

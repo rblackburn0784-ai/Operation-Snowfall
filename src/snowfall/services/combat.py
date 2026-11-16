@@ -1,4 +1,4 @@
-"""v0.1.2 PvP engine. One IMMEDIATE SQLite transaction per combat action.
+"""v0.1.3 PvP engine. One IMMEDIATE SQLite transaction per combat action.
 
 All gameplay clocks use effective (pause-adjusted) UTC. Physical timestamps
 are retained for auditing. Injected RNG is reserved for deterministic tests;
@@ -26,7 +26,7 @@ SHIELD_DURATION = timedelta(minutes=15)
 INCOMING_WINDOW = timedelta(minutes=30)
 INACTIVITY_WINDOW = timedelta(hours=36)
 DAILY_PVP_CAP = 300
-ATTACKS = {"quick": (0.75, 8, 8), "standard": (0.60, 14, 12), "power": (0.40, 22, 18)}
+ATTACKS = {"quick": (0.75, 8, 8), "standard": (0.60, 14, 12), "power": (0.40, 22, 18), "golden": (0.80, 25, 25)}
 
 
 class CombatError(ValueError):
@@ -81,6 +81,10 @@ class CombatResult:
     hit_roll: float
     crit_roll: float | None
     repeated: bool = False
+    modifier_item: str | None = None
+    guarded: bool = False
+    item_bonus_points: int = 0
+    city_credit: int = 0
 
 
 def _game_now(season: Season, now: datetime) -> datetime:
@@ -97,6 +101,8 @@ def _row_to_result(row: sqlite3.Row, *, repeated: bool = False) -> CombatResult:
         row["armour_damage"], row["warmth_damage"], bool(row["knocked_out"]),
         row["points_awarded"], row["defense_points"], row["bonus_city"],
         row["bonus_ko"], row["hit_roll"], row["crit_roll"], repeated,
+        row["modifier_item"], bool(row["guarded"]), row["item_bonus_points"],
+        row["city_credit"] if row["city_credit"] is not None else row["points_awarded"],
     )
 
 
@@ -291,7 +297,7 @@ class CombatEngine:
         if not interaction_id or len(interaction_id) > 128:
             raise CombatError("A valid unique Discord interaction ID is required.")
         if style not in ATTACKS:
-            raise CombatError("Choose quick, standard or power.")
+            raise CombatError("Choose quick, standard, power or golden.")
         if attacker_id == target_id:
             raise CombatError("You cannot throw a snowball at yourself.")
         with self.store.connect() as con:
@@ -327,7 +333,18 @@ class CombatEngine:
             if last is not None and game_now - last < THROW_COOLDOWN:
                 remaining = math.ceil((THROW_COOLDOWN - (game_now - last)).total_seconds())
                 raise CombatError(f"Throw cooldown: {remaining} seconds remaining.")
-            if a["snowballs"] < 1:
+            # Inventory initialization never re-grants starter cocoa after first use.
+            from snowfall.services.economy import EconomyEngine
+            economy = EconomyEngine(self.store)
+            attacker_economy = economy._initialize(con, season_key, attacker_id)
+            target_economy = economy._initialize(con, season_key, target_id)
+            if (_parse(attacker_economy["guard_until"]) or game_now) > game_now:
+                raise CombatError("Lower your guard before throwing snowballs.")
+            if attacker_economy["bomb_armed"] and style != "power":
+                raise CombatError("Blizzard Bomb is armed; choose a Power Shot to use it.")
+            if style == "golden" and economy._quantity(con, season_key, attacker_id, "golden") < 1:
+                raise CombatError("You need a Golden Snowball in your inventory.")
+            if a["snowballs"] < 1 and style != "golden":
                 raise CombatError("Out of snowballs. You regenerate one every 20 minutes.")
             before = self._score(con, season_key, attacker_id, day)
             if before >= DAILY_PVP_CAP:
@@ -342,6 +359,18 @@ class CombatEngine:
             # RNG calls run inside the locked transaction so parallel attempts
             # cannot both consume the final snowball or score against stale state.
             chance, damage, base_points = ATTACKS[style]
+            guarded = (_parse(target_economy["guard_until"]) or game_now) > game_now
+            mittens = bool(attacker_economy["mittens_armed"])
+            bomb = bool(attacker_economy["bomb_armed"])
+            chance = max(0.05, min(0.95, chance + (0.10 if mittens else 0)
+                                   - (0.10 if guarded else 0)))
+            if bomb:
+                damage += 7
+            if guarded:
+                damage = max(1, damage - 2)
+            item_bonus = 5 if bomb else 0
+            modifier_item = "golden" if style == "golden" else (
+                "bomb" if bomb else ("mittens" if mittens else None))
             hit_roll = self.rng.random()
             if not 0 <= hit_roll < 1:
                 raise CombatError("RNG provider supplied a value outside [0, 1).")
@@ -374,19 +403,26 @@ class CombatEngine:
                 ).fetchone()[0]
                 if knocked_out and prior_ko < 3:
                     bonus_ko = 10
-                raw_points = base_points + (3 if critical else 0) + bonus_city + bonus_ko
+                raw_points = base_points + item_bonus + (3 if critical else 0) + bonus_city + bonus_ko
                 awarded = min(raw_points, DAILY_PVP_CAP - before)
                 # Under the daily cap truncation, prioritize the base score,
                 # then crit, city and KO bonuses for accurate breakdown.
                 remaining = awarded
                 remaining -= min(base_points, remaining)
+                extra_used = min(item_bonus, remaining)
+                remaining -= extra_used
+                item_bonus = extra_used
                 remaining -= min(3 if critical else 0, remaining)
                 city_used = min(bonus_city, remaining)
                 remaining -= city_used
                 ko_used = min(bonus_ko, remaining)
                 bonus_city, bonus_ko = city_used, ko_used
                 if absorb > 0:
-                    defense_points = min(2, DAILY_PVP_CAP - self._score(con, season_key, target_id, day))
+                    defense_earned = int(con.execute("SELECT COALESCE(SUM(points),0) "
+                        "FROM score_ledger WHERE season_key=? AND player_id=? AND day=? "
+                        "AND category='defense'", (season_key, target_id, day)).fetchone()[0])
+                    defense_points = min(2, max(0, 10 - defense_earned),
+                                         DAILY_PVP_CAP - self._score(con, season_key, target_id, day))
                 # Third scored hit in 30 effective minutes grants a new shield.
                 window_start = game_now - INCOMING_WINDOW
                 if shield_trigger_at is not None:
@@ -400,10 +436,22 @@ class CombatEngine:
                     shield_until = game_now + SHIELD_DURATION
                     shield_trigger_at = game_now
             ko_until = game_now + KO_DURATION if knocked_out else _parse(t["knockout_until"])
-            con.execute("""UPDATE player_resources SET snowballs=snowballs-1,
+            if style == "golden":
+                economy._set_quantity(con, season_key, attacker_id, "golden",
+                                      economy._quantity(con, season_key, attacker_id, "golden") - 1)
+                economy._record(con, f"golden:{interaction_id}", season_key, attacker_id,
+                                day, "use", "golden", "Golden Snowball thrown!",
+                                now, game_now)
+            if mittens or bomb:
+                con.execute("UPDATE player_economy SET mittens_armed=0, bomb_armed=0 "
+                            "WHERE season_key=? AND discord_user_id=?",
+                            (season_key, attacker_id))
+            con.execute("""UPDATE player_resources SET snowballs=snowballs-?,
                 snowball_regen_at=?, last_throw_at=?, last_eligible_action_at=?
                 WHERE season_key=? AND discord_user_id=?""", (
-                _timestamp(game_now) if a["snowballs"] == SNOWBALL_CAP else a["snowball_regen_at"],
+                int(style != "golden"),
+                _timestamp(game_now) if a["snowballs"] == SNOWBALL_CAP and style != "golden"
+                else a["snowball_regen_at"],
                 _timestamp(game_now), _timestamp(game_now) if awarded else a["last_eligible_action_at"],
                 season_key, attacker_id,
             ))
@@ -430,12 +478,15 @@ class CombatEngine:
             con.execute("""INSERT INTO combat_events (interaction_id,season_key,day,
                 attacker_id,target_id,target_city,style,happened_at_utc,effective_at_utc,
                 hit,critical,hit_roll,crit_roll,armour_damage,warmth_damage,knocked_out,
-                points_awarded,bonus_city,bonus_ko,defense_points)
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
+                points_awarded,bonus_city,bonus_ko,defense_points,
+                modifier_item,guarded,item_bonus_points,city_credit)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
                 interaction_id, season_key, day, attacker_id, target_id, target["city"],
                 style, _timestamp(now), _timestamp(game_now), int(hit), int(critical),
                 hit_roll, crit_roll, absorb, warmth_damage, int(knocked_out),
                 awarded, bonus_city, bonus_ko, defense_points,
+                modifier_item, int(guarded), item_bonus if hit else 0,
+                min(10, awarded) if style == "golden" else awarded,
             ))
             if awarded:
                 con.execute("""INSERT INTO score_ledger

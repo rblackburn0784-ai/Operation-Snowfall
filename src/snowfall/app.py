@@ -1,4 +1,4 @@
-"""Guild-only Discord application entry point for v0.1.2 combat."""
+"""Guild-only Discord application entry point for v0.1.3 economy."""
 from __future__ import annotations
 
 import logging
@@ -39,7 +39,14 @@ class SnowfallBot(discord.Client):
         self.tree.add_command(SnowAdminGroup(self.settings, self.store), guild=guild)
         # All buttons must have fixed custom_ids and timeout=None so old messages work.
         self.add_view(Dashboard(self.settings, self.store))
-        await self.tree.sync(guild=guild)
+        try:
+            await self.tree.sync(guild=guild)
+        except discord.Forbidden:
+            log.error("Discord refused slash-command sync (403 Missing Access) for guild %s. "
+                      "Confirm config.toml guild_id is the exact event server ID, "
+                      "and that the token's application is installed in that guild "
+                      "with bot + applications.commands scopes.", self.settings.guild_id)
+            raise
 
     async def on_ready(self):
         log.info("Connected as %s in dedicated guild %s", self.user, self.settings.guild_id)

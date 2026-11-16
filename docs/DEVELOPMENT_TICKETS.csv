@@ -12,9 +12,9 @@ SNOW-010,B,P0,Combat,"Transactional PvP, hit/critical RNG and cooldown",SNOW-009
 SNOW-011,B,P0,Safety,Target selection and shields/KO protection,SNOW-010,L,2 scoring hits per pair/day; passive shield and 36h inactivity rules,Implemented v0.1.2 - Discord smoke test pending
 SNOW-012,B,P0,Scoring,"Immutable ledger, daily caps and tie breakers",SNOW-010,L,Scores reconcile; PvP cap 300/day; no score duplicates,Implemented v0.1.2 - Discord smoke test pending
 SNOW-013,B,P1,UI,"Throw selection, confirmation and result view",SNOW-010;SNOW-007,L,"Buttons, slash path share engine; result fallback as text",Implemented v0.1.2 - Discord smoke test pending
-SNOW-014,C,P1,Items,"Inventory, crafting, buffs and guard",SNOW-009;SNOW-010,L,"Costs, usage caps, expiry and guards tested",Todo
-SNOW-015,C,P1,Quests,Three deterministic daily quests and claim logic,SNOW-012,L,"3 x 20 points/day, no duplicate claims",Todo
-SNOW-016,C,P1,Gifts,Daily mystery gifts and Golden Snowball rarity,SNOW-014;SNOW-015,M,"One gift/day and seasonal golden limit, reward odds validated",Todo
+SNOW-014,C,P1,Items,"Inventory, crafting, buffs and guard",SNOW-009;SNOW-010,L,"Costs, usage caps, expiry and guards tested",Implemented v0.1.3 - Discord smoke test pending
+SNOW-015,C,P1,Quests,Three deterministic daily quests and claim logic,SNOW-012,L,"3 x 20 points/day, no duplicate claims",Implemented v0.1.3 - Discord smoke test pending
+SNOW-016,C,P1,Gifts,Daily mystery gifts and Golden Snowball rarity,SNOW-014;SNOW-015,M,"One gift/day and seasonal golden limit, reward odds validated",Implemented v0.1.3 - Discord smoke test pending
 SNOW-017,D,P0,PvE,Daily Snow Don boss with echo fallback,SNOW-012;SNOW-009,L,"6 scored attempts/day; reliable HP, capped awards",Todo
 SNOW-018,D,P0,Cities,Six daily NPC fort sieges,SNOW-012;SNOW-009,L,Each city gets its own fortress; 4 scored throws/player/day,Todo
 SNOW-019,D,P0,Cities,Normalized city leaderboard and snapshots,SNOW-012;SNOW-018,L,"Top-five averages, bonus caps, min-active threshold tested",Todo

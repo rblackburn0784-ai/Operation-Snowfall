@@ -1,7 +1,7 @@
 # Development backlog — Operation Snowfall v1.0
 
 **Scope:** full-feature 7-day event; dedicated Discord server, self-declared MR identities, prizes for individuals only.
-**Status:** SNOW-001 through SNOW-008 implemented in v0.1.1 (24 local tests passed; on-server smoke test and CI verification pending). SNOW-009 through SNOW-013 implemented in v0.1.2 (local domain tests passed; Discord gateway smoke check pending); SNOW-014 onward remain open. Sizes are relative (S/M/L/XL), not delivery promises.
+**Status:** SNOW-001 through SNOW-008 implemented in v0.1.1 (24 local tests passed; on-server smoke test and CI verification pending). SNOW-009 through SNOW-013 implemented in v0.1.2 (local domain tests passed; Discord gateway smoke check pending); SNOW-014 through SNOW-016 implemented in v0.1.3 (automated tests; live Discord smoke test pending); SNOW-017 onward remain open. Sizes are relative (S/M/L/XL), not delivery promises.
 **P0:** blocks launch. **P1:** full-feature launch requirement. **P2:** polish if time allows.
 
 ## Milestones / order
@@ -10,7 +10,7 @@
 |---|---|---|
 | A | Foundation — v0.1.1 implemented; gateway smoke test pending | Self-declaration works only within event guild; registration opens 7d before; schema and admin audit present |
 | B | Snowball Combat — v0.1.2 implemented; Discord smoke test pending | All PvP rules transactionally safe; daily score caps work |
-| C | Economy | Items, crafting, quests and gifts |
+| C | Economy — v0.1.3 implemented; Discord smoke test pending | Items, crafting, quests and gifts |
 | D | Group gameplay | Boss, sieges, city rankings and seven-day scheduler |
 | E | Presentation | Art, cards, mobile UI and animation fallback |
 | F | Launch | Individual prize export, abuse tests, backups, load simulation, Kat approval |
@@ -113,15 +113,24 @@
 - **Depends on:** SNOW-009;SNOW-010
 - **Acceptance:** Costs, usage caps, expiry and guards tested
 
+- **Status:** Implemented in v0.1.3; Discord smoke test pending
+
+
 ### SNOW-015 · Three deterministic daily quests and claim logic
 - **Phase:** C · **Priority:** P1 · **Size:** L · **Epic:** Quests
 - **Depends on:** SNOW-012
 - **Acceptance:** 3 x 20 points/day, no duplicate claims
 
+- **Status:** Implemented in v0.1.3; Discord smoke test pending
+
+
 ### SNOW-016 · Daily mystery gifts and Golden Snowball rarity
 - **Phase:** C · **Priority:** P1 · **Size:** M · **Epic:** Gifts
 - **Depends on:** SNOW-014;SNOW-015
 - **Acceptance:** One gift/day and seasonal golden limit, reward odds validated
+
+- **Status:** Implemented in v0.1.3; Discord smoke test pending
+
 
 ### SNOW-017 · Daily Snow Don boss with echo fallback
 - **Phase:** D · **Priority:** P0 · **Size:** L · **Epic:** PvE

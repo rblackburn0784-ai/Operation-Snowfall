@@ -10,7 +10,9 @@ from discord import app_commands
 from snowfall.core.permissions import permitted_guild
 from snowfall.db.store import CITIES
 from snowfall.services.combat import CombatEngine, CombatError
+from snowfall.services.economy import EconomyEngine, EconomyError, ITEM_NAMES
 from snowfall.ui.combat import ThrowMenu, send_target_menu
+from snowfall.ui.economy import send_inventory, send_quests
 from snowfall.ui.dashboard import CityPicker, Dashboard, dashboard_embed, escape_name, rules_text
 
 
@@ -27,7 +29,8 @@ def _profile(name, city, state, resource, total) -> str:
             f"**Day {resource.day or '—'} PvP:** {resource.today_pvp}/300"
             f" • **Season points:** {total}\n"
             "Use `/snow ready` to volunteer as a target for the next 36 effective hours.\n"
-            "PvP rules: rivals only · 30s cooldown · two scoring hits per target per day.")
+            "PvP rules: rivals only · 30s cooldown · two scoring hits per target per day.\n"
+            "Use `/snow inventory`, `/snow quests` and `/snow present` for Christmas rewards.")
 
 
 class SnowGroup(app_commands.Group):
@@ -119,6 +122,75 @@ class SnowGroup(app_commands.Group):
                            target.id, player.mr_username), ephemeral=True,
             allowed_mentions=discord.AllowedMentions.none(),
         )
+
+    @app_commands.command(name="inventory", description="Browse your Christmas equipment and craft items")
+    async def inventory(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        await send_inventory(interaction, self.settings, self.store)
+
+    @app_commands.command(name="craft", description="Craft an item using Snowflakes")
+    @app_commands.choices(item=[app_commands.Choice(name=n, value=k)
+                                for k, n in ITEM_NAMES.items() if k != "golden"])
+    async def craft(self, interaction: discord.Interaction, item: str):
+        await self._economy_action(interaction, "craft", item)
+
+    @app_commands.command(name="use", description="Activate equipment in your inventory")
+    @app_commands.choices(item=[app_commands.Choice(name=n, value=k)
+                                for k, n in ITEM_NAMES.items() if k != "golden"])
+    async def use(self, interaction: discord.Interaction, item: str):
+        await self._economy_action(interaction, "use", item)
+
+    @app_commands.command(name="guard", description="Raise or lower a defensive guard")
+    @app_commands.choices(mode=[app_commands.Choice(name="Raise guard", value="on"),
+                                app_commands.Choice(name="Lower guard", value="off")])
+    async def guard(self, interaction: discord.Interaction, mode: str):
+        await self._economy_action(interaction, "guard", mode)
+
+    async def _economy_action(self, interaction: discord.Interaction, action: str, value: str):
+        await interaction.response.defer(ephemeral=True)
+        try:
+            method = getattr(EconomyEngine(self.store), action)
+            result = await asyncio.to_thread(method, self.settings.season_key,
+                                             interaction.user.id, value, str(interaction.id), _now())
+            await interaction.followup.send("✅ " + result.text, ephemeral=True)
+        except EconomyError as exc:
+            await interaction.followup.send("⚠️ " + str(exc), ephemeral=True)
+
+    @app_commands.command(name="quests", description="See and claim today's three objectives")
+    async def quests(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        await send_quests(interaction, self.settings, self.store)
+
+    @app_commands.command(name="claim", description="Claim a completed daily mission")
+    @app_commands.choices(quest=[app_commands.Choice(name="Get your gloves on", value="throws"),
+                                 app_commands.Choice(name="Spread the misery", value="rivals"),
+                                 app_commands.Choice(name="Winter preparation", value="community")])
+    async def claim(self, interaction: discord.Interaction, quest: str):
+        await interaction.response.defer(ephemeral=True)
+        try:
+            result = await asyncio.to_thread(EconomyEngine(self.store).claim_quest,
+                                             self.settings.season_key, interaction.user.id,
+                                             quest, _now())
+            await interaction.followup.send("✅ " + result.text, ephemeral=True)
+        except EconomyError as exc:
+            await interaction.followup.send("⚠️ " + str(exc), ephemeral=True)
+
+    @app_commands.command(name="present", description="Open your quest-earned daily mystery present")
+    @app_commands.describe(bonus="Day 4: extra non-golden present after completing all 3 quests")
+    async def present(self, interaction: discord.Interaction, bonus: bool = False):
+        await interaction.response.defer(ephemeral=True)
+        try:
+            result = await asyncio.to_thread(EconomyEngine(self.store).present,
+                                             self.settings.season_key, interaction.user.id,
+                                             str(interaction.id), _now(),
+                                             "bonus" if bonus else "daily")
+            label = ITEM_NAMES.get(result.actual_reward, result.actual_reward.title())
+            msg = f"🎁 **+{result.amount} {label}** from your {'bonus' if bonus else 'daily'} gift!"
+            if result.actual_reward != result.reward:
+                msg += " (+5 Snowflakes replacement for capped/disallowed reward)"
+            await interaction.followup.send(msg, ephemeral=True)
+        except EconomyError as exc:
+            await interaction.followup.send("⚠️ " + str(exc), ephemeral=True)
 
     @app_commands.command(name="leaderboard", description="Top individual snowball scorers")
     async def leaderboard(self, interaction: discord.Interaction):

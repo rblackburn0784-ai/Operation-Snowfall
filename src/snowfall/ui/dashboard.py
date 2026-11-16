@@ -27,7 +27,9 @@ def rules_text() -> str:
         "• **Attacks:** Quick 75% / Standard 60% / Power 40%; 30s cooldown.\n"
         "• **Protection:** Two scoring hits per target/day, 15m anti-camping shield, 30m KO recovery.\n"
         "• **PvP limit:** 300 scored PvP points per player per game day.\n"
-        "• **Release:** v0.1.2 combat live; bosses, crafting and prizes are future milestones.\n"
+        "• **Economy:** Craft cocoa, forts, mittens and bombs; Golden is a rare present.\n"
+        "• **Quests:** Three daily objectives (20 points + 2 Snowflakes each); one gift after a claim.\n"
+        "• **Release:** v0.1.3 economy live; bosses, sieges and prizes are future milestones.\n"
         "This is a fan-community game, not a direct MafiaReturns account integration."
     )
 
@@ -50,7 +52,7 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
         ),
         color=0x78B9EA,
     )
-    embed.set_footer(text="v0.1.2 • Join, enter arena, throw and view personal scores.")
+    embed.set_footer(text="v0.1.3 • Craft, guard, daily quests, gifts and snowball battles.")
     return embed
 
 
@@ -172,3 +174,17 @@ class Dashboard(discord.ui.View):
         players = await asyncio.to_thread(self.store.registrations, self.settings.season_key)
         await interaction.followup.send(embed=dashboard_embed(self.settings, season, now, len(players)),
                                         ephemeral=True)
+
+    @discord.ui.button(label="Inventory", emoji="🎒", style=discord.ButtonStyle.secondary,
+                       custom_id="snowfall:v1:inventory", row=1)
+    async def inventory_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        from snowfall.ui.economy import send_inventory
+        await interaction.response.defer(ephemeral=True)
+        await send_inventory(interaction, self.settings, self.store)
+
+    @discord.ui.button(label="Daily Quests", emoji="🎄", style=discord.ButtonStyle.secondary,
+                       custom_id="snowfall:v1:quests", row=1)
+    async def quests_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        from snowfall.ui.economy import send_quests
+        await interaction.response.defer(ephemeral=True)
+        await send_quests(interaction, self.settings, self.store)

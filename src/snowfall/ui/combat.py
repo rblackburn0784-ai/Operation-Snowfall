@@ -21,15 +21,19 @@ def _now():
 def _result_text(result: CombatResult, target: str) -> str:
     name = escape_name(target)
     if not result.hit:
+        spent = "Golden Snowball" if result.style == "golden" else "snowball"
         return (f"❄️ Your **{result.style.title()}** missed **{name}**! "
-                "One snowball used. No points scored. Cooldown: 30s.")
+                f"One {spent} used. No points scored. Cooldown: 30s.")
     extra = " 💥 **CRITICAL!**" if result.critical else ""
     ko = " 🥶 **KNOCKOUT!** (30-minute recovery)" if result.knocked_out else ""
     shield = f" • {result.armour_damage} absorbed by fort" if result.armour_damage else ""
     bonus = f" • City +{result.bonus_city}" if result.bonus_city else ""
     bonus += f" • KO +{result.bonus_ko}" if result.bonus_ko else ""
+    bonus += f" • Gear +{result.item_bonus_points}" if result.item_bonus_points else ""
+    gear = f" • **{result.modifier_item.title()} used**" if result.modifier_item else ""
+    guard = " • Guard reduced incoming damage" if result.guarded else ""
     return (f"🎯 **{name}** hit with a **{result.style.title()}**!{extra}{ko}\n"
-            f"**Warmth damage:** {result.warmth_damage}{shield}\n"
+            f"**Warmth damage:** {result.warmth_damage}{shield}{gear}{guard}\n"
             f"**Your points:** +{result.points_awarded}{bonus}"
             + (f" • Defender +{result.defense_points} defence" if result.defense_points else "")
             + "\nCooldown: 30s. Your attack was saved safely.")
@@ -99,12 +103,14 @@ class ThrowMenu(CombatMenu):
 
     async def _choose(self, interaction: discord.Interaction, style: str):
         chance, damage, score = ATTACKS[style]
+        spent = "1 Golden Snowball" if style == "golden" else "1 regular snowball"
         await interaction.response.edit_message(
             content=(f"❄️ **Confirm {style.title()}** against **{escape_name(self.name)}**?\n"
                      f"Hit chance: **{int(chance*100)}%** | Warmth damage: **{damage}** | "
                      f"Points on hit: **{score}** before bonuses.\n"
-                     "Cost: **1 snowball**. Cooldown: **30 seconds**.\n"
-                     "Target eligibility and protection are checked again when you confirm."),
+                     f"Cost: **{spent}**. Cooldown: **30 seconds**.\n"
+                     "Mittens, bombs and opposing guard can modify this preview. "
+                     "Target eligibility and protection are checked on confirmation."),
             view=ConfirmThrow(self.settings, self.store, self.owner_id,
                               self.target_id, self.name, style),
         )
@@ -120,6 +126,10 @@ class ThrowMenu(CombatMenu):
     @discord.ui.button(label="Power · 40%", style=discord.ButtonStyle.danger)
     async def power(self, interaction: discord.Interaction, _: discord.ui.Button):
         await self._choose(interaction, "power")
+
+    @discord.ui.button(label="Golden · 80%", emoji="✨", style=discord.ButtonStyle.success)
+    async def golden(self, interaction: discord.Interaction, _: discord.ui.Button):
+        await self._choose(interaction, "golden")
 
     @discord.ui.button(label="Back to Targets", style=discord.ButtonStyle.secondary)
     async def back(self, interaction: discord.Interaction, _: discord.ui.Button):

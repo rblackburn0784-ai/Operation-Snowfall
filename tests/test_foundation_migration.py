@@ -27,7 +27,7 @@ def test_unversioned_v010_database_migrates_without_losing_users(tmp_path):
     db = Store(path)
     db.initialize()
     db.initialize()  # migration may be retried on restart
-    assert db.schema_version() == 3
+    assert db.schema_version() == 4
     assert db.get_player('2026', 123).mr_username == 'TheDude'
     assert db.ensure_season('2026', T).planned_start == T
     with db.connect() as con:
