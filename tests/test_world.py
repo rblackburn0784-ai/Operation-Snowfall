@@ -237,8 +237,10 @@ def test_double_threaded_npc_attack_cannot_overspend(store):
         c.execute('UPDATE player_resources SET snowballs=1 WHERE season_key=? AND discord_user_id=?',
                   (KEY,1))
     def run(n):
-        try:return attempt(store,1,'boss',n=n,t=START).points
-        except WorldError:return -1
+        try:
+            return attempt(store,1,'boss',n=n,t=START).points
+        except WorldError:
+            return -1
     with ThreadPoolExecutor(max_workers=2) as e:
         scores=list(e.map(run,(1,2)))
     assert sorted(scores)==[-1,5]
