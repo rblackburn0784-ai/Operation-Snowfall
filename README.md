@@ -1,10 +1,10 @@
-# ❄️ Operation Snowfall — v0.1.4 Group Gameplay (Milestones A–D)
+# ❄️ Operation Snowfall — v0.1.4a Two-Channel Broadcasts (Milestones A–D)
 
 Kat (MK)'s **unofficial** MafiaReturns Christmas event for **one dedicated Discord server**. This release implements Milestones A (registration/admin), B (transactional combat), C (inventory/quests/gifts), and **D (daily Snow Don boss, six independent city sieges, normalized city standings and themed challenges)**. No MR credentials or API integration; **individual prizes only**, city competition is honorary.
 
-## Update from v0.1.3 in PyCharm (Python 3.13)
+## Upgrade to v0.1.4a in PyCharm (Python 3.13)
 
-1. **Stop the bot** before updating. Back up `data/snowfall.sqlite3` safely after shutdown (or via SQLite's online backup API). The migration to **schema v5** preserves v0.1.2/v0.1.3 combat, quests, gifts and registration data.
+1. **Stop the bot** before updating. Back up `data/snowfall.sqlite3` safely after shutdown (or via SQLite's online backup API). Schema remains at **v5**; this release needs no database migration and preserves existing game data and published-message references.
 2. Run:
 
 ```powershell
@@ -15,8 +15,23 @@ python bot.py
 ```
 
 3. Keep your local `.env` (only `DISCORD_TOKEN`) and `config.toml` (IDs and dates); neither file belongs in Git. Check `config.toml` has the **correct Discord server ID** and that this exact bot application is installed there with **`bot` + `applications.commands`**. A `403 Forbidden (50001 Missing Access)` during startup is a Discord guild-access/installation issue, not a failed game test.
-4. Optional in `config.toml` under `[discord]`: `announcement_channel_id = 0`. Replace 0 with a channel ID **in the dedicated event guild** to publish one themed announcement per day. If left 0, Kat can announce through `/snowadmin announce-day` manually.
+4. **Add both channel IDs** to the `[discord]` section in your private `config.toml` (this file is not replaced by Git pulls):
+
+   ```toml
+   leaderboard_channel_id = 1571697566842748970
+   announcement_channel_id = 1571828901024374824
+   ```
+
+   The channels must belong to the configured dedicated event server. Both IDs must be different. Setting an ID to 0 disables that channel's automation. Give the bot **View Channel, Send Messages, Embed Links and Read Message History** permissions in both channels.
 5. **Test with a disposable `season_key` and separate database** before starting the real 168-hour Christmas season. The actual start and completion clock is host-operated; do not use `/snowadmin start` on the real season to test.
+
+## v0.1.4a: automatic leaderboard and announcements
+
+**#leaderboard — `1571697566842748970`:** The bot automatically creates one combined Discord embed (top 10 individuals, six cities, boss HP, city siege summary), immediately refreshes it when online, and then **edits that same message every five minutes**, including across restarts. Message ID is stored in SQLite. A missing/deleted message is recreated; previously published `individual_board` content in the same channel is reused when possible and the obsolete `city_board` message is retired. An ordinary refresh never posts again.
+
+**#Announcements — `1571828901024374824`:** The bot posts **registration opening**, **host kickoff readiness**, **seven different themed daily stage messages** with the day's real bonuses, and **season completion**. It also posts a single boss-defeat alert per event day. Each notice has a persisted key and is normally sent once; if the process crashes after posting and before saving the ID, a recent message scan can recover the sent notice. A manual `/snowadmin announce-day` edits the existing daily post rather than duplicating it. Announcements are checked once per minute; event days honour pause-adjusted time.
+
+**Permissions and reliability:** Neither channel is an MR prize payout channel. Only individuals can earn prizes. There are no mass pings. The bot validates that both channels belong to the configured event guild. Do not run two copies of the bot against the same SQLite database.
 
 ## Discord commands added in v0.1.4
 
@@ -28,8 +43,8 @@ python bot.py
 | `/snow cities` | Normalized 6-city standings (honorary, not prize payouts) |
 | `/snow leaderboard` | Individual ranking (only individuals can receive prizes) |
 | `/snowadmin boss-settings enabled:<true/false> hp_override:<0 or 150–100000> reason:<...>` | Host-only; tune or disable boss **before** the season is started; audited |
-| `/snowadmin publish-leaderboards channel:<#channel>` | Host creates/updates two public messages; scheduler edits every 5 minutes |
-| `/snowadmin announce-day channel:<#channel>` | Host creates/edits the current daily theme announcement |
+| `/snowadmin publish-leaderboards` | Host manually creates/refreshes the **single** combined message in configured `#leaderboard`; background job edits it every 5 minutes |
+| `/snowadmin announce-day` | Host manually creates/updates the current day's existing post in configured `#Announcements` |
 
 The permanent main dashboard includes **Snow Don**, **City Siege** and **City Standings** buttons. Individual NPC interactions stay **ephemeral** and edit one message instead of spamming the channel. PvE and scoreboards have text-only fallbacks; graphic assets arrive in Milestone E.
 
@@ -75,4 +90,4 @@ The third daily quest now accepts **a boss or siege attempt** as community parti
 - Discord intents are minimal. Public posts should have no role pings; daily theme channels must be within the configured server.
 - **This is not full v1.0 launch-ready:** the actual Discord gateway UI still needs live-server testing; artwork, graphics, final individual prize exports, anti-abuse load simulation, backed-up restore drills, and Kat's dry run are Milestones E and F. An earlier reported **403 Missing Access** requires the bot installation/server permissions to be corrected separately.
 
-See [`docs/RELEASE_v0.1.4.md`](docs/RELEASE_v0.1.4.md), [`docs/DEVELOPMENT_TICKETS.md`](docs/DEVELOPMENT_TICKETS.md), and the approved [`docs/GAME_DESIGN_SPEC_v1.0_APPROVED.md`](docs/GAME_DESIGN_SPEC_v1.0_APPROVED.md).
+See [`docs/RELEASE_v0.1.4a.md`](docs/RELEASE_v0.1.4a.md) and [`docs/RELEASE_v0.1.4.md`](docs/RELEASE_v0.1.4.md), [`docs/DEVELOPMENT_TICKETS.md`](docs/DEVELOPMENT_TICKETS.md), and the approved [`docs/GAME_DESIGN_SPEC_v1.0_APPROVED.md`](docs/GAME_DESIGN_SPEC_v1.0_APPROVED.md).

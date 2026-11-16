@@ -29,7 +29,7 @@ def rules_text() -> str:
         "• **PvP limit:** 300 scored PvP points per player per game day.\n"
         "• **Economy:** Craft cocoa, forts, mittens and bombs; Golden is a rare present.\n"
         "• **Quests:** Three daily objectives (20 points + 2 Snowflakes each); one gift after a claim.\n"
-        "• **Release:** v0.1.4 adds Snow Don, city sieges, honorary city standings and daily themes; prize exports come later.\n"
+        "• **Release:** v0.1.4a adds scheduled announcements alongside Snow Don, city sieges, honorary city standings and daily themes; prize exports come later.\n"
         "This is a fan-community game, not a direct MafiaReturns account integration."
     )
 
@@ -52,7 +52,7 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
         ),
         color=0x78B9EA,
     )
-    embed.set_footer(text="v0.1.4 • Snow Don, city sieges, daily themes, quests and snowball battles.")
+    embed.set_footer(text="v0.1.4a • Snow Don, city sieges, daily themes, quests and snowball battles.")
     return embed
 
 

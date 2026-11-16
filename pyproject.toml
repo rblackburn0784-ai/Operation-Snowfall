@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "operation-snowfall"
-version = "0.1.4"
-description = "Seven-day Snow Don, city sieges and rankings for Kat's Christmas Discord event"
+version = "0.1.4.post1"
+description = "Two-channel event broadcasts and five-minute leaderboard refresh"
 requires-python = ">=3.12"
 dependencies = ["discord.py>=2.6,<3", "Pillow>=11,<13", "python-dotenv>=1,<2"]
 

@@ -6,8 +6,10 @@ guild_id = 0
 admin_user_ids = []
 # Optional trusted staff *role* IDs; may review disputes, not start or finalize
 staff_role_ids = []
-# Optional event announcements channel (0 disables automatic daily posts).
-announcement_channel_id = 0
+# Dedicated five-minute, single-message leaderboard channel.
+leaderboard_channel_id = 1571697566842748970
+# Daily themed event updates and milestone announcements.
+announcement_channel_id = 1571828901024374824
 
 [event]
 season_key = "christmas-2026"

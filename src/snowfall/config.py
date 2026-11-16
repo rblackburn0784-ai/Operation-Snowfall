@@ -21,6 +21,7 @@ class Settings:
     registration_open_hours_before: int = 168
     staff_role_ids: frozenset[int] = frozenset()
     announcement_channel_id: int = 0
+    leaderboard_channel_id: int = 0
 
 
 def load_settings(config_path: str | Path | None = None) -> Settings:
@@ -34,8 +35,11 @@ def load_settings(config_path: str | Path | None = None) -> Settings:
     hosts = frozenset(int(n) for n in config["discord"].get("admin_user_ids", []))
     staff = frozenset(int(n) for n in config["discord"].get("staff_role_ids", []))
     announcements = int(config["discord"].get("announcement_channel_id", 0))
-    if announcements < 0:
-        raise ValueError("announcement_channel_id must be a positive channel ID or 0")
+    leaderboard = int(config["discord"].get("leaderboard_channel_id", 0))
+    if announcements < 0 or leaderboard < 0:
+        raise ValueError("Announcement and leaderboard IDs must be positive or 0")
+    if announcements and announcements == leaderboard:
+        raise ValueError("Use two different channels for leaderboards and announcements")
     if guild_id <= 0:
         raise ValueError("Set the dedicated event guild_id in config.toml")
     if not hosts or any(value <= 0 for value in hosts | staff):
@@ -64,4 +68,5 @@ def load_settings(config_path: str | Path | None = None) -> Settings:
         raise ValueError("season_key must be a nonempty string")
     return Settings(token, guild_id, hosts, season_key,
                     config["event"].get("name", "Operation Snowfall"),
-                    start.astimezone(timezone.utc), db_path, days, hours, staff, announcements)
+                    start.astimezone(timezone.utc), db_path, days, hours, staff,
+                    announcements, leaderboard)
