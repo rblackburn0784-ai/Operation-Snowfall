@@ -79,3 +79,15 @@ are needed for this release.
   `test-end` and `test-stop` commands are retained.
 - **Production Discord gateway interaction testing is still required** in the
   actual event server. Automated tests do not confirm live server permissions.
+
+## Windows SQLite lock fix (16 November 2026)
+
+- Practice **Stop & Archive** explicitly closes both SQLite backup connections before
+  deleting the disposable database (fixes WinError 32 on Windows / Python 3.13).
+- The restore regression test now explicitly closes its SQLite checkpoint connection,
+  rather than relying on transaction context-manager cleanup (fixes WinError 5).
+- Offline restore reports a descriptive error if a destination is still locked;
+  it never silently overwrites an open database.
+- GitHub Actions now runs Python 3.13 tests on Windows as well as Python 3.12/3.13
+  on Linux, with dedicated regression coverage for connection cleanup.
+- No event dates, commands, production data or database schema are changed.

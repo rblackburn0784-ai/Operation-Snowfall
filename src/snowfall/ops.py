@@ -89,7 +89,13 @@ def restore_sqlite(backup: Path | str, destination: Path | str, *, confirmation:
             original.backup(target)
             if target.execute("PRAGMA quick_check").fetchone()[0] != "ok":
                 raise OperationsError("Staged database integrity check failed")
-        staging.replace(destination)
+        try:
+            staging.replace(destination)
+        except PermissionError as exc:
+            raise OperationsError(
+                "Restore target is locked. Stop the bot and close all SQLite connections "
+                "before retrying. The original database was not overwritten."
+            ) from exc
     finally:
         staging.unlink(missing_ok=True)
     return destination

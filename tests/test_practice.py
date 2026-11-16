@@ -149,6 +149,35 @@ def test_archive_is_verified_and_stale_sessions_cannot_recreate_db(tmp_path):
     assert not path.exists()
 
 
+def test_practice_archive_closes_both_sqlite_connections(tmp_path, monkeypatch):
+    """Unlike Linux, Windows cannot unlink a DB while an archive handle is open."""
+    import snowfall.practice as practice_module
+
+    manager = fresh(tmp_path)
+    session = manager.start(4, 777, 22, NOW)
+    actual_connect = sqlite3.connect
+    opened = []
+    closed = []
+
+    class TrackedConnection(sqlite3.Connection):
+        def close(self):
+            closed.append(self)
+            return super().close()
+
+    def record_connection(*args, **kwargs):
+        connection = actual_connect(*args, factory=TrackedConnection, **kwargs)
+        opened.append(connection)
+        return connection
+
+    monkeypatch.setattr(practice_module.sqlite3, "connect", record_connection)
+    archived = manager.end(archive=True)
+    assert archived is not None and archived.exists()
+    assert not session.store.path.exists()
+    assert len(opened) == 2
+    assert len(closed) == 2
+    assert all(connection in closed for connection in opened)
+
+
 def test_refuses_duplicate_start_and_live_channel_ids(tmp_path):
     manager = fresh(tmp_path)
     with pytest.raises(PracticeError, match="separate test channel"):

@@ -1,4 +1,5 @@
 """Milestone F and isolated test bot: never require real Discord or MR tokens."""
+from contextlib import closing
 from datetime import datetime, timedelta, timezone
 import json
 import sqlite3
@@ -144,7 +145,8 @@ def test_backup_checksum_restore_and_pre_restore_safety_copy(store, tmp_path):
     restored = Store(restore_target)
     assert len(restored.registrations(KEY)) == 3
     # Simulate stopping the process and checkpointing before a second restore.
-    with sqlite3.connect(restore_target) as con:
+    # sqlite3.Connection.__exit__ commits but does NOT close on Windows.
+    with closing(sqlite3.connect(restore_target)) as con:
         con.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         con.execute("PRAGMA journal_mode=DELETE")
     second = restore_sqlite(original, restore_target, confirmation="RESTORE")
@@ -153,6 +155,24 @@ def test_backup_checksum_restore_and_pre_restore_safety_copy(store, tmp_path):
     original.write_bytes(original.read_bytes() + b"tamper")
     with pytest.raises(OperationsError, match="checksum mismatch"):
         check_backup(original)
+
+
+def test_locked_restore_is_reported_without_overwriting_target(store, tmp_path, monkeypatch):
+    original = backup_sqlite(store.path, tmp_path / "backups")
+    target = tmp_path / "target.sqlite3"
+    restore_sqlite(original, target, confirmation="RESTORE")
+    content_before = target.read_bytes()
+    original_replace = Path.replace
+
+    def simulate_windows_lock(path, destination):
+        if path.name.startswith(".restore-"):
+            raise PermissionError("WinError 5: file is held open")
+        return original_replace(path, destination)
+
+    monkeypatch.setattr(Path, "replace", simulate_windows_lock)
+    with pytest.raises(OperationsError, match="target is locked"):
+        restore_sqlite(original, target, confirmation="RESTORE")
+    assert target.read_bytes() == content_before
 
 
 def test_restoring_into_active_wal_is_rejected(store, tmp_path):

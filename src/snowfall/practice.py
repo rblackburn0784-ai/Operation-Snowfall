@@ -6,7 +6,7 @@ live settings/store; a practice session never writes to production.
 """
 from __future__ import annotations
 
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
@@ -187,8 +187,8 @@ class PracticeManager:
                 # If archiving fails, leave the practice session usable.
                 try:
                     with session.store._lock:
-                        with sqlite3.connect(session.store.path) as source:
-                            with sqlite3.connect(archived) as target:
+                        with closing(sqlite3.connect(session.store.path)) as source:
+                            with closing(sqlite3.connect(archived)) as target:
                                 source.backup(target)
                                 result = target.execute("PRAGMA quick_check").fetchone()[0]
                                 if result != "ok":
