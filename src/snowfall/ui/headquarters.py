@@ -23,7 +23,7 @@ def _due(value: datetime | None, *, paused=False) -> str:
     return f'<t:{int(value.timestamp())}:R>'
 
 
-def headquarters_embed(info: Headquarters, settings) -> discord.Embed:
+def headquarters_embed(info: Headquarters, settings, title: str = "Snowball Recruit") -> discord.Embed:
     colour = discord.Colour.from_rgb(106, 179, 219)
     embed = discord.Embed(title='❄️ My Snowfall Headquarters', colour=colour)
     embed.set_footer(text='🧪 TEST DAY • No prizes' if getattr(settings, 'mode', 'production') == 'practice'
@@ -33,6 +33,8 @@ def headquarters_embed(info: Headquarters, settings) -> discord.Embed:
                              'before you can compete. Use **Guided Start** to learn the game.')
         return embed
 
+    embed.add_field(name='🎩 Equipped Title',
+                    value=f'**{discord.utils.escape_markdown(title)}**', inline=False)
     r = info.resources
     embed.description = (f'**{discord.utils.escape_markdown(info.player.mr_username)}**  •  '
                          f'**{info.player.city}**  •  **Day {info.day or "—"}/7**\n'
@@ -74,13 +76,24 @@ def headquarters_embed(info: Headquarters, settings) -> discord.Embed:
     return embed
 
 
+async def _equipped_title(settings, store, user_id: int) -> str:
+    from snowfall.services.achievements import AchievementEngine, TrophyError, DEFAULT_TITLE
+    try:
+        cab = await asyncio.to_thread(AchievementEngine(store).cabinet,
+                                      settings.season_key, user_id)
+        return cab.equipped_title
+    except TrophyError:
+        return DEFAULT_TITLE
+
+
 async def show_headquarters(interaction, settings, store, owner_id: int) -> None:
     settings, store = pin(settings, store)
     await interaction.response.defer()
     try:
         info = await asyncio.to_thread(headquarters, store, settings.season_key, owner_id, _now())
+        equipped = await _equipped_title(settings, store, owner_id) if info.player else "Snowball Recruit"
         await interaction.edit_original_response(content=None, attachments=[],
-            embed=headquarters_embed(info, settings),
+            embed=headquarters_embed(info, settings, equipped),
             view=HeadquartersView(settings, store, owner_id))
     except (ValueError, RuntimeError) as exc:
         await interaction.edit_original_response(content=f'⚠️ {exc}', embed=None, attachments=[],
@@ -91,7 +104,8 @@ async def send_headquarters(interaction, settings, store) -> None:
     """Slash command: response has already been deferred ephemerally."""
     settings, store = pin(settings, store)
     info = await asyncio.to_thread(headquarters, store, settings.season_key, interaction.user.id, _now())
-    await interaction.followup.send(embed=headquarters_embed(info, settings), ephemeral=True,
+    equipped = await _equipped_title(settings, store, interaction.user.id) if info.player else "Snowball Recruit"
+    await interaction.followup.send(embed=headquarters_embed(info, settings, equipped), ephemeral=True,
         view=HeadquartersView(settings, store, interaction.user.id),
         allowed_mentions=discord.AllowedMentions.none())
 
@@ -141,6 +155,11 @@ class HeadquartersView(MenuView):
     @discord.ui.button(label='Home', emoji='🏠', style=discord.ButtonStyle.secondary, row=1)
     async def home(self, interaction, _):
         await show_home(interaction, self.settings, self.store, self.owner_id)
+
+    @discord.ui.button(label='Trophy Cabinet', emoji='🏆', style=discord.ButtonStyle.primary, row=2)
+    async def trophies(self, interaction, _):
+        from snowfall.ui.trophies import show_cabinet
+        await show_cabinet(interaction, self.settings, self.store, self.owner_id)
 
     @discord.ui.button(label='Guided Start', emoji='📖', style=discord.ButtonStyle.secondary, row=2)
     async def tutorial(self, interaction, _):

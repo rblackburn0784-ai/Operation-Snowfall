@@ -78,6 +78,12 @@ class SnowGroup(app_commands.Group):
         await interaction.response.defer(ephemeral=True)
         await send_headquarters(interaction, self.settings, self.store)
 
+    @app_commands.command(name="trophies", description="Your Trophy Cabinet, records and earned titles")
+    async def trophies(self, interaction: discord.Interaction):
+        from snowfall.ui.trophies import send_cabinet
+        await interaction.response.defer(ephemeral=True)
+        await send_cabinet(interaction, self.settings, self.store)
+
     @app_commands.command(name="guide", description="First-time guide to registration and the game")
     async def guide(self, interaction: discord.Interaction):
         from snowfall.ui.headquarters import STEPS, WelcomeTour

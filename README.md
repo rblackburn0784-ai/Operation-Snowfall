@@ -1,3 +1,7 @@
+# 🏆 v0.1.8 — Achievements & Boss Personality
+
+Open `/snow trophies` (also available from Main Menu, Game Menus, My Player and Headquarters) to see 13 illustrated cosmetic milestones, equip an earned **title**, and inspect personal combat records. The Snow Don reacts at 75%, 50% and 25% shared health, with golden final-blow victory artwork. No scoring/prize changes; schema v7 stores only equipped titles. See [Release Notes](docs/RELEASE_v0.1.8.md).
+
 # ❄️ Operation Snowfall — v0.1.7 (Player Experience Upgrade)
 
 **New in v0.1.7:** `/snow hq` opens **My Headquarters**, a private at-a-glance dashboard for resources, individual rank (top 100), current-day/season points, claimable quests, gift readiness, boss/siege attempts, effective-clock regeneration, next legal throw and the next event-day reset. It proposes the next useful action. It also works in the existing channel-scoped practice day without reading live data. During pauses, timers show as frozen instead of giving misleading absolute countdowns.

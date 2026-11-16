@@ -36,7 +36,7 @@ def _mode(settings) -> str:
 def _embed(title: str, description: str, settings, *, warning: bool = False) -> discord.Embed:
     colour = discord.Colour.orange() if warning else discord.Colour.from_rgb(106, 179, 219)
     card = discord.Embed(title=title, description=description, colour=colour)
-    card.set_footer(text=f"{_mode(settings)} • v0.1.7 • Private navigation")
+    card.set_footer(text=f"{_mode(settings)} • v0.1.8 • Private navigation")
     return card
 
 
@@ -101,7 +101,8 @@ async def _home_embed(settings, store) -> discord.Embed:
     card.add_field(name="🎮 Game Menus", value="Snowballs • Inventory • Quests • Boss • Siege", inline=False)
     card.add_field(name="🧑 My Player", value="Register, view stats and enter the arena", inline=False)
     card.add_field(name="🏆 Rankings", value="Individual prizes and honorary city standings", inline=False)
-    card.set_footer(text=f"{_mode(settings)} • v0.1.7 • Only you can see this menu")
+    card.add_field(name="🏅 Trophy Cabinet", value="Cosmetic achievements, titles and personal records", inline=False)
+    card.set_footer(text=f"{_mode(settings)} • v0.1.8 • Only you can see this menu")
     return card
 
 
@@ -171,6 +172,11 @@ class MainMenu(MenuView):
         from snowfall.ui.headquarters import show_headquarters
         await show_headquarters(interaction, self.settings, self.store, self.owner_id)
 
+    @discord.ui.button(label="Trophy Cabinet", emoji="🏆", style=discord.ButtonStyle.primary, row=2)
+    async def trophies(self, interaction, _):
+        from snowfall.ui.trophies import show_cabinet
+        await show_cabinet(interaction, self.settings, self.store, self.owner_id)
+
     @discord.ui.button(label="My Player", emoji="🧑", style=discord.ButtonStyle.secondary)
     async def player(self, interaction, _):
         await show_player(interaction, self.settings, self.store, self.owner_id)
@@ -197,6 +203,11 @@ class GameMenu(MenuView):
     async def headquarters(self, interaction, _):
         from snowfall.ui.headquarters import show_headquarters
         await show_headquarters(interaction, self.settings, self.store, self.owner_id)
+
+    @discord.ui.button(label="Trophy Cabinet", emoji="🏆", style=discord.ButtonStyle.primary, row=2)
+    async def trophies(self, interaction, _):
+        from snowfall.ui.trophies import show_cabinet
+        await show_cabinet(interaction, self.settings, self.store, self.owner_id)
 
     @discord.ui.button(label="Snowball Fight", emoji="🎯", style=discord.ButtonStyle.success)
     async def combat(self, interaction, _):
@@ -278,6 +289,11 @@ class PlayerMenu(MenuView):
     async def guide(self, interaction, _):
         from snowfall.ui.headquarters import show_tour
         await show_tour(interaction, self.settings, self.store, self.owner_id, 0)
+
+    @discord.ui.button(label="Trophy Cabinet", emoji="🏆", style=discord.ButtonStyle.primary, row=2)
+    async def trophies(self, interaction, _):
+        from snowfall.ui.trophies import show_cabinet
+        await show_cabinet(interaction, self.settings, self.store, self.owner_id)
 
     @discord.ui.button(label="Join / Register", emoji="❄️", style=discord.ButtonStyle.primary)
     async def join(self, interaction, _):
