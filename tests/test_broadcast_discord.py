@@ -201,5 +201,5 @@ def test_wrong_guild_channel_is_rejected_without_post(tmp_path):
 
 def test_embedded_discord_schedule_is_exactly_five_minutes():
     from snowfall.app import SnowfallBot
-    assert SnowfallBot.refresh_leaderboard.minutes == [5.0]
-    assert SnowfallBot.refresh_world.minutes == [1.0]
+    assert SnowfallBot.refresh_leaderboard.minutes == 5.0
+    assert SnowfallBot.refresh_world.minutes == 1.0
