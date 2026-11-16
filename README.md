@@ -1,4 +1,8 @@
-# ❄️ Operation Snowfall — v0.1.6a (Milestones A–F + in-app test days)
+# ❄️ Operation Snowfall — v0.1.6b (Main Menu → Game Menus → Admin/Test Panel)
+
+**New in v0.1.6b:** `/snow menu` or `/snow dashboard` opens a private **Main Menu**. Navigate to **Game Menus** (combat, gear, quests, Snow Don/siege and rankings), **My Player**, or—hosts only—**Admin / Test Control Panel**. The public dashboard retains its old shortcuts and adds a **Main Menu** button. Game screens offer **Game Menus** and **Home** navigation, editing the same private message.
+
+Hosts: `/snowadmin panel` opens status, live launch checks, broadcast updates with confirmation and **Test Centre** buttons for Day 1–7 Start, Switch, Stop & Delete and Stop & Archive. The TEST Centre uses the existing bot and dedicated test channel; switching/ending never touches live scores or prizes. See [v0.1.6b Release Notes](docs/RELEASE_v0.1.6b.md).
 
 **One Discord bot, one token, one event server.** Kat can rehearse any event day **inside the existing bot**, in a separate `#snowfall-testing` text channel, without changing live registrations, dates, scores, announcements or prizes.
 

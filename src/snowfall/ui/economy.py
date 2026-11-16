@@ -45,6 +45,8 @@ class EconomyView(discord.ui.View):
         super().__init__(timeout=180)
         self.settings, self.store = pin(settings, store)
         self.owner_id = owner_id
+        from snowfall.ui.navigation import attach_game_navigation
+        attach_game_navigation(self, self.settings, self.store, self.owner_id)
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if practice_expired(self.settings, self.store):
@@ -64,7 +66,9 @@ class EconomyView(discord.ui.View):
             await interaction.edit_original_response(
                 content=inventory_text(data), view=InventoryMenu(self.settings, self.store, self.owner_id))
         except EconomyError as exc:
-            await interaction.edit_original_response(content=f"⚠️ {exc}", view=None)
+            await interaction.edit_original_response(
+                content=f"⚠️ {exc}", embed=None, attachments=[],
+                view=InventoryMenu(self.settings, self.store, self.owner_id))
 
     async def show_quests(self, interaction):
         await interaction.response.defer()
@@ -74,7 +78,9 @@ class EconomyView(discord.ui.View):
             await interaction.edit_original_response(
                 content=quests_text(quests), view=QuestsMenu(self.settings, self.store, self.owner_id))
         except EconomyError as exc:
-            await interaction.edit_original_response(content=f"⚠️ {exc}", view=None)
+            await interaction.edit_original_response(
+                content=f"⚠️ {exc}", embed=None, attachments=[],
+                view=QuestsMenu(self.settings, self.store, self.owner_id))
 
 
 class InventoryMenu(EconomyView):

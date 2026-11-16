@@ -71,6 +71,8 @@ class WorldView(discord.ui.View):
         super().__init__(timeout=180)
         self.settings, self.store = pin(settings, store)
         self.owner_id = owner_id
+        from snowfall.ui.navigation import attach_game_navigation
+        attach_game_navigation(self, self.settings, self.store, self.owner_id)
 
     async def interaction_check(self, interaction):
         if practice_expired(self.settings, self.store):
@@ -123,7 +125,9 @@ class WorldView(discord.ui.View):
                 alt=f"Day {state.day}: Snow Don and {state.city} fortress health",
             )
         except WorldError as exc:
-            await interaction.edit_original_response(content=f'⚠️ {exc}', view=None)
+            await interaction.edit_original_response(content=f'⚠️ {exc}', embed=None,
+                                                     attachments=[], view=WorldView(
+                                                         self.settings, self.store, self.owner_id))
 
 
 class WorldConfirm(discord.ui.View):
@@ -131,6 +135,8 @@ class WorldConfirm(discord.ui.View):
         super().__init__(timeout=120)
         self.settings, self.store = pin(settings, store)
         self.owner_id, self.kind = owner_id, kind
+        from snowfall.ui.navigation import attach_game_navigation
+        attach_game_navigation(self, self.settings, self.store, self.owner_id)
 
     async def interaction_check(self, interaction):
         if practice_expired(self.settings, self.store):

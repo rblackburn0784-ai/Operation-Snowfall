@@ -54,8 +54,8 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
         ),
         color=0x78B9EA,
     )
-    embed.set_footer(text="v0.1.6 • TEST — NO PRIZES" if settings.is_test else
-                     "v0.1.6 • Live event, individual prizes only")
+    embed.set_footer(text="v0.1.6b • TEST — NO PRIZES" if settings.is_test else
+                     "v0.1.6b • Live event, individual prizes only")
     return embed
 
 
@@ -94,9 +94,31 @@ class JoinModal(discord.ui.Modal, title="Operation Snowfall — Register"):
 
 
 class CityPicker(discord.ui.View):
-    def __init__(self, settings, store):
+    def __init__(self, settings, store, owner_id: int | None = None):
         super().__init__(timeout=180)
         settings, store = pin(settings, store)
+        if owner_id is not None:
+            back = discord.ui.Button(label="◀ My Player", style=discord.ButtonStyle.secondary, row=1)
+            home = discord.ui.Button(label="🏠 Home", style=discord.ButtonStyle.secondary, row=1)
+
+            async def go_back(interaction):
+                if interaction.user.id != owner_id or practice_expired(settings, store):
+                    await interaction.response.send_message("This registration menu has expired.", ephemeral=True)
+                    return
+                from snowfall.ui.navigation import show_player
+                await show_player(interaction, settings, store, owner_id)
+
+            async def go_home(interaction):
+                if interaction.user.id != owner_id or practice_expired(settings, store):
+                    await interaction.response.send_message("This registration menu has expired.", ephemeral=True)
+                    return
+                from snowfall.ui.navigation import show_home
+                await show_home(interaction, settings, store, owner_id)
+
+            back.callback = go_back
+            home.callback = go_home
+            self.add_item(back)
+            self.add_item(home)
         picker = discord.ui.Select(
             placeholder="Choose your MafiaReturns city",
             options=[discord.SelectOption(label=c, value=c) for c in CITIES])
@@ -209,6 +231,13 @@ class Dashboard(discord.ui.View):
         players = await asyncio.to_thread(self.store.registrations, self.settings.season_key)
         await interaction.edit_original_response(
             embed=dashboard_embed(self.settings, season, now, len(players)), view=self)
+
+    @discord.ui.button(label="Main Menu", emoji="🏠", style=discord.ButtonStyle.primary,
+                       custom_id="snowfall:v1:main-menu", row=1)
+    async def main_menu_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        from snowfall.ui.navigation import send_main_menu
+        await interaction.response.defer(ephemeral=True)
+        await send_main_menu(interaction, self.settings, self.store)
 
     @discord.ui.button(label="Inventory", emoji="🎒", style=discord.ButtonStyle.secondary,
                        custom_id="snowfall:v1:inventory", row=1)

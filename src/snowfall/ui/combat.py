@@ -48,6 +48,8 @@ class CombatMenu(discord.ui.View):
         super().__init__(timeout=timeout)
         self.settings, self.store = pin(settings, store)
         self.owner_id = owner_id
+        from snowfall.ui.navigation import attach_game_navigation
+        attach_game_navigation(self, self.settings, self.store, self.owner_id)
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if practice_expired(self.settings, self.store):
@@ -64,12 +66,15 @@ class CombatMenu(discord.ui.View):
             targets = await asyncio.to_thread(engine.targets, self.settings.season_key,
                                               interaction.user.id, _now())
         except CombatError as exc:
-            await interaction.response.edit_message(content=str(exc), view=None)
+            await interaction.response.edit_message(
+                content=f"⚠️ {exc}", view=RetryView(self.settings, self.store, self.owner_id),
+                embed=None, attachments=[])
             return
         if not targets:
             await interaction.response.edit_message(
                 content="No eligible rivals right now. Ask people to `/snow ready`, or return later.",
-                view=None, embed=None, attachments=[],
+                view=RetryView(self.settings, self.store, self.owner_id),
+                embed=None, attachments=[],
             )
             return
         await interaction.response.edit_message(

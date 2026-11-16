@@ -14,8 +14,9 @@ from snowfall.services.world import WorldEngine
 from snowfall.ui.world import send_world, city_board_text, individual_board_text
 from snowfall.ui.combat import ThrowMenu, send_target_menu
 from snowfall.ui.economy import send_inventory, send_quests
-from snowfall.ui.dashboard import CityPicker, Dashboard, dashboard_embed, escape_name, rules_text
+from snowfall.ui.dashboard import CityPicker, escape_name, rules_text
 from snowfall.graphics.delivery import send_profile, send_champions
+from snowfall.ui.navigation import send_main_menu
 
 
 def _now() -> datetime:
@@ -61,16 +62,15 @@ class SnowGroup(app_commands.Group):
             "retention policy and organiser for the scheduled deletion date. "
             "No MR passwords or payment data are requested.", ephemeral=True)
 
-    @app_commands.command(name="dashboard", description="Open the Snowfall menu")
+    @app_commands.command(name="dashboard", description="Open the new Snowfall main menu")
     async def dashboard(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
-        now = _now()
-        season = await asyncio.to_thread(self.store.season, self.settings.season_key)
-        players = await asyncio.to_thread(self.store.registrations, self.settings.season_key)
-        await interaction.followup.send(
-            embed=dashboard_embed(self.settings, season, now, len(players)),
-            view=Dashboard(self.settings, self.store), ephemeral=True,
-        )
+        await send_main_menu(interaction, self.settings, self.store)
+
+    @app_commands.command(name="menu", description="Open Main Menu → Game Menus → Admin/Test (hosts)")
+    async def menu(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        await send_main_menu(interaction, self.settings, self.store)
 
     @app_commands.command(name="join", description="Declare your MafiaReturns username and city")
     async def join(self, interaction: discord.Interaction):

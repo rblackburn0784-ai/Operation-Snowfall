@@ -15,6 +15,7 @@ from snowfall.db.store import LifecycleError, RegistrationError
 from snowfall.ui.dashboard import Dashboard, dashboard_embed, rules_text
 from snowfall.services.world import WorldEngine, WorldError
 from snowfall.practice import PracticeError
+from snowfall.ui.navigation import send_admin_panel
 from snowfall.services.broadcast import DAY_DETAILS
 from snowfall.services.world import THEMES
 from snowfall.ops import (
@@ -78,6 +79,13 @@ class SnowAdminGroup(app_commands.Group):
         await interaction.followup.send(
             f"✅ **{action.title()}** recorded. Phase: **{season.phase(_now())}**. "
             "Audit entry saved.", ephemeral=True)
+
+    @app_commands.command(name="panel", description="Open private host Main/Admin/Test control panel")
+    async def panel(self, interaction: discord.Interaction):
+        if not await self.require_host(interaction):
+            return
+        await interaction.response.defer(ephemeral=True)
+        await send_admin_panel(interaction)
 
     @app_commands.command(name="status", description="Check staff event status and registration")
     async def status(self, interaction: discord.Interaction):
