@@ -13,6 +13,8 @@ import math
 
 from PIL import Image, ImageDraw, ImageFont
 
+from snowfall.graphics.snow_don import draw_portrait
+
 WIDTH, HEIGHT = 960, 540
 ART = Path(__file__).resolve().parent / "art"
 CITIES = ("Chicago", "New York", "Detroit", "Philadelphia", "Las Vegas", "Los Angeles")
@@ -148,7 +150,15 @@ def battle_card(result, target: str, attacker: str="YOUR THROW") -> bytes:
 
 def world_status_card(state) -> bytes:
     im,d=_canvas(state.city,"WINTER WARZONE",f"Day {state.day or '—'} / 7  •  {clean(state.theme)}")
-    _icon(im,"boss",(730,210),125)
+    # The image follows the same authoritative shared HP used by the bar.
+    # Transparent art occupies the right panel; missing artwork uses old icon.
+    stage = draw_portrait(im, state.boss_hp, state.boss_max_hp, (650, 186, 923, 485))
+    if stage is None:
+        _icon(im, "boss", (730, 210), 125)
+    else:
+        d.rounded_rectangle((698, 471, 903, 505), radius=12, fill=(8, 22, 40, 225))
+        d.text((713, 477), "DEFEATED" if state.boss_hp <= 0 else f"SNOW DON • {stage}% HP",
+               font=font(16, True), fill="#e0f3ff")
     _bar(d,(55,229,617,277),state.boss_hp,max(1,state.boss_max_hp),"Snow Don","#a9d6f4")
     _bar(d,(55,332,617,382),state.siege_hp,max(1,state.siege_max_hp),
          f"{clean(state.city)} fortress","#f2ca8c")
@@ -165,7 +175,16 @@ def world_result_card(result) -> bytes:
     im,d=_canvas(city,title,
         f"Day {result.day}  •  {'Snow Don' if is_boss else clean(city)+' Fortress'}"
         + ("  •  Training echo" if result.echo else ""))
-    _icon(im,"boss" if is_boss else "siege",(710,214),165)
+    if is_boss:
+        stage = draw_portrait(im, result.hp_after, result.max_hp, (637, 192, 925, 478))
+        if stage is None:
+            _icon(im, "boss", (710, 214), 165)
+        else:
+            d.rounded_rectangle((697, 456, 910, 493), radius=12, fill=(8, 22, 40, 225))
+            d.text((711, 464), "DEFEATED" if result.hp_after <= 0 else f"SNOW DON • {stage}% HP",
+                   font=font(16, True), fill="#e0f3ff")
+    else:
+        _icon(im, "siege", (710, 214), 165)
     _panel(d,(55,224,305,335),"Damage dealt",str(result.damage))
     _panel(d,(323,224,575,335),"Your points",f"+{result.points}",colour="#c7efa9")
     _bar(d,(55,372,574,426),result.hp_after,max(1,result.max_hp),"Shared HP","#afd9f6")

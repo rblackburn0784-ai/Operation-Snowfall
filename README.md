@@ -151,3 +151,10 @@ The third daily quest now accepts **a boss or siege attempt** as community parti
 
 See [`docs/RELEASE_v0.1.5.md`](docs/RELEASE_v0.1.5.md) and [`docs/RELEASE_v0.1.4.md`](docs/RELEASE_v0.1.4.md), [`docs/DEVELOPMENT_TICKETS.md`](docs/DEVELOPMENT_TICKETS.md), and the approved [`docs/GAME_DESIGN_SPEC_v1.0_APPROVED.md`](docs/GAME_DESIGN_SPEC_v1.0_APPROVED.md).
 
+
+
+### v0.1.6c — Snow Don damage portraits
+
+Ten health-stage character artworks are selected automatically in the warzone and boss result cards.
+Install the original transparent portrait ZIP with `python -m snowfall.graphics.snow_don .\Snow_Don_Health_Transparent.zip` (see `docs/RELEASE_v0.1.6c.md`).
+The source artwork is not included until the organiser imports the original ZIP.

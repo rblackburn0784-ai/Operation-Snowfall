@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "operation-snowfall"
-version = "0.1.6b"
+version = "0.1.6c"
 description = "Operation Snowfall event with in-app test days, launch controls and prizes"
 requires-python = ">=3.12"
 dependencies = ["discord.py>=2.6,<3", "Pillow>=11,<13", "python-dotenv>=1,<2"]
@@ -16,7 +16,7 @@ dev = ["pytest>=8,<10", "ruff>=0.9,<1", "setuptools>=68"]
 snowfall = "snowfall.app:main"
 
 [tool.setuptools.package-data]
-"snowfall.graphics" = ["art/cities/*.webp", "art/items/*.png"]
+"snowfall.graphics" = ["art/cities/*.webp", "art/items/*.png", "art/boss/*.png"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
