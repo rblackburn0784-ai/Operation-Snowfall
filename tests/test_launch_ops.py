@@ -47,7 +47,7 @@ def test_legacy_v5_migration_preserves_users_and_wal(store):
         con.execute("PRAGMA user_version=5")
     store.initialize()
     store.initialize()
-    assert store.schema_version() == 6
+    assert store.schema_version() == 7
     assert len(store.registrations(KEY)) == 3
     assert store.season(KEY).phase(START) == "ready"
     assert store.connect is not None
