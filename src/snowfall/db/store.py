@@ -16,7 +16,7 @@ import unicodedata
 from snowfall.core.clock import as_utc
 
 CITIES = ("Chicago", "New York", "Detroit", "Philadelphia", "Las Vegas", "Los Angeles")
-DB_VERSION = 6
+DB_VERSION = 7
 
 
 class RegistrationError(ValueError):
@@ -362,6 +362,17 @@ class Store:
                     BEFORE DELETE ON prize_awards BEGIN
                     SELECT RAISE(ABORT,'immutable prize history'); END""")
                 con.execute("PRAGMA user_version=6")
+            if version < 7:
+                # Cosmetic selection only. Trophies themselves derive from the
+                # immutable score/combat/PvE/gift ledgers, not editable counters.
+                con.execute("""CREATE TABLE IF NOT EXISTS player_titles (
+                    season_key TEXT NOT NULL, discord_user_id INTEGER NOT NULL,
+                    title_key TEXT NOT NULL DEFAULT 'none', updated_at_utc TEXT NOT NULL,
+                    PRIMARY KEY(season_key, discord_user_id),
+                    FOREIGN KEY(season_key, discord_user_id)
+                        REFERENCES players(season_key, discord_user_id)
+                )""")
+                con.execute("PRAGMA user_version=7")
         with self.connect() as con:
             result = con.execute("PRAGMA quick_check").fetchone()[0]
             if result != "ok":

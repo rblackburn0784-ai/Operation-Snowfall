@@ -11,6 +11,7 @@ from snowfall.practice import pin, practice_expired
 from snowfall.services.world import WorldEngine, WorldError, BOSS_LIMIT, SIEGE_LIMIT
 from snowfall.ui.dashboard import escape_name
 from snowfall.graphics import cards, delivery
+from snowfall.services.boss_personality import reaction_for_result
 
 
 def now():
@@ -43,6 +44,7 @@ def result_text(r):
             f"Damage: **{r.damage}** | Points: **+{r.points}**"
             f"{' | Theme bonus: +' + str(r.theme_points) if r.theme_points else ''}\n"
             f"{detail} | Remaining shared HP: **{r.hp_after}/{r.max_hp}**\n"
+            + ('\n' + reaction_for_result(r) if reaction_for_result(r) else '')
             + ('🎉 **FINAL BLOW!**' if r.final_blow else '')
             + ('\n*Repeated Discord interaction; no resources spent again.*' if r.repeated else ''))
 

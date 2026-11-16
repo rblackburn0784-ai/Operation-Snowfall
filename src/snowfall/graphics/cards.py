@@ -10,6 +10,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import Iterable
 import math
+import random
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -188,7 +189,44 @@ def world_result_card(result) -> bytes:
     _panel(d,(55,224,305,335),"Damage dealt",str(result.damage))
     _panel(d,(323,224,575,335),"Your points",f"+{result.points}",colour="#c7efa9")
     _bar(d,(55,372,574,426),result.hp_after,max(1,result.max_hp),"Shared HP","#afd9f6")
-    d.text((57,477),"LATE PLAYERS CAN STILL EARN ECHO POINTS",font=font(14,True),fill="#d5e6f1")
+    if is_boss and result.final_blow:
+        # Golden confetti and an explicit victory banner. This is visual only;
+        # the attack was scored and persisted before card generation.
+        randomizer = random.Random(f"boss:{result.day}:{result.hp_after}:{result.max_hp}")
+        for _ in range(35):
+            x = randomizer.randrange(620, 914)
+            y = randomizer.randrange(205, 443)
+            d.ellipse((x, y, x + 5, y + 5), fill=(255, 218, 131, 230))
+        d.rounded_rectangle((603, 458, 927, 512), radius=15,
+                            fill=(78, 43, 16, 234), outline=(255, 213, 117, 245), width=3)
+        d.text((631, 473), "SNOW DON DEFEATED!", font=font(21, True), fill="#ffe2a3")
+    else:
+        d.text((57,477),"LATE PLAYERS CAN STILL EARN ECHO POINTS",font=font(14,True),fill="#d5e6f1")
+    return _png(im)
+
+
+def trophy_cabinet_card(cabinet) -> bytes:
+    """Illustrated cosmetic achievements, sized for a standard Discord attachment."""
+    im, d = _canvas(cabinet.city, "TROPHY CABINET",
+                    f"{clean(cabinet.player_name, 30)}  •  {clean(cabinet.equipped_title, 38)}")
+    unlocked = [badge for badge in cabinet.trophies if badge.unlocked]
+    d.text((60, 217), f"UNLOCKED: {len(unlocked)} / {len(cabinet.trophies)}",
+           font=font(24, True), fill="#d7eeff")
+    # Six heraldic medallions on the winter city scene, with compact captions.
+    for index, badge in enumerate(cabinet.trophies[:10]):
+        x = 74 + (index % 5) * 171
+        y = 268 + (index // 5) * 105
+        colour = (246, 210, 130) if badge.unlocked else (87, 107, 131)
+        d.ellipse((x, y, x + 62, y + 62), fill=(17, 34, 55, 245),
+                  outline=colour, width=4)
+        d.ellipse((x + 14, y + 14, x + 48, y + 48), outline=colour, width=2)
+        d.text((x + 23, y + 19), "*" if badge.unlocked else "-",
+               font=font(19, True), fill=colour)
+        name = _fit(d, badge.badge, 146, font(15, True))
+        d.text((x - 35, y + 64), name, font=font(15, True),
+               fill="#ffe5aa" if badge.unlocked else "#99adc0")
+    d.text((60, 496), "COSMETIC TITLES ONLY • NO BONUS POINTS OR PRIZES",
+           font=font(14, True), fill="#dceaf4")
     return _png(im)
 
 

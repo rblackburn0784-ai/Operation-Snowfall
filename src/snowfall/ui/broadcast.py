@@ -8,6 +8,7 @@ import discord
 
 from snowfall.services.combat import CombatEngine
 from snowfall.services.world import WorldEngine, THEMES
+from snowfall.services.boss_personality import phase_announcement, reached_phases
 from snowfall.services.broadcast import (
     daily_announcement, registration_announcement, waiting_announcement,
     completed_announcement, boss_defeated_announcement, boss_is_defeated,
@@ -204,6 +205,13 @@ class BroadcastPublisher:
                 if day is not None:
                     await self._notice(f"theme_day_{day}",
                                        daily_announcement(day, paused=phase=="paused"), now)
+                    # Cosmetic 75/50/25% personality alerts; each key publishes at most
+                    # once and is recovered after restart by the existing marker scan.
+                    phases = await asyncio.to_thread(reached_phases, self.store,
+                                                     self.settings.season_key, day)
+                    for phase_threshold in phases:
+                        await self._notice(f"boss_phase_{day}_{phase_threshold}",
+                                           phase_announcement(day, phase_threshold), now)
                     if await asyncio.to_thread(boss_is_defeated, self.store,
                                                self.settings.season_key, day):
                         await self._notice(f"boss_defeated_day_{day}",
