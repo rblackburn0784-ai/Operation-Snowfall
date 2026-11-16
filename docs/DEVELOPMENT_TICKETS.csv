@@ -7,11 +7,11 @@ SNOW-005,A,P0,Identity,Self-declared MR username/city registration,SNOW-003;SNOW
 SNOW-006,A,P0,Admin,"Dispute flags, staff review and audit log",SNOW-005,M,Staff can flag/clear without silently altering ledger; no standard verification,Implemented - smoke test pending
 SNOW-007,A,P1,Guild UX,"Welcome, rules and permanent dashboard navigation",SNOW-002;SNOW-005,L,Welcome/rules visible; buttons survive restart and use private replies,Implemented - smoke test pending
 SNOW-008,A,P0,Operations,Host-only setup and lifecycle controls,SNOW-003;SNOW-006,L,Start/pause/resume/finalize confirmed and audited,Implemented - smoke test pending
-SNOW-009,B,P0,Economy,Snowball and warmth lazy regeneration,SNOW-004;SNOW-003,M,Caps respected over restart and while at cap,Todo
-SNOW-010,B,P0,Combat,"Transactional PvP, hit/critical RNG and cooldown",SNOW-009,XL,"No duplicate actions, negative ammo, self/same-city hits",Todo
-SNOW-011,B,P0,Safety,Target selection and shields/KO protection,SNOW-010,L,2 scoring hits per pair/day; passive shield and 36h inactivity rules,Todo
-SNOW-012,B,P0,Scoring,"Immutable ledger, daily caps and tie breakers",SNOW-010,L,Scores reconcile; PvP cap 300/day; no score duplicates,Todo
-SNOW-013,B,P1,UI,"Throw selection, confirmation and result view",SNOW-010;SNOW-007,L,"Buttons, slash path share engine; result fallback as text",Todo
+SNOW-009,B,P0,Economy,Snowball and warmth lazy regeneration,SNOW-004;SNOW-003,M,Caps respected over restart and while at cap,Implemented v0.1.2 - Discord smoke test pending
+SNOW-010,B,P0,Combat,"Transactional PvP, hit/critical RNG and cooldown",SNOW-009,XL,"No duplicate actions, negative ammo, self/same-city hits",Implemented v0.1.2 - Discord smoke test pending
+SNOW-011,B,P0,Safety,Target selection and shields/KO protection,SNOW-010,L,2 scoring hits per pair/day; passive shield and 36h inactivity rules,Implemented v0.1.2 - Discord smoke test pending
+SNOW-012,B,P0,Scoring,"Immutable ledger, daily caps and tie breakers",SNOW-010,L,Scores reconcile; PvP cap 300/day; no score duplicates,Implemented v0.1.2 - Discord smoke test pending
+SNOW-013,B,P1,UI,"Throw selection, confirmation and result view",SNOW-010;SNOW-007,L,"Buttons, slash path share engine; result fallback as text",Implemented v0.1.2 - Discord smoke test pending
 SNOW-014,C,P1,Items,"Inventory, crafting, buffs and guard",SNOW-009;SNOW-010,L,"Costs, usage caps, expiry and guards tested",Todo
 SNOW-015,C,P1,Quests,Three deterministic daily quests and claim logic,SNOW-012,L,"3 x 20 points/day, no duplicate claims",Todo
 SNOW-016,C,P1,Gifts,Daily mystery gifts and Golden Snowball rarity,SNOW-014;SNOW-015,M,"One gift/day and seasonal golden limit, reward odds validated",Todo

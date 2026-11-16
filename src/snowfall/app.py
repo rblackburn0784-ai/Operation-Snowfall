@@ -1,4 +1,4 @@
-"""Guild-only Discord application entry point for foundation v0.1.1."""
+"""Guild-only Discord application entry point for v0.1.2 combat."""
 from __future__ import annotations
 
 import logging

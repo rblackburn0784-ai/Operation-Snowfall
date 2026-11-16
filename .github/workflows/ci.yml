@@ -1,9 +1,9 @@
-name: Python tests
+name: Snowball bot tests
 on:
   push:
   pull_request:
 jobs:
-  foundation:
+  tests:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

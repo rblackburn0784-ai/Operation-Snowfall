@@ -12,3 +12,9 @@ artifacts/
 output/
 .DS_Store
 .idea/
+
+# Local event credentials and live state
+config.toml
+data/
+*.log
+*.sqlite3-journal

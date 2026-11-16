@@ -1,7 +1,7 @@
 # Development backlog — Operation Snowfall v1.0
 
 **Scope:** full-feature 7-day event; dedicated Discord server, self-declared MR identities, prizes for individuals only.
-**Status:** SNOW-001 through SNOW-008 implemented in v0.1.1 (24 local tests passed; on-server smoke test and CI verification pending). SNOW-009 onward remain open. Sizes are relative (S/M/L/XL), not delivery promises.
+**Status:** SNOW-001 through SNOW-008 implemented in v0.1.1 (24 local tests passed; on-server smoke test and CI verification pending). SNOW-009 through SNOW-013 implemented in v0.1.2 (local domain tests passed; Discord gateway smoke check pending); SNOW-014 onward remain open. Sizes are relative (S/M/L/XL), not delivery promises.
 **P0:** blocks launch. **P1:** full-feature launch requirement. **P2:** polish if time allows.
 
 ## Milestones / order
@@ -9,7 +9,7 @@
 | Stage | Target | Exit criterion |
 |---|---|---|
 | A | Foundation — v0.1.1 implemented; gateway smoke test pending | Self-declaration works only within event guild; registration opens 7d before; schema and admin audit present |
-| B | Combat | All PvP rules transactionally safe; daily score caps work |
+| B | Snowball Combat — v0.1.2 implemented; Discord smoke test pending | All PvP rules transactionally safe; daily score caps work |
 | C | Economy | Items, crafting, quests and gifts |
 | D | Group gameplay | Boss, sieges, city rankings and seven-day scheduler |
 | E | Presentation | Art, cards, mobile UI and animation fallback |
@@ -78,25 +78,35 @@
 - **Depends on:** SNOW-004;SNOW-003
 - **Acceptance:** Caps respected over restart and while at cap
 
+- **Status:** Implemented in v0.1.2; live Discord gateway smoke test pending
+
 ### SNOW-010 · Transactional PvP, hit/critical RNG and cooldown
 - **Phase:** B · **Priority:** P0 · **Size:** XL · **Epic:** Combat
 - **Depends on:** SNOW-009
 - **Acceptance:** No duplicate actions, negative ammo, self/same-city hits
+
+- **Status:** Implemented in v0.1.2; live Discord gateway smoke test pending
 
 ### SNOW-011 · Target selection and shields/KO protection
 - **Phase:** B · **Priority:** P0 · **Size:** L · **Epic:** Safety
 - **Depends on:** SNOW-010
 - **Acceptance:** 2 scoring hits per pair/day; passive shield and 36h inactivity rules
 
+- **Status:** Implemented in v0.1.2; live Discord gateway smoke test pending
+
 ### SNOW-012 · Immutable ledger, daily caps and tie breakers
 - **Phase:** B · **Priority:** P0 · **Size:** L · **Epic:** Scoring
 - **Depends on:** SNOW-010
 - **Acceptance:** Scores reconcile; PvP cap 300/day; no score duplicates
 
+- **Status:** Implemented in v0.1.2; live Discord gateway smoke test pending
+
 ### SNOW-013 · Throw selection, confirmation and result view
 - **Phase:** B · **Priority:** P1 · **Size:** L · **Epic:** UI
 - **Depends on:** SNOW-010;SNOW-007
 - **Acceptance:** Buttons, slash path share engine; result fallback as text
+
+- **Status:** Implemented in v0.1.2; live Discord gateway smoke test pending
 
 ### SNOW-014 · Inventory, crafting, buffs and guard
 - **Phase:** C · **Priority:** P1 · **Size:** L · **Epic:** Items
@@ -199,4 +209,4 @@ A feature is complete only when it has deterministic automated tests, staff-faci
 
 ## Recommended first development sprint
 
-Start with SNOW-001 through SNOW-006 (package, dedicated guild, UTC event window, schema, registration and dispute review). The accompanying starter project implements a minimal subset of these and deliberately does not pretend PvP, graphics or prizes are ready.
+Milestones A and B are implemented in v0.1.2. Continue with SNOW-014 through SNOW-016 (inventory, quests and gifts); graphics, boss, siege and prize exports are future milestones. Discord gateway smoke test is required before launch.

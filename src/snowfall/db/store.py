@@ -1,4 +1,4 @@
-"""Transactional SQLite persistence for v0.1.1 foundation.
+"""Transactional SQLite persistence for Operation Snowfall v0.1.2.
 
 All wall-clock values are UTC ISO strings. Existing v0.1.0 player records
 remain intact when the version-2 schema is migrated.
@@ -16,7 +16,7 @@ import unicodedata
 from snowfall.core.clock import as_utc
 
 CITIES = ("Chicago", "New York", "Detroit", "Philadelphia", "Las Vegas", "Los Angeles")
-DB_VERSION = 2
+DB_VERSION = 3
 
 
 class RegistrationError(ValueError):
@@ -60,6 +60,8 @@ class Season:
         if self.paused_at is not None:
             return "paused"
         if self.started_at is not None:
+            if now < self.started_at:
+                return "ready"  # never permit simulated or misordered actions pre-start
             if self.effective_now(now) >= self.started_at + timedelta(hours=168):
                 return "closed"
             return "live"
@@ -162,6 +164,69 @@ class Store:
                     PRIMARY KEY (season_key,message_kind)
                 )""")
                 con.execute("PRAGMA user_version=2")
+            if version < 3:
+                con.execute("""CREATE TABLE IF NOT EXISTS player_resources (
+                    season_key TEXT NOT NULL,
+                    discord_user_id INTEGER NOT NULL,
+                    snowballs INTEGER NOT NULL DEFAULT 8 CHECK(snowballs BETWEEN 0 AND 12),
+                    snowball_regen_at TEXT NOT NULL,
+                    warmth INTEGER NOT NULL DEFAULT 100 CHECK(warmth BETWEEN 0 AND 100),
+                    warmth_regen_at TEXT NOT NULL,
+                    snowflakes INTEGER NOT NULL DEFAULT 0 CHECK(snowflakes BETWEEN 0 AND 100),
+                    armour_hp INTEGER NOT NULL DEFAULT 0 CHECK(armour_hp BETWEEN 0 AND 25),
+                    armour_expires_at TEXT,
+                    knockout_until TEXT,
+                    shield_until TEXT,
+                    shield_trigger_at TEXT,
+                    last_throw_at TEXT,
+                    last_eligible_action_at TEXT,
+                    last_scored_action_at TEXT,
+                    PRIMARY KEY (season_key, discord_user_id),
+                    FOREIGN KEY (season_key, discord_user_id)
+                       REFERENCES players(season_key, discord_user_id)
+                )""")
+                con.execute("""CREATE TABLE IF NOT EXISTS combat_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    interaction_id TEXT NOT NULL UNIQUE,
+                    season_key TEXT NOT NULL,
+                    day INTEGER NOT NULL CHECK(day BETWEEN 1 AND 7),
+                    attacker_id INTEGER NOT NULL, target_id INTEGER NOT NULL,
+                    target_city TEXT NOT NULL, style TEXT NOT NULL,
+                    happened_at_utc TEXT NOT NULL, effective_at_utc TEXT NOT NULL,
+                    hit INTEGER NOT NULL, critical INTEGER NOT NULL,
+                    hit_roll REAL NOT NULL, crit_roll REAL,
+                    armour_damage INTEGER NOT NULL, warmth_damage INTEGER NOT NULL,
+                    knocked_out INTEGER NOT NULL, points_awarded INTEGER NOT NULL,
+                    bonus_city INTEGER NOT NULL, bonus_ko INTEGER NOT NULL,
+                    defense_points INTEGER NOT NULL,
+                    CHECK(attacker_id != target_id)
+                )""")
+                con.execute("""CREATE TABLE IF NOT EXISTS score_ledger (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    season_key TEXT NOT NULL,
+                    day INTEGER NOT NULL CHECK(day BETWEEN 1 AND 7),
+                    player_id INTEGER NOT NULL, city TEXT NOT NULL,
+                    category TEXT NOT NULL, points INTEGER NOT NULL,
+                    source_key TEXT NOT NULL, created_at_utc TEXT NOT NULL,
+                    UNIQUE(season_key, source_key, category, player_id)
+                )""")
+                con.execute("CREATE INDEX IF NOT EXISTS idx_combat_pair_day ON "
+                            "combat_events(season_key,day,attacker_id,target_id,hit)")
+                con.execute("CREATE INDEX IF NOT EXISTS idx_combat_target_window ON "
+                            "combat_events(season_key,target_id,effective_at_utc)")
+                con.execute("CREATE INDEX IF NOT EXISTS idx_score_player_day ON "
+                            "score_ledger(season_key,day,player_id)")
+                con.execute("CREATE INDEX IF NOT EXISTS idx_resources_active ON "
+                            "player_resources(season_key,last_eligible_action_at)")
+                # Corrections will use compensating INSERTs, never rewrite prior score rows.
+                for table in ("combat_events", "score_ledger"):
+                    con.execute(f"""CREATE TRIGGER IF NOT EXISTS {table}_immutable_update
+                        BEFORE UPDATE ON {table} BEGIN
+                        SELECT RAISE(ABORT, 'immutable combat history'); END""")
+                    con.execute(f"""CREATE TRIGGER IF NOT EXISTS {table}_immutable_delete
+                        BEFORE DELETE ON {table} BEGIN
+                        SELECT RAISE(ABORT, 'immutable combat history'); END""")
+                con.execute("PRAGMA user_version=3")
         with self.connect() as con:
             result = con.execute("PRAGMA quick_check").fetchone()[0]
             if result != "ok":
@@ -228,6 +293,12 @@ class Store:
                     raise LifecycleError("Start is allowed only after the scheduled UTC kickoff")
                 con.execute("UPDATE season_state SET started_at_utc=? WHERE season_key=?",
                             (_timestamp(now), key))
+                # Pre-registered players begin regenerating from the actual start,
+                # even if they first view their profile several hours later.
+                con.execute("""INSERT OR IGNORE INTO player_resources
+                    (season_key,discord_user_id,snowball_regen_at,warmth_regen_at)
+                    SELECT season_key,discord_user_id,?,? FROM players
+                    WHERE season_key=?""", (_timestamp(now), _timestamp(now), key))
             elif action == "pause":
                 if state != "live":
                     raise LifecycleError("Only a live season can be paused")
@@ -285,6 +356,15 @@ class Store:
                     (season, user_id, display, normalized, city, when))
             except sqlite3.IntegrityError as exc:
                 raise RegistrationError("That MR username has already been claimed; contact staff if disputed") from exc
+            if existing_season and state in ("live", "paused"):
+                # Late joiners receive exactly the starter balance; no pre-join
+                # regeneration. Paused registrations seed at frozen game time.
+                effective_join = self._make_season(existing_season).effective_now(now)
+                con.execute("""INSERT OR IGNORE INTO player_resources
+                    (season_key,discord_user_id,snowball_regen_at,warmth_regen_at)
+                    VALUES(?,?,?,?)""", (
+                    season, user_id, _timestamp(effective_join), _timestamp(effective_join),
+                ))
             return self._make_player(con.execute(
                 "SELECT * FROM players WHERE season_key=? AND discord_user_id=?",
                 (season, user_id)).fetchone())

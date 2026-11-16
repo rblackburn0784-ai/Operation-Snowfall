@@ -23,7 +23,11 @@ def rules_text() -> str:
         "• **Prizes:** Only individual awards receive prizes. City titles are for bragging rights.\n"
         "• **Fair play:** One MR name per Discord account; impersonation reports go to staff.\n"
         "• **Privacy:** MR usernames, Discord IDs and city choices are stored; staff can review disputes.\n"
-        "• **Status:** v0.1.1 foundation only — throwing, points and rewards are not live yet.\n"
+        "• **Combat:** `/snow ready` opts in to being targeted for 36 effective hours.\n"
+        "• **Attacks:** Quick 75% / Standard 60% / Power 40%; 30s cooldown.\n"
+        "• **Protection:** Two scoring hits per target/day, 15m anti-camping shield, 30m KO recovery.\n"
+        "• **PvP limit:** 300 scored PvP points per player per game day.\n"
+        "• **Release:** v0.1.2 combat live; bosses, crafting and prizes are future milestones.\n"
         "This is a fan-community game, not a direct MafiaReturns account integration."
     )
 
@@ -46,7 +50,7 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
         ),
         color=0x78B9EA,
     )
-    embed.set_footer(text="Registration and staff controls available. Combat comes in milestone B.")
+    embed.set_footer(text="v0.1.2 • Join, enter arena, throw and view personal scores.")
     return embed
 
 
@@ -126,9 +130,23 @@ class Dashboard(discord.ui.View):
                        custom_id="snowfall:v1:profile")
     async def profile_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         p = await asyncio.to_thread(self.store.get_player, self.settings.season_key, interaction.user.id)
-        msg = (f"**{escape_name(p.mr_username)}** — {p.city}\n"
-               f"**Claim status:** {p.review_state}\n"
-               "Gameplay scores are coming in milestone B.") if p else "Not registered. Click Join."
+        if p:
+            from snowfall.services.combat import CombatEngine, CombatError
+            try:
+                engine = CombatEngine(self.store)
+                r = await asyncio.to_thread(engine.snapshot, self.settings.season_key,
+                                            interaction.user.id, datetime.now(timezone.utc))
+                total = await asyncio.to_thread(engine.ledger_total, self.settings.season_key,
+                                                interaction.user.id)
+                msg = (f"**{escape_name(p.mr_username)}** — {p.city}\n"
+                       f"**Identity:** {p.review_state}\n"
+                       f"❄️ {r.snowballs}/12 snowballs • 🌡️ {r.warmth}/100 warmth\n"
+                       f"**Day PvP:** {r.today_pvp}/300 • **Total:** {total} points\n"
+                       "Use `/snow ready` to enter the arena; `/snow throw` to attack.")
+            except CombatError as exc:
+                msg = str(exc)
+        else:
+            msg = "Not registered. Click Join."
         await interaction.response.send_message(msg, ephemeral=True,
                                                 allowed_mentions=discord.AllowedMentions.none())
 
@@ -137,6 +155,13 @@ class Dashboard(discord.ui.View):
     async def rules_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_message(rules_text(), ephemeral=True,
                                                 allowed_mentions=discord.AllowedMentions.none())
+
+    @discord.ui.button(label="Throw", emoji="🎯", style=discord.ButtonStyle.success,
+                       custom_id="snowfall:v1:throw")
+    async def throw_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        from snowfall.ui.combat import send_target_menu
+        await interaction.response.defer(ephemeral=True)
+        await send_target_menu(interaction, self.settings, self.store)
 
     @discord.ui.button(label="Refresh", style=discord.ButtonStyle.secondary,
                        custom_id="snowfall:v1:refresh")

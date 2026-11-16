@@ -74,7 +74,7 @@ class SnowAdminGroup(app_commands.Group):
             f"Scheduled start: <t:{int(season.planned_start.timestamp())}:F>\n"
             f"Projected end: {f'<t:{int(projected.timestamp())}:F>' if projected else 'after host start'}\n"
             f"Registered: {len(players)} | Flagged: {sum(p.review_state == 'flagged' for p in players)}\n"
-            f"Audit entries: {audits}\nIndividual prizes only. Gameplay not yet available.",
+            f"Audit entries: {audits}\nIndividual prizes only. Snowball PvP is active when LIVE.",
             ephemeral=True)
 
     @app_commands.command(name="setup", description="Change future UTC kickoff before registration opens")
