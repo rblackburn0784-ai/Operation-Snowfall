@@ -121,9 +121,9 @@ class CityPicker(discord.ui.View):
 class Dashboard(discord.ui.View):
     def __init__(self, settings, store):
         settings, store = pin(settings, store)
-        super().__init__(timeout=900 if settings.mode == "practice" else None)
+        super().__init__(timeout=900 if getattr(settings, "mode", "production") == "practice" else None)
         self.settings, self.store = settings, store
-        if settings.mode == "practice":
+        if getattr(settings, "mode", "production") == "practice":
             # Do not reuse IDs of persistent production buttons in test messages.
             for i, child in enumerate(self.children):
                 if getattr(child, "custom_id", None):
@@ -135,7 +135,8 @@ class Dashboard(discord.ui.View):
             return False
         manager = getattr(interaction.client, "practice", None)
         current = manager.session if manager is not None else None
-        if (self.settings.mode == "production" and current is not None and
+        if (getattr(self.settings, "mode", "production") == "production" and
+                current is not None and
                 interaction.channel_id == current.channel_id):
             await interaction.response.send_message(
                 "This is the production dashboard. Use `/snow dashboard` for the TEST day.",

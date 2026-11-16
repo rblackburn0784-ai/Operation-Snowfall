@@ -255,4 +255,4 @@ def pin(settings, store):
 
 
 def practice_expired(settings, store) -> bool:
-    return settings.mode == "practice" and not getattr(store, "active", False)
+    return getattr(settings, "mode", "production") == "practice" and not getattr(store, "active", False)
