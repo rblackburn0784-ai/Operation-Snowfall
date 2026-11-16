@@ -29,7 +29,7 @@ def rules_text() -> str:
         "• **PvP limit:** 300 scored PvP points per player per game day.\n"
         "• **Economy:** Craft cocoa, forts, mittens and bombs; Golden is a rare present.\n"
         "• **Quests:** Three daily objectives (20 points + 2 Snowflakes each); one gift after a claim.\n"
-        "• **Release:** v0.1.3 economy live; bosses, sieges and prizes are future milestones.\n"
+        "• **Release:** v0.1.4 adds Snow Don, city sieges, honorary city standings and daily themes; prize exports come later.\n"
         "This is a fan-community game, not a direct MafiaReturns account integration."
     )
 
@@ -52,7 +52,7 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
         ),
         color=0x78B9EA,
     )
-    embed.set_footer(text="v0.1.3 • Craft, guard, daily quests, gifts and snowball battles.")
+    embed.set_footer(text="v0.1.4 • Snow Don, city sieges, daily themes, quests and snowball battles.")
     return embed
 
 
@@ -188,3 +188,28 @@ class Dashboard(discord.ui.View):
         from snowfall.ui.economy import send_quests
         await interaction.response.defer(ephemeral=True)
         await send_quests(interaction, self.settings, self.store)
+
+    @discord.ui.button(label="Snow Don", emoji="☃️", style=discord.ButtonStyle.primary,
+                       custom_id="snowfall:v1:boss", row=2)
+    async def boss_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        from snowfall.ui.world import send_world
+        await interaction.response.defer(ephemeral=True)
+        await send_world(interaction, self.settings, self.store)
+
+    @discord.ui.button(label="City Siege", emoji="🏰", style=discord.ButtonStyle.success,
+                       custom_id="snowfall:v1:siege", row=2)
+    async def siege_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        from snowfall.ui.world import send_world
+        await interaction.response.defer(ephemeral=True)
+        await send_world(interaction, self.settings, self.store)
+
+    @discord.ui.button(label="City Standings", emoji="🏆", style=discord.ButtonStyle.secondary,
+                       custom_id="snowfall:v1:cities", row=2)
+    async def cities_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        from snowfall.ui.world import city_board_text
+        from snowfall.services.world import WorldEngine
+        await interaction.response.defer(ephemeral=True)
+        rows = await asyncio.to_thread(WorldEngine(self.store).standings,
+                                       self.settings.season_key, datetime.now(timezone.utc))
+        await interaction.followup.send(city_board_text(rows), ephemeral=True,
+                                        allowed_mentions=discord.AllowedMentions.none())

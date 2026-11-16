@@ -1,4 +1,4 @@
-"""v0.1.3 PvP engine. One IMMEDIATE SQLite transaction per combat action.
+"""v0.1.4 PvP engine. One IMMEDIATE SQLite transaction per combat action.
 
 All gameplay clocks use effective (pause-adjusted) UTC. Physical timestamps
 are retained for auditing. Injected RNG is reserved for deterministic tests;
@@ -514,12 +514,15 @@ class CombatEngine:
                 (SELECT COUNT(DISTINCT c.target_id) FROM combat_events c
                  WHERE c.season_key=p.season_key AND c.attacker_id=p.discord_user_id
                    AND c.hit=1 AND c.points_awarded>0) AS unique_rivals,
+                (SELECT COALESCE(SUM(e.damage),0) FROM pve_events e
+                 WHERE e.season_key=p.season_key AND e.attacker_id=p.discord_user_id
+                   AND e.kind='boss' AND e.echo=0) AS boss_damage,
                 MAX(l.created_at_utc) AS score_reached_at
                 FROM players p LEFT JOIN score_ledger l ON l.season_key=p.season_key
                 AND l.player_id=p.discord_user_id
                 WHERE p.season_key=? AND p.review_state!='disqualified'
                 GROUP BY p.season_key,p.discord_user_id
-                ORDER BY score DESC, unique_rivals DESC, score_reached_at ASC,
+                ORDER BY score DESC, unique_rivals DESC, boss_damage DESC, score_reached_at ASC,
                          p.mr_username_norm ASC LIMIT ?""",
                 (season_key, max(1, min(100, limit))),
             ).fetchall()

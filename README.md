@@ -1,18 +1,11 @@
-# ❄️ Operation Snowfall — v0.1.3 Christmas Economy (Milestones A + B + C)
+# ❄️ Operation Snowfall — v0.1.4 Group Gameplay (Milestones A–D)
 
-Kat (MK)'s **unofficial** MafiaReturns Christmas snowball competition for **one dedicated Discord event server**. This release implements all eight Foundation tickets (SNOW-001–008), five Combat tickets (SNOW-009–013) and three Economy/Quest/Gift tickets (SNOW-014–016). **Not full v1.0:** Snow Don, city sieges, season themes, artwork and prize exports remain future milestones.
+Kat (MK)'s **unofficial** MafiaReturns Christmas event for **one dedicated Discord server**. This release implements Milestones A (registration/admin), B (transactional combat), C (inventory/quests/gifts), and **D (daily Snow Don boss, six independent city sieges, normalized city standings and themed challenges)**. No MR credentials or API integration; **individual prizes only**, city competition is honorary.
 
-## Approved event configuration
+## Update from v0.1.3 in PyCharm (Python 3.13)
 
-- **7 days / 168 effective hours** after Kat or a configured host issues `/snowadmin start START` on or after the scheduled kickoff.
-- **Registration opens exactly 7 days before** the scheduled kickoff, remains open until the season closes, and is based on self-declared MR username + one of six cities.
-- **Chicago, New York, Detroit, Philadelphia, Las Vegas and Los Angeles** compete for honorary city titles; **only individuals receive real prizes** in the final release.
-- The bot accepts interactions only in the configured **dedicated Discord guild** (not DMs/other servers). No MR passwords, MR API access, or account scraping.
-- Staff may review disputed claims without a mandatory verification queue; only configured host user IDs may control the game clock.
-
-## Installation / upgrade (PyCharm, Python 3.13)
-
-**Stop the bot and back up `data/snowfall.sqlite3` first** (for a running bot use the SQLite online backup API). v0.1.3 upgrades the schema from v3 to **v4**, preserving all accounts, previous combat and scores. Keep your local `.env`, `config.toml` and database when pulling. They are ignored by Git.
+1. **Stop the bot** before updating. Back up `data/snowfall.sqlite3` safely after shutdown (or via SQLite's online backup API). The migration to **schema v5** preserves v0.1.2/v0.1.3 combat, quests, gifts and registration data.
+2. Run:
 
 ```powershell
 git pull origin main
@@ -21,104 +14,65 @@ python -m pytest -q
 python bot.py
 ```
 
-If setting up a new instance:
-1. Copy `config.example.toml` to **`config.toml`**. Enter a dedicated server `guild_id`, at least one host `admin_user_ids`, optional `staff_role_ids`, and an ISO-8601 UTC future `starts_at_utc`.
-2. Copy `.env.example` to **`.env`** and set `DISCORD_TOKEN` there only.
-3. Invite your Discord application using the `bot` and `applications.commands` scopes. Grant **View Channel, Send Messages, Embed Links and Read Message History** in the event channel. No privileged Message Content intent required.
-4. Run the commands above. In the server, use `/snowadmin status` and `/snowadmin publish-dashboard` as the host.
+3. Keep your local `.env` (only `DISCORD_TOKEN`) and `config.toml` (IDs and dates); neither file belongs in Git. Check `config.toml` has the **correct Discord server ID** and that this exact bot application is installed there with **`bot` + `applications.commands`**. A `403 Forbidden (50001 Missing Access)` during startup is a Discord guild-access/installation issue, not a failed game test.
+4. Optional in `config.toml` under `[discord]`: `announcement_channel_id = 0`. Replace 0 with a channel ID **in the dedicated event guild** to publish one themed announcement per day. If left 0, Kat can announce through `/snowadmin announce-day` manually.
+5. **Test with a disposable `season_key` and separate database** before starting the real 168-hour Christmas season. The actual start and completion clock is host-operated; do not use `/snowadmin start` on the real season to test.
 
-**Important:** `/snowadmin start START` is deliberately manual and begins the actual 168-hour clock. Don't test it on your real Christmas season before launch. Use a separate `season_key` and database for practice. A host can pause and resume the season; game-day time, regeneration, protections, and cooldowns freeze during pauses.
+## Discord commands added in v0.1.4
 
-## Combat commands and controls
-
-| Command | Purpose |
+| Command | Behavior |
 |---|---|
-| `/snow dashboard` | Open private dashboard (public pinned dashboard also has Throw button) |
-| `/snow join` | Self-declare MR username and city |
-| `/snow ready` | **Opt in** to being targeted for 36 active event hours, with **zero** bonus points |
-| `/snow targets` | Show up to 25 currently eligible rival-city targets in a private picker |
-| `/snow throw` | Choose a target; or `/snow throw target:@player` to jump to attack style |
-| `/snow profile` | Snowballs, warmth, snowflakes, day/season PvP totals |
-| `/snow leaderboard` | Top 10 individual scores (no city prize implication) |
-| `/snow cities` | City registration totals (honorary only) |
-| `/snow rules` | Gameplay, gifts and identity policy |
-| `/snow inventory` | Private inventory with Craft, Use, Guard and Quests buttons |
-| `/snow craft item:<item>` | Spend Snowflakes on cocoa, fort, mittens or bomb |
-| `/snow use item:<item>` | Restore warmth, deploy fort or arm a throwing buff |
-| `/snow guard mode:on/off` | Temporary 30m defence; 2h activation cooldown |
-| `/snow quests` | Show three day-scoped quest objectives, claim buttons and gifts |
-| `/snow claim quest:<quest>` | Claim 20 points plus up to 2 Snowflakes once per quest/day |
-| `/snow present` | Claim one quest-earned gift per day; bonus:true on Day 4 after all three quests |
-| `/snowadmin status`, `setup`, `start`, `pause`, `resume`, `finalize`, `review`, `export-registrations`, `publish-dashboard` | Staff/host foundation controls |
+| `/snow world` | Private current boss HP, your city's fort HP, attempts, theme and points |
+| `/snow boss` | Private Snow Don view, choose → confirm a boss attack |
+| `/snow siege` | Private city fortress view, choose → confirm a siege attack |
+| `/snow cities` | Normalized 6-city standings (honorary, not prize payouts) |
+| `/snow leaderboard` | Individual ranking (only individuals can receive prizes) |
+| `/snowadmin boss-settings enabled:<true/false> hp_override:<0 or 150–100000> reason:<...>` | Host-only; tune or disable boss **before** the season is started; audited |
+| `/snowadmin publish-leaderboards channel:<#channel>` | Host creates/updates two public messages; scheduler edits every 5 minutes |
+| `/snowadmin announce-day channel:<#channel>` | Host creates/edits the current daily theme announcement |
 
-The Throw button and slash path use the same engine: **pick target → choose Quick / Standard / Power / Golden → preview → confirm → result**. The private interaction message is edited, avoiding channel spam. Failed validations don't spend snowballs or add a score.
+The permanent main dashboard includes **Snow Don**, **City Siege** and **City Standings** buttons. Individual NPC interactions stay **ephemeral** and edit one message instead of spamming the channel. PvE and scoreboards have text-only fallbacks; graphic assets arrive in Milestone E.
 
-### Combat and item rules in v0.1.3
+All existing `/snow join`, `ready`, `targets`, `throw`, `profile`, `inventory`, `craft`, `use`, `guard`, `quests`, `claim`, `present`, and host lifecycle commands remain available.
 
-| Type | Hit chance | Warmth damage | Personal points on hit |
-|---|---:|---:|---:|
-| Quick Lob | 75% | 8 | 8 |
-| Standard Throw | 60% | 14 | 12 |
-| Power Shot | 40% | 22 | 18 |
+## PvE rules: Snow Don
 
-- Start with **8** snowballs (cap **12**) and **100** warmth. Gain **1 snowball every 20 minutes**, **5 warmth every 20 minutes** outside KO. At cap, no regeneration is banked. Late registrations start with 8 balls and don't receive pre-join regeneration.
-- **30 seconds** between throws; **one** snowball spent only on a legal attempt, even when it misses. Server-side cryptographic RNG decides hit and 10%-chance critical (+4 damage, +3 points). Critical roll occurs only on a hit.
-- **Bonuses:** first scored hit against each rival city per day +5 points; knockout +10, maximum 3 awarded KO bonuses/day. Scored successful hits grant +1 Snowflake, capped at 100. Fort armour absorbs damage first; fort absorption grants defender +2 points within the daily cap.
-- **Daily PvP cap: 300 points per player**, shared across attacks and fort-defence bonuses. After reaching it, further PvP throws are blocked (no unscored harassment). Day uses pause-adjusted effective UTC.
-- **Anti-camping:** two scored successful hits per attacker/target/day; after 3 scored incoming hits within 30 active minutes, target receives 15 active minutes of protection, retriggered only after 3 *new* hits. Players cannot hit themselves, same-city members, disqualified users, KO'd or shielded users.
-- Knockout at 0 warmth means **30 minutes** of protection (no attacking). Recovery restores **at least 50 warmth** before normal regeneration resumes.
-- **36-hour inactivity shield**: only players who've used `/snow ready` or earned an eligible scoring action within 36 effective hours appear as targets. `/snow ready` is a combat-only onboarding exception to bootstrap battles before the boss/quest systems can supply scored actions. It gives **no points, ammo or rewards**.
-- **No score or ammo awarded during pauses**, and no attack may occur outside LIVE. Resource regeneration stops at the effective 168-hour endpoint.
-- Every attack has an **immutable log with recorded RNG rolls** and a unique Discord interaction ID. The personal score ledger is insert-only; duplicate interaction retries return their previously stored outcome without spending again. Player totals can be reconciled from the ledger.
+- Day 1 boss HP = `max(150, 28 × eligible players registered at start)`; Days 2–7 use **previous game day's active scorers**, measured from the immutable ledger, capped below by 150. Host may override HP or disable the boss before kickoff.
+- Each player has **6 attacks per game day**, using **one normal snowball** per attempt, **65% accuracy**, **12–18 damage on hit**, and **+5 individual points per hit**.
+- Shared global boss HP decreases only while alive. When defeated, the final hitter earns **+10** and each earlier successful shared boss contributor earns **+10**, once only. Each player's combined daily boss score is capped at **50**.
+- After defeat, later players still have their unused **personal training echo** attempts, at ordinary hit probabilities/damage and +5 points on success. Echoes **cannot change the shared boss HP, earn another boss-clear/final-blow award or repeatedly farm bonuses**. This is crucial for international players and is SNOW-032.
 
+## PvE rules: six daily city sieges
 
-## Milestone C — Economy, daily missions and Christmas presents
+- Each city has one independent NPC fort per game day. Initial fort HP = `24 × max(3, min(10, eligible city registrations at daily spawn))`.
+- Every participant may attempt **4 siege throws/day**, each using one normal snowball: 65% accuracy, 14 damage on success, **+8 individual points** per hit, daily siege cap 50.
+- The city whose fort was breached gets **+25 city standings points** for that day, exactly once. There is **no city credit/perk award**. After the fort is down, unused personal attempts target a *practice rubble pile*, which can give normal personal hit points but never additional city breach bonuses.
+- PvP, boss and siege throws share the **30-second cooldown, player snowball inventory, KO protections and effective (pause-adjusted) UTC clock**. Guard prevents PvP throws; guarding players may still contribute to the shared NPC objectives. No attacks occur while PAUSED or after the seven-day endpoint.
 
-Each new participant gets **one Hot Chocolate** (seeded exactly once even on migrated accounts). Their inventory and Snowflake balance are private. Snowflakes are earned from scored PvP hits and quest claims, capped at 100, and **cannot be bought**.
+## City scoring and daily themes
 
-| Item | Craft cost | Activation effect | Daily use limit |
-|---|---:|---|---:|
-| Hot Chocolate (`cocoa`) | 8 ✨ | Restore up to 30 warmth (not while KO) | 2 |
-| Fort Kit (`fort`) | 10 ✨ (8 on Day 2) | Deploy 25 armour for 6 effective hours; one active fort | 2 |
-| Precision Mittens (`mittens`) | 6 ✨ | Arm +10 percentage point accuracy boost on next legal throw | 2 |
-| Blizzard Bomb (`bomb`) | 15 ✨ | Arm +7 damage and +5 hit points for next legal **Power Shot** | 1 |
-| Golden Snowball (`golden`) | Not craftable | Special 80% accuracy, 25 damage, 25 base points; consumes Golden instead of ordinary ammo | 1 seasonal award |
+- Each city-day score uses the strongest **five** player contributions, each capped at **300 city-credit points** and padded with zeros if fewer than five. Formula: `(sum(top 5) / 5) + min(40, 4 × max(0, active_scoring_players − 5)) + (25 if daily fort breached else 0)`.
+- A city needs **three eligible scoring participants** to qualify for an official day score; under three yields zero. Self-declared/cleared users count; flagged/disqualified users are excluded from city scoring until staff clear their case.
+- Golden Snowball individual score is fully counted in individual rankings but contributes **at most 10** city points. Completed city-days are snapshotted once and immutably locked; scores for the ongoing day are marked provisional. After day seven all 42 city-day snapshots exist.
+- City ties break by more winning city-days, then combined actual siege damage, then city name. Individual ties break by unique rival hits, shared Snow Don damage, earliest point-completion time and account name.
 
-- Guard mode lasts **30 effective minutes**, gives attacking rivals −10 percentage points accuracy and −2 warmth damage, prevents the guarding player attacking, and can be reactivated only after **two effective hours**. Lowering guard does not erase this cooldown.
-- Item limits are enforced transactionally. Crafting, activating, claiming and gift opening use unique Discord interaction IDs. Throws consume armed buffs only on **legal** attempts (including misses). If a Blizzard Bomb is armed, only Power Shot is allowed until it is used.
-- Fort absorption earns the defender up to +2 defence points on a hit, up to a total of **10 defence points/day** and within the 300 daily PvP cap.
-- Golden Snowball has only **one award per player per season**, at **1%** from daily presents. It uses its own one-use inventory item, not a standard snowball; its *future* city contribution is capped at 10 points. The actual individual hit score is still capped by daily PvP limits.
-- **Daily missions, 20 personal points + up to 2 Snowflakes each**, one claim per mission per game day (maximum 60 quest points/day): (1) Five legal throws, (2) successful scoring hits on two different rivals, (3) Winter Preparation — one legal craft, item use, or guard activation. Objective 3 is a **temporary Milestone C fallback** for the approved boss/siege contribution objective and will switch when PvE launches. Day boundaries use the pause-adjusted 24-hour event days.
-- **Mystery present:** Once per game day after claiming any mission. Chances: +3 snowballs to holding cap 40%, cocoa 25%, mittens 20%, fort 10%, bomb 4%, Golden 1%. When a grant exceeds inventory cap or Golden has already been awarded, substitute **up to 5 Snowflakes**. Exactly one regular gift/day; on **Day 4** completing all three missions also unlocks **one extra non-Golden gift**.
-- Gifts and claimed quests are persisted and immutable; reconnects/restarts cannot reroll a present or reclaim points. The public leaderboard remains for **individual prizes only**; city rewards are honorary.
+| Day | Theme | Mechanical bonus |
+|---|---|---|
+| 1 | Opening Barrage | Standard daily rules |
+| 2 | Fortification Frenzy | Fort Kits cost 2 fewer Snowflakes (already in v0.1.3) |
+| 3 | The Great Whiteout | First claimed quest of the day grants +10 themed points once |
+| 4 | Christmas Supply Drop | Extra non-Golden gift after three claimed quests (existing) |
+| 5 | Snow Don's Revenge | First legal Snow Don attack grants +10 themed points once |
+| 6 | Blizzard Blitz | Second legal PvE attempt of the day grants +20 themed points once |
+| 7 | The Last Snowfall | Final day, standard caps; no unfair blanket multiplier |
 
-## Before starting the bot
+The third daily quest now accepts **a boss or siege attempt** as community participation; existing v0.1.3 item/guard *winter preparation* still counts as an accessible fallback for in-progress seasons. Regular quests are 20 points/+2 Snowflakes each, max 60 quest points/day; all themed rewards are separately capped to the listed once-per-day bonuses, below the 30 themed-points cap.
 
-If you still see **Discord 403 Missing Access** while syncing slash commands, that's unrelated to crafting. Confirm the `guild_id` in your private `config.toml` matches the dedicated server **ID** and that the *same application* behind your `.env` token is installed in that server with both `bot` and `applications.commands` scopes. The bot needs View Channel / Send Messages / Embed Links / Read Message History for its dashboard. Do not paste tokens or unignored local config files in chat or GitHub.
+## Reliability and release limits
 
-## Verification / rollout
+- All scored gameplay, shared boss HP, fort HP and ammo changes run in **one `BEGIN IMMEDIATE` SQLite transaction**. `pve_events` are immutable; interaction IDs are idempotent and the same ID cannot perform different NPC actions. Individual rewards are in `score_ledger` and can be reconciled from there.
+- A single persisted daily spawn is created for boss + six forts per game day. The built-in UTC scheduler checks each minute, locks previous days once, publishes optional themed announcements once, and edits existing standings at most once per five minutes. Both restart and late startup reconcile missed day boundaries. Daily NPC state never resets on reconnect.
+- Discord intents are minimal. Public posts should have no role pings; daily theme channels must be within the configured server.
+- **This is not full v1.0 launch-ready:** the actual Discord gateway UI still needs live-server testing; artwork, graphics, final individual prize exports, anti-abuse load simulation, backed-up restore drills, and Kat's dry run are Milestones E and F. An earlier reported **403 Missing Access** requires the bot installation/server permissions to be corrected separately.
 
-```powershell
-python -m compileall -q src bot.py
-python -m pytest -q
-```
-
-Tests include SQLite v1/v2/v3→v4 migrations, a crash-safe last-snowball simultaneous attack, replay protection, daily cap, shield expiry, resource clocks, restart persistence, and pause/resume. GitHub Actions runs on **Python 3.12 and 3.13**. **The Discord gateway interaction flows still need an in-server smoke test** before the production event.
-
-For a two-account **development season**, do the following:
-1. Start with two Discord members registered in **different cities**; verify `/snow profile` shows 8/12 balls and 100/100 warmth.
-2. Host presses `/snowadmin start START` (only in test season). Each player uses `/snow ready`.
-3. Player A runs `/snow targets` (or dashboard Throw); chooses B; selects and confirms an attack; inspect their result and profile.
-4. Attempt two consecutive throws; the second must be rejected until 30 seconds elapse. A miss consumes ammo but gives no points; hits increase score.
-5. Confirm a same-city/self/KO/protected/inactive target cannot be attacked and invalid requests don't consume ammo.
-6. Restart `python bot.py` and confirm the permanent dashboard and saved score still work.
-7. Confirm `/snowadmin pause PAUSE ...` freezes throws and resources; `/snowadmin resume RESUME` resumes the effective clock. Use a test season only.
-
-## Safety and deployment notes
-
-- Never commit `.env`, `config.toml`, `data/`, a live SQLite database or tokens. SQLite WAL files must be included in a consistent backup using the SQLite online backup API or after safely shutting down the bot.
-- This is a **single-process** SQLite service, not a multi-instance distributed bot. `BEGIN IMMEDIATE` serializes competing throws; move to a transactional database before using multiple workers/instances.
-- Staff identity flags do not secretly remove scores. Disqualified users disappear from public leaderboards but their historical immutable ledger remains; corrective adjustments are reserved for a later release.
-- Combat is functional at the domain/database level and exposed via Discord commands/buttons, but **v1.0 launch readiness is not claimed**. Artwork, boss, siege, full city scoring and individual prize exports remain upcoming milestones.
-
-See [`docs/RELEASE_v0.1.3.md`](docs/RELEASE_v0.1.3.md), [`docs/RELEASE_v0.1.2.md`](docs/RELEASE_v0.1.2.md), [`docs/DEVELOPMENT_TICKETS.md`](docs/DEVELOPMENT_TICKETS.md), and [`docs/GAME_DESIGN_SPEC_v1.0_APPROVED.md`](docs/GAME_DESIGN_SPEC_v1.0_APPROVED.md).
+See [`docs/RELEASE_v0.1.4.md`](docs/RELEASE_v0.1.4.md), [`docs/DEVELOPMENT_TICKETS.md`](docs/DEVELOPMENT_TICKETS.md), and the approved [`docs/GAME_DESIGN_SPEC_v1.0_APPROVED.md`](docs/GAME_DESIGN_SPEC_v1.0_APPROVED.md).

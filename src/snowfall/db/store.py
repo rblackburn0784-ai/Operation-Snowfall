@@ -1,4 +1,4 @@
-"""Transactional SQLite persistence for Operation Snowfall v0.1.3.
+"""Transactional SQLite persistence for Operation Snowfall v0.1.4.
 
 All wall-clock values are UTC ISO strings. Existing v0.1.0 player records
 remain intact when the version-2 schema is migrated.
@@ -16,7 +16,7 @@ import unicodedata
 from snowfall.core.clock import as_utc
 
 CITIES = ("Chicago", "New York", "Detroit", "Philadelphia", "Las Vegas", "Los Angeles")
-DB_VERSION = 4
+DB_VERSION = 5
 
 
 class RegistrationError(ValueError):
@@ -293,6 +293,57 @@ class Store:
                 # Do not UPDATE immutable combat history; future city aggregation
                 # should use COALESCE(city_credit, points_awarded).
                 con.execute("PRAGMA user_version=4")
+            if version < 5:
+                con.execute("""CREATE TABLE IF NOT EXISTS world_settings (
+                    season_key TEXT PRIMARY KEY,
+                    boss_enabled INTEGER NOT NULL DEFAULT 1 CHECK(boss_enabled IN (0,1)),
+                    boss_hp_override INTEGER CHECK(boss_hp_override IS NULL OR boss_hp_override>=150)
+                )""")
+                con.execute("""CREATE TABLE IF NOT EXISTS world_days (
+                    season_key TEXT NOT NULL, day INTEGER NOT NULL CHECK(day BETWEEN 1 AND 7),
+                    effective_start_utc TEXT NOT NULL, theme TEXT NOT NULL,
+                    boss_initial_hp INTEGER NOT NULL CHECK(boss_initial_hp>=150),
+                    boss_hp INTEGER NOT NULL CHECK(boss_hp>=0),
+                    boss_defeated_at TEXT, created_at_utc TEXT NOT NULL,
+                    PRIMARY KEY(season_key,day)
+                )""")
+                con.execute("""CREATE TABLE IF NOT EXISTS world_sieges (
+                    season_key TEXT NOT NULL, day INTEGER NOT NULL CHECK(day BETWEEN 1 AND 7),
+                    city TEXT NOT NULL, initial_hp INTEGER NOT NULL CHECK(initial_hp>=72),
+                    hp INTEGER NOT NULL CHECK(hp>=0), cleared_at_utc TEXT,
+                    PRIMARY KEY(season_key,day,city)
+                )""")
+                con.execute("""CREATE TABLE IF NOT EXISTS pve_events (
+                    interaction_id TEXT PRIMARY KEY, season_key TEXT NOT NULL,
+                    day INTEGER NOT NULL CHECK(day BETWEEN 1 AND 7),
+                    kind TEXT NOT NULL CHECK(kind IN ('boss','siege')),
+                    attacker_id INTEGER NOT NULL, city TEXT NOT NULL,
+                    happened_at_utc TEXT NOT NULL, effective_at_utc TEXT NOT NULL,
+                    hit_roll REAL NOT NULL, damage_roll REAL,
+                    hit INTEGER NOT NULL, damage INTEGER NOT NULL CHECK(damage>=0),
+                    echo INTEGER NOT NULL, final_blow INTEGER NOT NULL,
+                    points_awarded INTEGER NOT NULL CHECK(points_awarded>=0),
+                    theme_points INTEGER NOT NULL DEFAULT 0 CHECK(theme_points>=0),
+                    hp_after INTEGER NOT NULL CHECK(hp_after>=0), max_hp INTEGER NOT NULL
+                )""")
+                con.execute("""CREATE TABLE IF NOT EXISTS city_day_snapshots (
+                    season_key TEXT NOT NULL, day INTEGER NOT NULL CHECK(day BETWEEN 1 AND 7),
+                    city TEXT NOT NULL, score_x100 INTEGER NOT NULL,
+                    active_players INTEGER NOT NULL, qualified INTEGER NOT NULL,
+                    siege_cleared INTEGER NOT NULL, siege_damage INTEGER NOT NULL,
+                    locked_at_utc TEXT NOT NULL,
+                    PRIMARY KEY(season_key,day,city)
+                )""")
+                con.execute("CREATE INDEX IF NOT EXISTS idx_pve_player_day ON "
+                            "pve_events(season_key,day,attacker_id,kind)")
+                for table in ('pve_events','city_day_snapshots'):
+                    con.execute(f"""CREATE TRIGGER IF NOT EXISTS {table}_immutable_update
+                        BEFORE UPDATE ON {table} BEGIN
+                        SELECT RAISE(ABORT,'immutable group history'); END""")
+                    con.execute(f"""CREATE TRIGGER IF NOT EXISTS {table}_immutable_delete
+                        BEFORE DELETE ON {table} BEGIN
+                        SELECT RAISE(ABORT,'immutable group history'); END""")
+                con.execute("PRAGMA user_version=5")
         with self.connect() as con:
             result = con.execute("PRAGMA quick_check").fetchone()[0]
             if result != "ok":

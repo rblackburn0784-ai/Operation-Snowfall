@@ -1,7 +1,7 @@
 # Development backlog — Operation Snowfall v1.0
 
 **Scope:** full-feature 7-day event; dedicated Discord server, self-declared MR identities, prizes for individuals only.
-**Status:** SNOW-001 through SNOW-008 implemented in v0.1.1 (24 local tests passed; on-server smoke test and CI verification pending). SNOW-009 through SNOW-013 implemented in v0.1.2 (local domain tests passed; Discord gateway smoke check pending); SNOW-014 through SNOW-016 implemented in v0.1.3 (automated tests; live Discord smoke test pending); SNOW-017 onward remain open. Sizes are relative (S/M/L/XL), not delivery promises.
+**Status:** Milestones A–C implemented in v0.1.1–v0.1.3; **Milestone D SNOW-017–021 and SNOW-032 implemented in v0.1.4** (automated tests; live-server smoke test pending). Remaining SNOW-022–031 are open. Sizes are relative (S/M/L/XL), not delivery promises.
 **P0:** blocks launch. **P1:** full-feature launch requirement. **P2:** polish if time allows.
 
 ## Milestones / order
@@ -11,7 +11,7 @@
 | A | Foundation — v0.1.1 implemented; gateway smoke test pending | Self-declaration works only within event guild; registration opens 7d before; schema and admin audit present |
 | B | Snowball Combat — v0.1.2 implemented; Discord smoke test pending | All PvP rules transactionally safe; daily score caps work |
 | C | Economy — v0.1.3 implemented; Discord smoke test pending | Items, crafting, quests and gifts |
-| D | Group gameplay | Boss, sieges, city rankings and seven-day scheduler |
+| D | Group gameplay — v0.1.4 implemented; Discord smoke test pending | Boss, sieges, city rankings, late-player echo and seven-day scheduler |
 | E | Presentation | Art, cards, mobile UI and animation fallback |
 | F | Launch | Individual prize export, abuse tests, backups, load simulation, Kat approval |
 
@@ -137,25 +137,35 @@
 - **Depends on:** SNOW-012;SNOW-009
 - **Acceptance:** 6 scored attempts/day; reliable HP, capped awards
 
+- **Status:** Implemented in v0.1.4; Discord smoke test pending
+
 ### SNOW-018 · Six daily NPC fort sieges
 - **Phase:** D · **Priority:** P0 · **Size:** L · **Epic:** Cities
 - **Depends on:** SNOW-012;SNOW-009
 - **Acceptance:** Each city gets its own fortress; 4 scored throws/player/day
+
+- **Status:** Implemented in v0.1.4; Discord smoke test pending
 
 ### SNOW-019 · Normalized city leaderboard and snapshots
 - **Phase:** D · **Priority:** P0 · **Size:** L · **Epic:** Cities
 - **Depends on:** SNOW-012;SNOW-018
 - **Acceptance:** Top-five averages, bonus caps, min-active threshold tested
 
+- **Status:** Implemented in v0.1.4; Discord smoke test pending
+
 ### SNOW-020 · Seven daily themes and idempotent scheduler
 - **Phase:** D · **Priority:** P1 · **Size:** L · **Epic:** Events
 - **Depends on:** SNOW-003;SNOW-015;SNOW-017;SNOW-018
 - **Acceptance:** One daily rollover; no double rewards after restart
 
+- **Status:** Implemented in v0.1.4; Discord smoke test pending
+
 ### SNOW-021 · Personal and city boards with throttled edits
 - **Phase:** D · **Priority:** P1 · **Size:** M · **Epic:** UI
 - **Depends on:** SNOW-019;SNOW-007
 - **Acceptance:** Individual prize board separate from city non-prize board
+
+- **Status:** Implemented in v0.1.4; Discord smoke test pending
 
 ### SNOW-022 · Create reusable licensed asset pack and city scenes
 - **Phase:** E · **Priority:** P1 · **Size:** L · **Epic:** Art
@@ -211,6 +221,8 @@
 - **Phase:** D · **Priority:** P0 · **Size:** M · **Epic:** Fairness
 - **Depends on:** SNOW-017
 - **Acceptance:** Training echoes earn normal capped points without extra shared boss clear
+
+- **Status:** Implemented in v0.1.4; Discord smoke test pending
 
 ## Definition of done
 

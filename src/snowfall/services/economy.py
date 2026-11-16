@@ -1,4 +1,4 @@
-"""v0.1.3 transactional items, daily quests, guarding and mystery gifts.
+"""v0.1.4 transactional items, daily quests, guarding and mystery gifts.
 
 No Discord dependency. All mutations use SQLite BEGIN IMMEDIATE and a unique
 interaction ID; effective event timestamps freeze while the season is paused.
@@ -23,7 +23,7 @@ ITEM_NAMES = {"cocoa": "Hot Chocolate", "fort": "Fort Kit", "mittens": "Precisio
 DAILY_USE_CAPS = {"cocoa": 2, "fort": 2, "mittens": 2, "bomb": 1, "golden": 1}
 QUEST_TARGETS = {"throws": 5, "rivals": 2, "community": 1}
 QUEST_NAMES = {"throws": "Get your gloves on", "rivals": "Spread the misery",
-               "community": "Winter preparation"}
+               "community": "Community effort"}
 
 
 class EconomyError(CombatError):
@@ -301,11 +301,17 @@ class EconomyEngine:
         rivals = int(con.execute("SELECT COUNT(DISTINCT target_id) FROM combat_events "
                    "WHERE season_key=? AND attacker_id=? AND day=? AND hit=1 "
                    "AND points_awarded>0", (season, user, day)).fetchone()[0])
-        community = int(con.execute("SELECT COUNT(*) FROM item_events WHERE season_key=? "
+        # A legal boss/siege attempt now fulfils the community objective.
+        # Existing v0.1.3 winter-preparation actions remain valid as a
+        # non-PvP fallback for a seven-day season already in progress.
+        npc = int(con.execute("SELECT COUNT(*) FROM pve_events WHERE season_key=? "
+                      "AND attacker_id=? AND day=?", (season, user, day)).fetchone()[0])
+        preparation = int(con.execute("SELECT COUNT(*) FROM item_events WHERE season_key=? "
                        "AND discord_user_id=? AND day=? "
                        "AND operation IN ('craft','use','guard_on')",
                        (season, user, day)).fetchone()[0])
-        return {"throws": attempts, "rivals": rivals, "community": community}
+        return {"throws": attempts + npc, "rivals": rivals,
+                "community": npc + preparation}
 
     def quests(self, season: str, user: int, now: datetime) -> list[QuestView]:
         now = as_utc(now)
@@ -354,8 +360,21 @@ class EconomyEngine:
                         "last_scored_action_at=?, last_eligible_action_at=? "
                         "WHERE season_key=? AND discord_user_id=?",
                         (SNOWFLAKE_CAP, _timestamp(game_now), _timestamp(game_now), season, user))
+            # Day 3's one-off challenge: the first claimed quest earns +10.
+            # Unique ledger source prevents repetition across all three quests.
+            theme_extra = 0
+            if day == 3 and not con.execute(
+                "SELECT 1 FROM score_ledger WHERE season_key=? AND day=3 "
+                "AND player_id=? AND category='theme' AND source_key='theme:d3:quest'",
+                (season, user)).fetchone():
+                con.execute("""INSERT INTO score_ledger
+                    (season_key,day,player_id,city,category,points,source_key,created_at_utc)
+                    VALUES (?,?,?,?,'theme',10,'theme:d3:quest',?)""",
+                    (season, day, user, player['city'], _timestamp(now)))
+                theme_extra = 10
             return ActionResult(f"✅ {QUEST_NAMES[quest]} complete! +20 points and "
-                                f"+{flakes_granted} Snowflakes.")
+                                f"+{flakes_granted} Snowflakes."
+                                + (" Day 3 Whiteout bonus: +10 points!" if theme_extra else ""))
 
     @staticmethod
     def _gift_reward(roll: float) -> str:

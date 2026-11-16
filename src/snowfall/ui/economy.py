@@ -1,4 +1,4 @@
-"""Private, ownership-checked item and quest menus for v0.1.3."""
+"""Private, ownership-checked item and quest menus for v0.1.4."""
 from __future__ import annotations
 
 import asyncio
@@ -34,7 +34,7 @@ def quests_text(quests) -> str:
     for q in quests:
         state = "✅ Claimed" if q.claimed else ("🟩 Claim ready" if q.progress >= q.target else "⬜ In progress")
         lines.append(f"• **{q.name}:** {q.progress}/{q.target} — {state}")
-    lines.append("Temporary PvE fallback: winter preparation = craft/use an item or activate guard.")
+    lines.append("Community: attempt the Snow Don or city siege. Existing winter preparation also counts.")
     return "\n".join(lines)
 
 

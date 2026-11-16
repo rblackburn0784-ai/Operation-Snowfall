@@ -11,6 +11,8 @@ from snowfall.core.permissions import permitted_guild
 from snowfall.db.store import CITIES
 from snowfall.services.combat import CombatEngine, CombatError
 from snowfall.services.economy import EconomyEngine, EconomyError, ITEM_NAMES
+from snowfall.services.world import WorldEngine, WorldError
+from snowfall.ui.world import send_world, city_board_text, individual_board_text
 from snowfall.ui.combat import ThrowMenu, send_target_menu
 from snowfall.ui.economy import send_inventory, send_quests
 from snowfall.ui.dashboard import CityPicker, Dashboard, dashboard_embed, escape_name, rules_text
@@ -164,7 +166,7 @@ class SnowGroup(app_commands.Group):
     @app_commands.command(name="claim", description="Claim a completed daily mission")
     @app_commands.choices(quest=[app_commands.Choice(name="Get your gloves on", value="throws"),
                                  app_commands.Choice(name="Spread the misery", value="rivals"),
-                                 app_commands.Choice(name="Winter preparation", value="community")])
+                                 app_commands.Choice(name="Community effort", value="community")])
     async def claim(self, interaction: discord.Interaction, quest: str):
         await interaction.response.defer(ephemeral=True)
         try:
@@ -192,32 +194,36 @@ class SnowGroup(app_commands.Group):
         except EconomyError as exc:
             await interaction.followup.send("⚠️ " + str(exc), ephemeral=True)
 
-    @app_commands.command(name="leaderboard", description="Top individual snowball scorers")
+    @app_commands.command(name="world", description="Open the Snow Don, fortress and theme menu")
+    async def world(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        await send_world(interaction, self.settings, self.store)
+
+    @app_commands.command(name="boss", description="Fight the daily Abominable Snow Don")
+    async def boss(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        await send_world(interaction, self.settings, self.store)
+
+    @app_commands.command(name="siege", description="Attack your city's daily NPC fortress")
+    async def siege(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        await send_world(interaction, self.settings, self.store)
+
+    @app_commands.command(name="leaderboard", description="Individual standings: prizes for people only")
     async def leaderboard(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         rows = await asyncio.to_thread(CombatEngine(self.store).leaderboard,
                                        self.settings.season_key, 10)
-        board = "\n".join(
-            f"**{i}.** {escape_name(name)} ({city}): **{score}**"
-            for i, (name, city, _uid, score) in enumerate(rows, 1)
-        ) or "No registered competitors yet."
-        await interaction.followup.send(
-            "🏆 **Individual Scoreboard** — personal prizes only\n" + board
-            + "\n*City rankings are honorary; boss and siege scores arrive later.*",
-            ephemeral=True, allowed_mentions=discord.AllowedMentions.none(),
-        )
+        await interaction.followup.send(individual_board_text(rows), ephemeral=True,
+                                        allowed_mentions=discord.AllowedMentions.none())
 
-    @app_commands.command(name="cities", description="Show city registration counts (no city prizes)")
+    @app_commands.command(name="cities", description="Normalized city standings (no city prizes)")
     async def cities(self, interaction: discord.Interaction):
-        players = await asyncio.to_thread(self.store.registrations, self.settings.season_key)
-        counts = {c: 0 for c in CITIES}
-        for player in players:
-            if player.review_state != "disqualified":
-                counts[player.city] += 1
-        await interaction.response.send_message(
-            "**City registrations** (honorary city contest, individual prizes only):\n"
-            + "\n".join(f"{c}: **{n}**" for c, n in counts.items()), ephemeral=True,
-        )
+        await interaction.response.defer(ephemeral=True)
+        rows = await asyncio.to_thread(WorldEngine(self.store).standings,
+                                       self.settings.season_key, _now())
+        await interaction.followup.send(city_board_text(rows), ephemeral=True,
+                                        allowed_mentions=discord.AllowedMentions.none())
 
     @app_commands.command(name="rules", description="Read event rules and identity policy")
     async def rules(self, interaction: discord.Interaction):
