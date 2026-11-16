@@ -116,7 +116,9 @@ def _icon(im: Image.Image, key: str, xy: tuple[int,int], size=120):
 
 
 def _png(im: Image.Image) -> bytes:
-    out=BytesIO(); im.convert("RGB").save(out,format="PNG",optimize=True);return out.getvalue()
+    out = BytesIO()
+    im.convert("RGB").save(out, format="PNG", optimize=True)
+    return out.getvalue()
 
 
 def profile_card(name, city, resource, total, *, review="self-declared") -> bytes:
@@ -172,7 +174,8 @@ def world_result_card(result) -> bytes:
 
 
 def champions_card(players: Iterable, cities: Iterable, *, final: bool=False) -> bytes:
-    leaders=list(players)[:3]; city_rows=list(cities)
+    leaders=list(players)[:3]
+    city_rows=list(cities)
     winner=city_rows[0].city if city_rows else "Chicago"
     im,d=_canvas(winner,"SNOWFALL CHAMPIONS",
                  "FINAL STANDINGS • STAFF REVIEW PENDING" if final else "PROVISIONAL STANDINGS • NOT PRIZE RESULTS")
@@ -181,8 +184,10 @@ def champions_card(players: Iterable, cities: Iterable, *, final: bool=False) ->
     for idx in range(3):
         x=55+idx*218
         title=("1ST","2ND","3RD")[idx]
-        if idx<len(names): name,score=names[idx]
-        else: name,score="—",0
+        if idx < len(names):
+            name, score = names[idx]
+        else:
+            name, score = "—", 0
         _panel(d,(x,224,x+198,340),title,_fit(d,name,165,font(22,True)),colour="#ffdb98" if idx==0 else "#f3f7ff")
         d.text((x+16,350),f"{score} points",font=font(20,True),fill="#d3eafa")
     d.rounded_rectangle((55,404,672,483),radius=15,fill=(12,28,45,218))
@@ -200,17 +205,22 @@ def hit_animation(result, target: str, *, maximum_bytes=4_000_000) -> bytes | No
     frames=[]
     for i in range(9):
         frame=base.copy().convert("RGBA")
-        a=Image.new("RGBA",(480,270),(0,0,0,0)); d=ImageDraw.Draw(a)
-        x=int(42+(i/8)*340);y=int(215-93*math.sin(math.pi*i/8))
+        a=Image.new("RGBA",(480,270),(0,0,0,0))
+        d=ImageDraw.Draw(a)
+        x=int(42+(i/8)*340)
+        y=int(215-93*math.sin(math.pi*i/8))
         rad=13 if i<7 else 20+(i-7)*10
         d.ellipse((x-rad,y-rad,x+rad,y+rad),fill=(224,249,255,255),outline=(111,184,231,255),width=3)
         if i>=7:
             for k in range(6):
-                angle=math.pi*k/3; cx=x+int(29*math.cos(angle));cy=y+int(29*math.sin(angle))
+                angle=math.pi*k/3
+                cx=x+int(29*math.cos(angle))
+                cy=y+int(29*math.sin(angle))
                 d.ellipse((cx-4,cy-4,cx+4,cy+4),fill=(255,233,160,220))
         frame=Image.alpha_composite(frame,a).convert("RGB")
         frames.append(frame.quantize(colors=80,method=Image.Quantize.MEDIANCUT))
-    out=BytesIO();frames[0].save(out,format="GIF",save_all=True,append_images=frames[1:],
+    out=BytesIO()
+    frames[0].save(out,format="GIF",save_all=True,append_images=frames[1:],
                                 duration=130,loop=0,optimize=True,disposal=2)
     data=out.getvalue()
     return data if len(data)<maximum_bytes else None
@@ -224,15 +234,18 @@ def world_animation(result, *, maximum_bytes=4_000_000) -> bytes | None:
         base = picture.resize((480,270),Image.Resampling.BILINEAR).convert("RGB")
     frames=[]
     for i in range(9):
-        im=base.copy(); d=ImageDraw.Draw(im,"RGBA")
+        im=base.copy()
+        d=ImageDraw.Draw(im,"RGBA")
         for k in range(12):
             angle=2*math.pi*k/12+i*.12
             radius=12+i*10
-            x=int(332+radius*math.cos(angle));y=int(127+radius*math.sin(angle))
+            x=int(332+radius*math.cos(angle))
+            y=int(127+radius*math.sin(angle))
             size=4+(k%3)
             d.ellipse((x-size,y-size,x+size,y+size),fill=(255,226,126,max(50,220-i*17)))
         frames.append(im.quantize(colors=80,method=Image.Quantize.MEDIANCUT))
-    out=BytesIO();frames[0].save(out,format="GIF",save_all=True,append_images=frames[1:],
+    out=BytesIO()
+    frames[0].save(out,format="GIF",save_all=True,append_images=frames[1:],
                                 duration=140,loop=0,optimize=True,disposal=2)
     data=out.getvalue()
     return data if len(data)<maximum_bytes else None
