@@ -86,7 +86,7 @@ class SnowGroup(app_commands.Group):
     async def ready(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
         try:
-            expires = await asyncio.to_thread(CombatEngine(self.store).ready,
+            await asyncio.to_thread(CombatEngine(self.store).ready,
                                               self.settings.season_key, interaction.user.id, _now())
         except CombatError as exc:
             await interaction.followup.send(str(exc), ephemeral=True)
