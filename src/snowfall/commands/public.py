@@ -72,6 +72,23 @@ class SnowGroup(app_commands.Group):
         await interaction.response.defer(ephemeral=True)
         await send_main_menu(interaction, self.settings, self.store)
 
+    @app_commands.command(name="hq", description="Your personal Headquarters, timers and daily progress")
+    async def hq(self, interaction: discord.Interaction):
+        from snowfall.ui.headquarters import send_headquarters
+        await interaction.response.defer(ephemeral=True)
+        await send_headquarters(interaction, self.settings, self.store)
+
+    @app_commands.command(name="guide", description="First-time guide to registration and the game")
+    async def guide(self, interaction: discord.Interaction):
+        from snowfall.ui.headquarters import STEPS, WelcomeTour
+        from snowfall.practice import pin
+        settings, store = pin(self.settings, self.store)
+        first = STEPS[0]
+        embed = discord.Embed(title=f"📖 Getting Started — {first[0]} (1/3)",
+                              description=first[1], colour=0x6AB3DB)
+        await interaction.response.send_message(embed=embed, ephemeral=True,
+            view=WelcomeTour(settings, store, interaction.user.id, 0))
+
     @app_commands.command(name="join", description="Declare your MafiaReturns username and city")
     async def join(self, interaction: discord.Interaction):
         stage = self.store.season(self.settings.season_key).phase(_now())

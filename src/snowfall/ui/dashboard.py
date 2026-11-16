@@ -54,8 +54,8 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
         ),
         color=0x78B9EA,
     )
-    embed.set_footer(text="v0.1.6b • TEST — NO PRIZES" if settings.is_test else
-                     "v0.1.6b • Live event, individual prizes only")
+    embed.set_footer(text="v0.1.7 • TEST — NO PRIZES" if settings.is_test else
+                     "v0.1.7 • Live event, individual prizes only")
     return embed
 
 
@@ -89,7 +89,8 @@ class JoinModal(discord.ui.Modal, title="Operation Snowfall — Register"):
             return
         await interaction.followup.send(
             f"✅ **{escape_name(p.mr_username)}** registered for **{p.city}**. "
-            "Your claim is self-declared; staff may review identity disputes.",
+            "Your claim is self-declared; staff may review identity disputes. "
+            "Open `/snow hq` for resources, next steps and the daily quests!",
             ephemeral=True, allowed_mentions=discord.AllowedMentions.none())
 
 
@@ -238,6 +239,13 @@ class Dashboard(discord.ui.View):
         from snowfall.ui.navigation import send_main_menu
         await interaction.response.defer(ephemeral=True)
         await send_main_menu(interaction, self.settings, self.store)
+
+    @discord.ui.button(label="My Headquarters", emoji="🏠", style=discord.ButtonStyle.success,
+                       custom_id="snowfall:v1:hq", row=1)
+    async def headquarters_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        from snowfall.ui.headquarters import send_headquarters
+        await interaction.response.defer(ephemeral=True)
+        await send_headquarters(interaction, self.settings, self.store)
 
     @discord.ui.button(label="Inventory", emoji="🎒", style=discord.ButtonStyle.secondary,
                        custom_id="snowfall:v1:inventory", row=1)

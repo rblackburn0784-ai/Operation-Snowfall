@@ -1,4 +1,10 @@
-# ❄️ Operation Snowfall — v0.1.6b (Main Menu → Game Menus → Admin/Test Panel)
+# ❄️ Operation Snowfall — v0.1.7 (Player Experience Upgrade)
+
+**New in v0.1.7:** `/snow hq` opens **My Headquarters**, a private at-a-glance dashboard for resources, individual rank (top 100), current-day/season points, claimable quests, gift readiness, boss/siege attempts, effective-clock regeneration, next legal throw and the next event-day reset. It proposes the next useful action. It also works in the existing channel-scoped practice day without reading live data. During pauses, timers show as frozen instead of giving misleading absolute countdowns.
+
+`/snow guide` opens a **three-step beginner tour** with registration, PvP eligibility and the daily quest/gift loop. The original City Picker and declaration Modal remain the authoritative registration process. New shortcuts appear in **Main Menu → My Headquarters**, the Game Menus and My Player sections, and the persistent public dashboard. **Find a Fight** shows current eligible rival count and offers **Recommended Rival** (fresh two-hit opponents first, then healthier ones) or **Surprise Me**. Both selectors re-fetch targets; the attack still uses the same transactional eligibility, shield, cooldown and scoring rules. All UI actions are private and owner-checked.
+
+**No gameplay rebalance, new prizes or database migration.** All changes are presentation and selection only. Existing isolated test days and individual-only rewards are preserved. See [v0.1.7 release notes](docs/RELEASE_v0.1.7.md).
 
 **New in v0.1.6b:** `/snow menu` or `/snow dashboard` opens a private **Main Menu**. Navigate to **Game Menus** (combat, gear, quests, Snow Don/siege and rankings), **My Player**, or—hosts only—**Admin / Test Control Panel**. The public dashboard retains its old shortcuts and adds a **Main Menu** button. Game screens offer **Game Menus** and **Home** navigation, editing the same private message.
 

@@ -6,6 +6,7 @@ trusted for hit calculation or score changes.
 from __future__ import annotations
 
 import asyncio
+import secrets
 from datetime import datetime, timezone
 
 import discord
@@ -84,16 +85,49 @@ class CombatMenu(discord.ui.View):
         )
 
 
+def suggested_targets(targets):
+    """Prefer targets with two fresh legal scoring hits, then healthier rivals.
+
+    Selection is an assistive sort only; CombatEngine re-checks eligibility and
+    the two-hit cap inside the actual attack transaction.
+    """
+    return sorted(targets, key=lambda t: (-t.hits_remaining, -t.warmth,
+                                           t.city.casefold(), t.mr_username.casefold(),
+                                           t.discord_user_id))
+
+
+async def open_target_menu(interaction, settings, store, owner_id):
+    """Open the existing target picker by editing the current private message."""
+    settings, store = pin(settings, store)
+    await interaction.response.defer()
+    try:
+        options = await asyncio.to_thread(CombatEngine(store).targets, settings.season_key,
+                                          owner_id, _now())
+        if options:
+            view = TargetPicker(settings, store, owner_id, options)
+            content = (f'🎯 **{len(options)} eligible rival(s)** — Recommended keeps your legal '
+                       'scoring opportunities in mind. Or choose any rival / Surprise Me.')
+        else:
+            view = RetryView(settings, store, owner_id)
+            content = 'No eligible rivals right now. Ask players in other cities to use `/snow ready`.'
+    except CombatError as exc:
+        view = RetryView(settings, store, owner_id)
+        content = f'⚠️ {exc}'
+    await interaction.edit_original_response(content=content, embed=None,
+                                              attachments=[], view=view)
+
+
 class TargetPicker(CombatMenu):
     def __init__(self, settings, store, owner_id: int, targets):
         super().__init__(settings, store, owner_id)
         settings, store = self.settings, self.store
-        self.names = {str(t.discord_user_id): t.mr_username for t in targets}
+        self.targets = suggested_targets(targets)
+        self.names = {str(t.discord_user_id): t.mr_username for t in self.targets}
         options = [discord.SelectOption(
             label=f"{t.mr_username} — {t.city}"[:100],
             description=f"Warmth {t.warmth}/100 · {t.hits_remaining} scored hits left"[:100],
             value=str(t.discord_user_id),
-        ) for t in targets]
+        ) for t in self.targets]
         selector = discord.ui.Select(placeholder="Select a rival player", options=options)
 
         async def chosen(interaction: discord.Interaction):
@@ -107,6 +141,38 @@ class TargetPicker(CombatMenu):
 
         selector.callback = chosen
         self.add_item(selector)
+
+    async def _surprise(self, interaction, recommended=False):
+        # Re-fetch live eligibility at the point of selection. The attack is
+        # independently validated on confirmation, as with manual selection.
+        try:
+            pool = await asyncio.to_thread(CombatEngine(self.store).targets,
+                                            self.settings.season_key, self.owner_id, _now())
+        except CombatError as exc:
+            await interaction.response.edit_message(content=f'⚠️ {exc}', embed=None,
+                attachments=[], view=RetryView(self.settings, self.store, self.owner_id))
+            return
+        if not pool:
+            await interaction.response.edit_message(content='No eligible rivals left. Try later.',
+                embed=None, attachments=[],
+                view=RetryView(self.settings, self.store, self.owner_id))
+            return
+        target = suggested_targets(pool)[0] if recommended else secrets.choice(pool)
+        mode = 'Recommended rival' if recommended else 'Surprise rival'
+        await interaction.response.edit_message(
+            content=f'🎯 **{mode}: {escape_name(target.mr_username)}** ({target.city}) — '
+                    f'{target.hits_remaining} scored hit(s) available. Choose your throw:',
+            view=ThrowMenu(self.settings, self.store, self.owner_id,
+                           target.discord_user_id, target.mr_username),
+            embed=None, attachments=[])
+
+    @discord.ui.button(label='Recommended Rival', emoji='✨', style=discord.ButtonStyle.primary, row=1)
+    async def recommended(self, interaction, _):
+        await self._surprise(interaction, recommended=True)
+
+    @discord.ui.button(label='Surprise Me', emoji='🎲', style=discord.ButtonStyle.success, row=1)
+    async def random_rival(self, interaction, _):
+        await self._surprise(interaction)
 
 
 class ThrowMenu(CombatMenu):
@@ -188,6 +254,10 @@ class ConfirmThrow(CombatMenu):
 
 
 class RetryView(CombatMenu):
+    @discord.ui.button(label='Surprise Me', emoji='🎲', style=discord.ButtonStyle.success)
+    async def surprise(self, interaction, _):
+        await open_target_menu(interaction, self.settings, self.store, self.owner_id)
+
     @discord.ui.button(label="Choose Another Target", style=discord.ButtonStyle.primary)
     async def another(self, interaction: discord.Interaction, _: discord.ui.Button):
         await self._targets(interaction)

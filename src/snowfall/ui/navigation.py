@@ -36,7 +36,7 @@ def _mode(settings) -> str:
 def _embed(title: str, description: str, settings, *, warning: bool = False) -> discord.Embed:
     colour = discord.Colour.orange() if warning else discord.Colour.from_rgb(106, 179, 219)
     card = discord.Embed(title=title, description=description, colour=colour)
-    card.set_footer(text=f"{_mode(settings)} • v0.1.6b • Private navigation")
+    card.set_footer(text=f"{_mode(settings)} • v0.1.7 • Private navigation")
     return card
 
 
@@ -97,10 +97,11 @@ async def _home_embed(settings, store) -> discord.Embed:
     )
     card = dashboard_embed(settings, season, now, len(people))
     card.title = "❄️ Operation Snowfall — Main Menu"
+    card.add_field(name="🏠 My Headquarters", value="Timers • Daily progress • What to do next", inline=False)
     card.add_field(name="🎮 Game Menus", value="Snowballs • Inventory • Quests • Boss • Siege", inline=False)
     card.add_field(name="🧑 My Player", value="Register, view stats and enter the arena", inline=False)
     card.add_field(name="🏆 Rankings", value="Individual prizes and honorary city standings", inline=False)
-    card.set_footer(text=f"{_mode(settings)} • v0.1.6b • Only you can see this menu")
+    card.set_footer(text=f"{_mode(settings)} • v0.1.7 • Only you can see this menu")
     return card
 
 
@@ -165,6 +166,11 @@ class MainMenu(MenuView):
     async def games(self, interaction, _):
         await show_game(interaction, self.settings, self.store, self.owner_id)
 
+    @discord.ui.button(label="My Headquarters", emoji="🏠", style=discord.ButtonStyle.success, row=1)
+    async def headquarters(self, interaction, _):
+        from snowfall.ui.headquarters import show_headquarters
+        await show_headquarters(interaction, self.settings, self.store, self.owner_id)
+
     @discord.ui.button(label="My Player", emoji="🧑", style=discord.ButtonStyle.secondary)
     async def player(self, interaction, _):
         await show_player(interaction, self.settings, self.store, self.owner_id)
@@ -187,6 +193,11 @@ class MainMenu(MenuView):
 
 
 class GameMenu(MenuView):
+    @discord.ui.button(label="My Headquarters", emoji="🏠", style=discord.ButtonStyle.success, row=1)
+    async def headquarters(self, interaction, _):
+        from snowfall.ui.headquarters import show_headquarters
+        await show_headquarters(interaction, self.settings, self.store, self.owner_id)
+
     @discord.ui.button(label="Snowball Fight", emoji="🎯", style=discord.ButtonStyle.success)
     async def combat(self, interaction, _):
         from snowfall.ui.combat import TargetPicker
@@ -258,6 +269,16 @@ class GameMenu(MenuView):
 
 
 class PlayerMenu(MenuView):
+    @discord.ui.button(label="Headquarters", emoji="🏠", style=discord.ButtonStyle.primary, row=1)
+    async def headquarters(self, interaction, _):
+        from snowfall.ui.headquarters import show_headquarters
+        await show_headquarters(interaction, self.settings, self.store, self.owner_id)
+
+    @discord.ui.button(label="Guided Start", emoji="📖", style=discord.ButtonStyle.secondary, row=1)
+    async def guide(self, interaction, _):
+        from snowfall.ui.headquarters import show_tour
+        await show_tour(interaction, self.settings, self.store, self.owner_id, 0)
+
     @discord.ui.button(label="Join / Register", emoji="❄️", style=discord.ButtonStyle.primary)
     async def join(self, interaction, _):
         from snowfall.ui.dashboard import CityPicker
