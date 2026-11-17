@@ -93,9 +93,11 @@ def territory_text(board, *, page="map", city=None, rivalries=()) -> str:
                      "they cannot grant district bonuses.*")
     elif page == "city":
         held = board.held(city)
+        home = next(d for d in board.districts if d.key == f"home:{city}")
         lines = [top, f"\n🚩 **{my.emblem} {city} — {_safe(my.motto)}**",
                  f"Home stronghold: **{my.home_district}** "
-                 f"({'Claimed' if my.mission_complete else 'Neutral'})",
+                 f"({'Claimed' if home.owner else 'Neutral'}) "
+                 f"· Crew quorum {my.active}/{my.stronghold_quorum}",
                  f"**{len(held)} honorary districts held** · {my.rally_marks} rally marks "
                  f"· {my.active}/{my.registered} active city members",
                  f"City mission: **{_safe(my.mission_name)}** "

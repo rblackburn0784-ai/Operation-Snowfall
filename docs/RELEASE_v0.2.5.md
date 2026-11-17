@@ -47,8 +47,11 @@ deduction is needed.
 Each day has **12 honorary districts**:
 
 1. **Six home strongholds**, one per city: a city temporarily controls its
-   home district when its existing v0.1.9 daily co-operative mission has been
-   completed for that event day.
+   home district when its existing daily co-operative mission is complete
+   **and** at least two distinct eligible daily scorers participated, if
+   two or more members registered by the start of the event day (otherwise
+   one). The two-member maximum is frozen at kickoff, so later staff
+   reviews cannot reduce the required crew quorum.
 2. **Three Rally Frontiers**, one per daily city match: the side with the
    higher *rally marks* controls the named frontier. Rally marks are:
    **4 × distinct eligible daily scorers + 1 × real non-echo successful

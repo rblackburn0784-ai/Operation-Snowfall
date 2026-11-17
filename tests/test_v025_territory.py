@@ -132,6 +132,7 @@ def test_six_city_day_one_map_neutral_when_all_teams_tied(store):
     assert board.missions[0].target == 2
     assert board.missions[1].target == 2
     assert board.banner("Chicago").mission_target == 4
+    assert board.banner("Chicago").stronghold_quorum == 2
     assert not board.banner("Chicago").mission_complete
     check_png(territory_map_card(board))
     check_png(territory_map_card(board, highlighted_city="Los Angeles"))
@@ -185,7 +186,11 @@ def test_duplicate_combat_replay_and_antifraud_review_change_honours_only(store)
     revised = TerritoryEngine(store).board(KEY, 101, START + timedelta(minutes=10))
     assert revised.banner("Chicago").active == 1
     assert revised.banner("Chicago").mission_progress == 2
-    assert not revised.banner("Chicago").mission_complete
+    # Existing city mission rescales after review; home territory still
+    # requires the original eligible-activity quorum fixed at day kickoff.
+    assert revised.banner("Chicago").mission_complete
+    assert revised.banner("Chicago").stronghold_quorum == 2
+    assert revised.banner("Chicago").active == 1
     assert revised.match("Chicago").hits_a == 2
     assert revised.match("Chicago").rally_owner == "Chicago"
     assert len(revised.held("Chicago")) == 2

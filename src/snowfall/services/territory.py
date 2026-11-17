@@ -7,11 +7,11 @@ display-only honours from qualified real events. Equal results stay neutral.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 import sqlite3
 
 from snowfall.core.clock import as_utc
-from snowfall.db.store import CITIES, Store
+from snowfall.db.store import CITIES, Store, _timestamp
 from snowfall.services.community import _objective, _rivalries
 
 # Original game-world districts, not claims about actual US city boundaries.
@@ -50,6 +50,7 @@ class CityBanner:
     mission_progress: int
     mission_target: int
     mission_complete: bool
+    stronghold_quorum: int
 
 
 @dataclass(frozen=True)
@@ -226,6 +227,21 @@ class TerritoryEngine:
             active, pve, quests, pvp = (
                 _daily_activity(con, season, selected)
                 if selected is not None else ({}, {}, {}, {}))
+            # A review must not shrink the honorary crew quota retroactively.
+            # Freeze the two-member maximum at the start of each event day.
+            quorum = {city: 1 for city in CITIES}
+            if selected is not None:
+                day_row = con.execute(
+                    "SELECT effective_start_utc FROM world_days "
+                    "WHERE season_key=? AND day=?", (season, selected)).fetchone()
+                cutoff = (day_row[0] if day_row is not None else
+                          _timestamp(state.started_at + timedelta(days=selected-1)))
+                original_roster = con.execute(
+                    "SELECT city, COUNT(*) AS n FROM players WHERE season_key=? "
+                    "AND joined_at_utc<=? GROUP BY city",
+                    (season, cutoff)).fetchall()
+                quorum.update({r["city"]: min(2, max(1, int(r["n"])))
+                               for r in original_roster})
             city_banners = []
             for city in CITIES:
                 home, motto, colour, emblem = CITY_STYLE[city]
@@ -243,12 +259,14 @@ class TerritoryEngine:
                     objective.name if objective else "Awaiting kickoff",
                     objective.progress if objective else 0,
                     objective.target if objective else 0,
-                    bool(objective and objective.completed),
+                    bool(objective and objective.completed), quorum[city],
                 ))
             banner_map = {b.city: b for b in city_banners}
             districts = [
                 TerritoryDistrict(f"home:{c}", CITY_STYLE[c][0], "home",
-                                  c if banner_map[c].mission_complete else None, (c,),
+                                  c if (banner_map[c].mission_complete and
+                                        banner_map[c].active >= banner_map[c].stronghold_quorum)
+                                  else None, (c,),
                                   selected or 0)
                 for c in CITIES]
             matches = []
