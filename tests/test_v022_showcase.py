@@ -62,7 +62,7 @@ def test_purchased_frames_banners_trails_gear_and_portraits_are_visible(game):
     assert {x.key for x in changed.badges} == {"first_style", "collector", "full_outfit"}
     after = _image(_card(changed))
     assert default.tobytes() != after.tobytes()
-    assert after.getpixel((599, 196)) != default.getpixel((599, 196))
+    assert after.getpixel((750, 185)) != default.getpixel((750, 185))
     assert len(_card(changed)) < 2_000_000
     assert CombatEngine(game).ledger_total(KEY, 101) == 0
     with game.connect() as con:
