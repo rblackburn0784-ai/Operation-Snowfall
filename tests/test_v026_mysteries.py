@@ -216,7 +216,7 @@ def test_final_case_and_immutable_schema_restarts(game):
     assert solved.correct
     reopened = Store(game.path)
     reopened.initialize()
-    assert reopened.schema_version() == 9
+    assert reopened.schema_version() == 10
     assert MysteryEngine(reopened).snapshot(KEY, 101, final_time).solved
     for table in ("mystery_clues", "mystery_guesses"):
         with reopened.connect() as con:
@@ -256,7 +256,7 @@ def test_upgrading_v8_sqlite_is_safe_and_idempotent(game):
         before = con.execute("SELECT COUNT(*) FROM players").fetchone()[0]
     game.initialize()
     game.initialize()
-    assert game.schema_version() == 9
+    assert game.schema_version() == 10
     with game.connect() as con:
         assert con.execute("SELECT COUNT(*) FROM players").fetchone()[0] == before
         assert all(con.execute(

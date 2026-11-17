@@ -41,9 +41,11 @@ class SnowFunGroup(app_commands.Group):
     async def encounter(self, interaction: discord.Interaction):
         await self._open(interaction, "Encounter")
 
-    @app_commands.command(name="arcade", description="Play no-prize winter mini-games")
+    @app_commands.command(name="arcade", description="Play five games, compare scores and collect seasonal stamps")
     async def arcade(self, interaction: discord.Interaction):
-        await self._open(interaction, "Arcade")
+        from snowfall.ui.social_arcade import send_arcade
+        await interaction.response.defer(ephemeral=True)
+        await send_arcade(interaction, self.settings, self.store)
 
     @app_commands.command(name="rivalries", description="Private PvP records, hit streaks and revenge alerts")
     async def rivalries(self, interaction: discord.Interaction):

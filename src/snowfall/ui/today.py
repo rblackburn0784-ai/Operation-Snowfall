@@ -1,4 +1,4 @@
-"""v0.2.6 personal daily hub and safe, read-only next-step navigation.
+"""v0.2.7 personal daily hub and safe, read-only next-step navigation.
 
 All buttons edit the same owner-checked ephemeral message. Quick Play only
 opens an existing action menu: the combat, economy and world engines still
@@ -32,7 +32,7 @@ def today_embed(info: Headquarters, settings, intel=None, wars=None, mystery=Non
     card = discord.Embed(title="📋 Today's Snowfall",
                          colour=discord.Colour.from_rgb(106, 179, 219))
     flag = "🧪 TEST — NO PRIZES" if getattr(settings, "mode", "production") == "practice" else "❄️ LIVE EVENT"
-    card.set_footer(text=f"{flag} • v0.2.6 • Personal view")
+    card.set_footer(text=f"{flag} • v0.2.7 • Personal view")
     if info.player is None:
         card.description = ("**Not registered yet.**\n"
                             "Choose **Do Next** to declare your own MafiaReturns name and city. "
@@ -163,7 +163,7 @@ async def quick_action(interaction, settings, store, owner_id: int,
         route = route_override or info.next_action_route
         if info.player is None and route not in ("join", "guide"):
             route = "join" if info.phase in ("registration", "ready", "live", "paused") else "guide"
-        if info.phase != "live" and route in ("fight", "quests", "world", "winter"):
+        if info.phase != "live" and route in ("fight", "quests", "world", "winter", "arcade"):
             route = "hq"
 
         card = None
@@ -208,6 +208,12 @@ async def quick_action(interaction, settings, store, owner_id: int,
             state = await asyncio.to_thread(WorldEngine(store).status, settings.season_key,
                                             owner_id, _now())
             view, text = WorldView(settings, store, owner_id), status_text(state)
+        elif route == "arcade":
+            from snowfall.services.social_arcade import SocialArcadeEngine
+            from snowfall.ui.social_arcade import ArcadeHubView, hub_text
+            lobby = await asyncio.to_thread(
+                SocialArcadeEngine(store).lobby, settings.season_key, owner_id, _now())
+            view, text = ArcadeHubView(settings, store, owner_id), hub_text(lobby)
         elif route == "winter":
             from snowfall.services.winter_fun import WinterFunEngine
             from snowfall.ui.winter_fun import WinterActivitiesView, _text
@@ -241,7 +247,7 @@ class TodayView(MenuView):
     def __init__(self, settings, store, owner_id, info: Headquarters | None = None):
         super().__init__(settings, store, owner_id)
         if info is not None and (info.player is None or info.phase != "live"):
-            for entry in (self.quests, self.fight, self.world, self.winter):
+            for entry in (self.quests, self.fight, self.world, self.winter, self.arcade):
                 self.remove_item(entry)
 
     @discord.ui.button(label="Do Next", emoji="✨", style=discord.ButtonStyle.success)
@@ -262,6 +268,12 @@ class TodayView(MenuView):
     async def world(self, interaction, _):
         await quick_action(interaction, self.settings, self.store, self.owner_id,
                            route_override="world")
+
+    @discord.ui.button(label="Winter Arcade", emoji="🎮",
+                       style=discord.ButtonStyle.success, row=1)
+    async def arcade(self, interaction, _):
+        await quick_action(interaction, self.settings, self.store, self.owner_id,
+                           route_override="arcade")
 
     @discord.ui.button(label="Winter Activities", emoji="🎄", style=discord.ButtonStyle.secondary, row=1)
     async def winter(self, interaction, _):

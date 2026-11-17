@@ -58,7 +58,8 @@ def _text(page: str, snapshot, *, alert: str = "") -> str:
             sections.append(f"**{_escape(name)}** — {_escape(detail)}\n"
                             f"Attempts: {snapshot.arcade_used[key]}/3 today · "
                             f"Best: {snapshot.arcade_best[key]} arcade score")
-        sections.append("Your specialist gear helps only in these three training modes.")
+        sections.append("These are the original three training modes. For five "
+                        "interactive games and social rankings, choose Winter Arcade.")
     elif page == "Missions":
         for mission in missions_for_day(snapshot.day):
             sections.append(f"**{mission.title}:** {mission.detail}")
@@ -68,6 +69,7 @@ def _text(page: str, snapshot, *, alert: str = "") -> str:
                          "🎩 Illustrated portraits, custom frames, banners, trails & wardrobe",
                          "🎲 Daily encounters",
                          "🕵️ Seven Christmas cases, evidence clues and hidden encounters",
+                         "🎮 New Winter Arcade: five full games, city cups and cosmetic stamps",
                          "🎯 Target Practice · 🛡️ Blizzard Dodge · ☃️ Boss Drill",
                          "🎄 Rotating daily missions"))
     if alert:
@@ -151,6 +153,12 @@ class WinterActivitiesView(MenuView):
                                                 embed=None, attachments=[],
                                                 view=WinterPicker(self.settings, self.store,
                                                                   self.owner_id, "play"))
+
+    @discord.ui.button(label="Winter Arcade", emoji="🎮",
+                       style=discord.ButtonStyle.success, row=2)
+    async def social_arcade(self, interaction, _):
+        from snowfall.ui.social_arcade import show_arcade
+        await show_arcade(interaction, self.settings, self.store, self.owner_id)
 
     @discord.ui.button(label="Mystery Casebook", emoji="🕵️",
                        style=discord.ButtonStyle.primary, row=2)

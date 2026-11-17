@@ -16,7 +16,7 @@ import unicodedata
 from snowfall.core.clock import as_utc
 
 CITIES = ("Chicago", "New York", "Detroit", "Philadelphia", "Las Vegas", "Los Angeles")
-DB_VERSION = 9
+DB_VERSION = 10
 
 
 class RegistrationError(ValueError):
@@ -462,6 +462,73 @@ class Store:
                         BEFORE DELETE ON {table} BEGIN
                         SELECT RAISE(ABORT,'immutable mystery history'); END""")
                 con.execute("PRAGMA user_version=9")
+            if version < 10:
+                # v0.2.7: parallel, scoring-neutral arcade games. These records
+                # never appear in official score, economy or prize ledgers.
+                # One active session per player/mode/day; 3 total starts daily.
+                con.execute("""CREATE TABLE IF NOT EXISTS social_arcade_runs (
+                    session_id TEXT PRIMARY KEY,
+                    season_key TEXT NOT NULL, discord_user_id INTEGER NOT NULL,
+                    day INTEGER NOT NULL CHECK(day BETWEEN 1 AND 7),
+                    mode TEXT NOT NULL, attempt INTEGER NOT NULL CHECK(attempt BETWEEN 1 AND 3),
+                    puzzles_json TEXT NOT NULL, step INTEGER NOT NULL DEFAULT 0
+                        CHECK(step BETWEEN 0 AND 5),
+                    score INTEGER NOT NULL DEFAULT 0 CHECK(score BETWEEN 0 AND 100),
+                    status TEXT NOT NULL DEFAULT 'active'
+                        CHECK(status IN ('active','finished')),
+                    last_feedback TEXT NOT NULL DEFAULT '',
+                    started_at_utc TEXT NOT NULL, finished_at_utc TEXT,
+                    UNIQUE(season_key,discord_user_id,day,mode,attempt),
+                    FOREIGN KEY(season_key,discord_user_id)
+                        REFERENCES players(season_key,discord_user_id)
+                )""")
+                con.execute("""CREATE UNIQUE INDEX IF NOT EXISTS idx_social_arcade_active
+                    ON social_arcade_runs(season_key,discord_user_id,day,mode)
+                    WHERE status='active'""")
+                con.execute("""CREATE INDEX IF NOT EXISTS idx_social_arcade_records
+                    ON social_arcade_runs(season_key,mode,status,day,score)""")
+                con.execute("""CREATE TABLE IF NOT EXISTS social_arcade_turns (
+                    interaction_id TEXT PRIMARY KEY, session_id TEXT NOT NULL,
+                    season_key TEXT NOT NULL, discord_user_id INTEGER NOT NULL,
+                    day INTEGER NOT NULL CHECK(day BETWEEN 1 AND 7),
+                    turn INTEGER NOT NULL CHECK(turn BETWEEN 0 AND 4),
+                    choice TEXT NOT NULL, correct INTEGER NOT NULL CHECK(correct IN (0,1)),
+                    points INTEGER NOT NULL CHECK(points BETWEEN 0 AND 40),
+                    score_after INTEGER NOT NULL CHECK(score_after BETWEEN 0 AND 100),
+                    feedback TEXT NOT NULL, created_at_utc TEXT NOT NULL,
+                    UNIQUE(session_id,turn),
+                    FOREIGN KEY(session_id) REFERENCES social_arcade_runs(session_id)
+                )""")
+                con.execute("""CREATE TABLE IF NOT EXISTS social_arcade_stamps (
+                    season_key TEXT NOT NULL, discord_user_id INTEGER NOT NULL,
+                    stamp_key TEXT NOT NULL, earned_at_utc TEXT NOT NULL,
+                    PRIMARY KEY(season_key,discord_user_id,stamp_key),
+                    FOREIGN KEY(season_key,discord_user_id)
+                        REFERENCES players(season_key,discord_user_id)
+                )""")
+                for table in ("social_arcade_turns", "social_arcade_stamps"):
+                    con.execute(f"""CREATE TRIGGER IF NOT EXISTS {table}_immutable_update
+                        BEFORE UPDATE ON {table} BEGIN
+                        SELECT RAISE(ABORT,'immutable social arcade event'); END""")
+                    con.execute(f"""CREATE TRIGGER IF NOT EXISTS {table}_immutable_delete
+                        BEFORE DELETE ON {table} BEGIN
+                        SELECT RAISE(ABORT,'immutable social arcade event'); END""")
+                con.execute("""CREATE TRIGGER IF NOT EXISTS social_arcade_runs_no_delete
+                    BEFORE DELETE ON social_arcade_runs BEGIN
+                    SELECT RAISE(ABORT,'arcade sessions cannot be deleted'); END""")
+                con.execute("""CREATE TRIGGER IF NOT EXISTS social_arcade_runs_identity
+                    BEFORE UPDATE ON social_arcade_runs WHEN
+                        OLD.session_id != NEW.session_id OR
+                        OLD.season_key != NEW.season_key OR
+                        OLD.discord_user_id != NEW.discord_user_id OR
+                        OLD.day != NEW.day OR OLD.mode != NEW.mode OR
+                        OLD.attempt != NEW.attempt OR
+                        OLD.puzzles_json != NEW.puzzles_json OR
+                        OLD.started_at_utc != NEW.started_at_utc OR
+                        OLD.status='finished' OR
+                        NEW.step < OLD.step OR NEW.score < OLD.score
+                    BEGIN SELECT RAISE(ABORT,'arcade run integrity'); END""")
+                con.execute("PRAGMA user_version=10")
         with self.connect() as con:
             result = con.execute("PRAGMA quick_check").fetchone()[0]
             if result != "ok":

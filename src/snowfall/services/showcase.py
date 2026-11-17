@@ -34,6 +34,7 @@ class Showcase:
     owned_count: int
     cosmetic_total: int
     best_rarity: str
+    arcade_stamps: tuple[str, ...] = ()
 
     @property
     def featured_badges(self) -> tuple[Trophy, ...]:
@@ -72,7 +73,12 @@ def showcase(store: Store, season: str, user: int, now: datetime,
 
     rarity = max((COSMETICS[key].rarity for key in equipped.values()), default="Common",
                  key=lambda value: RARITY_ORDER.index(value))
+    # New passport stamps are decorative, not shop inventory or event prizes.
+    with store.connect() as con:
+        stamps = tuple(row[0] for row in con.execute(
+            "SELECT stamp_key FROM social_arcade_stamps WHERE season_key=? "
+            "AND discord_user_id=? ORDER BY stamp_key", (season, user)))
     return Showcase(player, resources, score, cabinet.equipped_title,
                     equipped, tuple(t for t in cabinet.trophies if t.unlocked),
                     cabinet.unlocked_count, len(cabinet.trophies), owned,
-                    len(COSMETICS), rarity)
+                    len(COSMETICS), rarity, stamps)

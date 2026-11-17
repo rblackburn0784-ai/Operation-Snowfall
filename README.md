@@ -1,3 +1,26 @@
+# 🎮 v0.2.7 — Winter Arcade & Social Games
+
+Five **interactive winter mini-games** now work independently of combat:
+**Snowball Target Gallery**, **Frozen Safecracker**, **Snowman Builder**,
+**Snowflake Catch**, and **Christmas Trivia**. Each supports saved
+round-by-round progress, up to three starts per game per event day,
+personal bests, daily and season rankings and an **honorary city cup**.
+
+The **Winter Arcade Passport** offers 11 collectible cosmetic stamps (five
+participation tickets, five perfect-score ribbons and a Grand Tour badge).
+Stamps also appear on illustrated player showcase cards. These mini-games
+never spend snowballs or Snowflakes and cannot affect official scores, boss
+damage, city territory, paid prizes or combat. **Players who run out of
+snowballs can use Do Next to open the Winter Arcade.**
+
+Access through `/snowfun arcade`, Game Menus → Winter Arcade, Today or
+Winter Activities. The three original arcade-training modes remain intact.
+A forward-only **SQLite schema v10 migration** adds independent replay-safe
+game/turn/stamp records; **back up your database** before first launching
+v0.2.7.
+
+[Read the full v0.2.7 release notes](docs/RELEASE_v0.2.7.md).
+
 # 🕵️ v0.2.6 — Christmas Mysteries & Secret Encounters
 
 The seven-day Snowfall event now features **seven playable Christmas detective

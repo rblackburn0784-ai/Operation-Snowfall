@@ -125,7 +125,7 @@ def test_shared_defeat_once_raid_honours_echoes_and_restart(game):
     assert RaidEngine(game).report(KEY, 1) == after_echo
     reopened = Store(game.path)
     reopened.initialize()
-    assert reopened.schema_version() == 9
+    assert reopened.schema_version() == 10
     assert RaidEngine(reopened).report(KEY, 1) == after_echo
     with reopened.connect() as con:
         for table in ("combat_events", "prize_awards"):

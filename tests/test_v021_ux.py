@@ -76,7 +76,7 @@ def test_recommendation_ko_pause_and_closure(db):
                     "WHERE season_key=? AND discord_user_id=?",
                     (_timestamp(START + timedelta(minutes=10)), KEY, 101))
     in_ko = headquarters(db, KEY, 101, START + timedelta(seconds=3))
-    assert in_ko.next_action_route == "winter"
+    assert in_ko.next_action_route == "arcade"
     assert in_ko.knockout_due == START + timedelta(minutes=10)
     db.transition(KEY, 900, "pause", START + timedelta(seconds=5), "Test pause")
     frozen = headquarters(db, KEY, 101, START + timedelta(hours=1))

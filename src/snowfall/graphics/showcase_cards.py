@@ -214,6 +214,8 @@ def profile_showcase_card(showcase) -> bytes:
     d.text((615, 433), _fit(d, f"GEAR: {gear}  ·  TRAIL: {trail}", 274, font(12, True)),
            font=font(12, True), fill="#edf9ff",
            stroke_width=1, stroke_fill="#14283a")
-    d.text((54, 516), "COLLECTIBLE DISPLAY • NO BONUS POINTS OR PRIZES",
+    stamps = len(getattr(showcase, "arcade_stamps", ()))
+    d.text((54, 516),
+           f"ARCADE PASSPORT {stamps}/11 • NO BONUS POINTS OR PRIZES",
            font=font(12, True), fill="#d2e3ed")
     return _png(image)
