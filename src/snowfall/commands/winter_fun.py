@@ -57,6 +57,13 @@ class SnowFunGroup(app_commands.Group):
         await interaction.response.defer(ephemeral=True)
         await send_raid(interaction, self.settings, self.store)
 
+    @app_commands.command(name="territory", description="Interactive six-city map, district control and daily wars")
+    async def territory(self, interaction: discord.Interaction):
+        from snowfall.ui.territory import show_territory
+        await interaction.response.defer(ephemeral=True)
+        await show_territory(interaction, self.settings, self.store,
+                             interaction.user.id, deferred=True)
+
     @app_commands.command(name="showcase", description="Publish your illustrated player card in this channel")
     @app_commands.checks.cooldown(1, 600.0, key=lambda i: (i.guild_id, i.user.id))
     async def showcase(self, interaction: discord.Interaction):
