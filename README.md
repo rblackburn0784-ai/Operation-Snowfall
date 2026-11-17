@@ -1,3 +1,17 @@
+# ☃️ v0.2.4 — Snow Don Boss Evolution
+
+The Snow Don now has new mobster reactions, animated damage-phase transitions
+at 75% / 50% / 25% health, and a **16-frame cinematic final defeat** using
+the original Snow Don portrait set. Open **Snow Don Raid** from Game Menus,
+**Raid Headquarters** from World Battles, or `/snowfun raid` to follow
+co-operative goals, shared raid damage, city participation, top raiders and
+your real shared hits. After a genuine boss defeat, use **Victory Replay** to
+watch the saved final blow without consuming anything again. The public
+one-time defeat announcement celebrates the raid's contributors.
+
+**No official scoring, RNG, daily attempts, clears, prize changes or database
+migration.** See [v0.2.4 release notes](docs/RELEASE_v0.2.4.md).
+
 # ❄️ v0.2.3 — Snowball Combat 2.0
 
 Combat now includes richer illustrated result cards, deterministic 1930s winter reactions,

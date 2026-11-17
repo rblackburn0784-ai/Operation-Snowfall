@@ -130,7 +130,7 @@ class SnowfallBot(discord.Client):
 def main(argv: list[str] | None = None):
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    parser = argparse.ArgumentParser(description="Operation Snowfall v0.2.3")
+    parser = argparse.ArgumentParser(description="Operation Snowfall v0.2.4")
     parser.add_argument("--test", action="store_true", help="Obsolete: use /snowadmin test-start in the main bot")
     parser.add_argument("--backup-now", action="store_true", help="Create a verified backup then exit")
     parser.add_argument("--restore", metavar="BACKUP", help="Offline restore from a verified backup")

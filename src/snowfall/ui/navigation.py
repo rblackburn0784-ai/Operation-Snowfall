@@ -36,7 +36,7 @@ def _mode(settings) -> str:
 def _embed(title: str, description: str, settings, *, warning: bool = False) -> discord.Embed:
     colour = discord.Colour.orange() if warning else discord.Colour.from_rgb(106, 179, 219)
     card = discord.Embed(title=title, description=description, colour=colour)
-    card.set_footer(text=f"{_mode(settings)} • v0.2.3 • Private navigation")
+    card.set_footer(text=f"{_mode(settings)} • v0.2.4 • Private navigation")
     return card
 
 
@@ -257,6 +257,12 @@ class GameMenu(MenuView):
     async def rivalries(self, interaction, _):
         from snowfall.ui.rivalries import show_rivalries
         await show_rivalries(interaction, self.settings, self.store, self.owner_id)
+
+    @discord.ui.button(label="Snow Don Raid", emoji="☃️",
+                       style=discord.ButtonStyle.success, row=2)
+    async def raid(self, interaction, _):
+        from snowfall.ui.raid import show_raid
+        await show_raid(interaction, self.settings, self.store, self.owner_id)
 
     @discord.ui.button(label="Snowball Fight", emoji="🎯", style=discord.ButtonStyle.success)
     async def combat(self, interaction, _):

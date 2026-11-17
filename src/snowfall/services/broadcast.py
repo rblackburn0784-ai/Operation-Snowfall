@@ -63,11 +63,20 @@ def completed_announcement(event_name: str) -> str:
             "Kat will confirm official winners and prizes separately.")
 
 
-def boss_defeated_announcement(day: int) -> str:
-    return (f"☃️💥 **SNOW DON DEFEATED — DAY {day}/7!**\n"
-            "The giant snowman has fallen! Players who missed the shared fight can "
-            "still complete their **six daily scoring attempts** against training echoes. "
-            "The next boss arrives on the following event day.")
+def boss_defeated_announcement(day: int, raid=None) -> str:
+    """A single restart-safe defeat announcement with optional saved raid honours."""
+    message = (f"☃️💥 **SNOW DON DEFEATED — DAY {day}/7!**\n"
+               "The giant snowman has fallen! Players who missed the shared fight can "
+               "still complete their **six daily scoring attempts** against training echoes. "
+               "The next boss arrives on the following event day.")
+    if raid is not None and raid.defeated:
+        message += (f"\n\n🤝 **THE RAID CHRONICLE:** {raid.contributors} raiders landed "
+                    f"{raid.hit_count} shared hits for {raid.shared_damage} total damage. "
+                    f"{len(raid.cities)} cities contributed.")
+        message += (f"\n🎩 **Final snowball:** {raid.final_hitter}."
+                    if raid.final_hitter else "")
+        message += "\n*Cooperative honours only. Individual prize allocations are unchanged.*"
+    return message
 
 
 def world_snapshot(store: Store, season_key: str, day: int | None) -> tuple[str, str]:
