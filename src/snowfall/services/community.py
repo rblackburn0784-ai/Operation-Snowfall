@@ -6,7 +6,7 @@ No player points, snowflakes, prizes or city rankings are awarded here.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 import sqlite3
 
 from snowfall.db.store import CITIES, Store, _timestamp
