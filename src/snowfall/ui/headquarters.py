@@ -72,7 +72,20 @@ def headquarters_embed(info: Headquarters, settings, title: str = "Snowball Recr
         embed.add_field(name='🎁 Mystery gifts', value=(f'Daily: **{info.daily_gift}**'
                         + (f'  •  Day 4 extra: **{info.bonus_gift}**' if info.day == 4 else '')),
                         inline=False)
-    embed.add_field(name='👉 What next?', value=info.next_action, inline=False)
+    arena = (f'Active until **<t:{int(info.arena_until.timestamp())}:R>**'
+             if info.arena_until else 'Not currently active')
+    if paused:
+        arena = '⏸️ Frozen while event is paused'
+    recovery = (f'<t:{int(info.knockout_due.timestamp())}:R>'
+                if info.knockout_due else 'Ready')
+    protection = (f'<t:{int(info.shield_due.timestamp())}:R>'
+                  if info.shield_due else 'None')
+    embed.add_field(name='🛡️ Arena & recovery', inline=False,
+                    value=f'Arena: **{arena}**\nKO recovery: **{recovery}**'
+                          f' · Shield: **{protection}**')
+    embed.add_field(name='👉 What next?', value=info.next_action +
+                    '\nPress **Do Next** to open the suggested section without spending anything.',
+                    inline=False)
     return embed
 
 
@@ -143,6 +156,16 @@ class HeadquartersView(MenuView):
         except WorldError as exc:
             await interaction.edit_original_response(content=f'⚠️ {exc}', embed=None,
                  attachments=[], view=HeadquartersView(self.settings, self.store, self.owner_id))
+
+    @discord.ui.button(label='Today', emoji='📋', style=discord.ButtonStyle.success)
+    async def today(self, interaction, _):
+        from snowfall.ui.today import show_today
+        await show_today(interaction, self.settings, self.store, self.owner_id)
+
+    @discord.ui.button(label='Do Next', emoji='✨', style=discord.ButtonStyle.success, row=1)
+    async def quick(self, interaction, _):
+        from snowfall.ui.today import quick_action
+        await quick_action(interaction, self.settings, self.store, self.owner_id)
 
     @discord.ui.button(label='Refresh', emoji='🔄', style=discord.ButtonStyle.secondary, row=1)
     async def refresh(self, interaction, _):

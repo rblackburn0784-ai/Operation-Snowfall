@@ -9,8 +9,9 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from snowfall.core.clock import as_utc
-from snowfall.db.store import Store, Season, Player
-from snowfall.services.combat import CombatEngine, ResourceView, THROW_COOLDOWN
+from snowfall.db.store import Store, Season, Player, _parse
+from snowfall.services.combat import (CombatEngine, ResourceView, THROW_COOLDOWN,
+                                      INACTIVITY_WINDOW, DAILY_PVP_CAP)
 from snowfall.services.economy import EconomyEngine, QuestView
 from snowfall.services.world import WorldEngine, WorldStatus
 
@@ -33,6 +34,10 @@ class Headquarters:
     next_throw: datetime | None
     next_reset: datetime | None
     next_action: str
+    next_action_route: str = 'hq'
+    arena_until: datetime | None = None
+    knockout_due: datetime | None = None
+    shield_due: datetime | None = None
 
 
 def _wall_due(season: Season, now: datetime, effective_due: datetime | None) -> datetime | None:
@@ -67,7 +72,8 @@ def headquarters(store: Store, season_key: str, user_id: int, now: datetime) -> 
     if player is None:
         return Headquarters(None, phase, day, 0, 0, None, None, (), None, 'Locked',
                             'Not today', None, None, None, None,
-                            'Register your MafiaReturns username and choose a city.')
+                            'Register your MafiaReturns username and choose a city.',
+                            'join' if phase in ('registration', 'ready', 'live', 'paused') else 'guide')
 
     engine = CombatEngine(store)
     resource = engine.snapshot(season_key, user_id, now)
@@ -91,7 +97,19 @@ def headquarters(store: Store, season_key: str, user_id: int, now: datetime) -> 
         gift, bonus = _gift_states(store, season_key, user_id, day, quests)
         world = WorldEngine(store).status(season_key, user_id, now)
 
+    # Arena participation is optional. This is a read-only hint; the combat
+    # engine alone decides whether a player is targetable or may score.
+    with store.connect() as con:
+        active_row = con.execute(
+            "SELECT last_eligible_action_at FROM player_resources "
+            "WHERE season_key=? AND discord_user_id=?",
+            (season_key, user_id),
+        ).fetchone()
+    active_at = _parse(active_row[0]) if active_row else None
+    arena_until = _wall_due(season, now, active_at + INACTIVITY_WINDOW if active_at else None)
     game_now = season.effective_now(now)
+    knockout_due = _wall_due(season, now, resource.knockout_until)
+    shield_due = _wall_due(season, now, resource.shield_until)
     ball_due = _wall_due(season, now, resource.next_snowball_at)
     warm_due = _wall_due(season, now, resource.next_warmth_at)
     throw_due = _wall_due(season, now,
@@ -100,22 +118,31 @@ def headquarters(store: Store, season_key: str, user_id: int, now: datetime) -> 
                           if season.started_at and day else None)
 
     if phase == 'paused':
-        action = 'Event paused: regeneration and daily timers are frozen.'
+        action, route = 'Event paused: regeneration and daily timers are frozen.', 'hq'
     elif phase in ('closed', 'finalized'):
-        action = 'The event has finished. Check the final standings.'
+        action, route = 'The event has finished. Check the final standings.', 'rankings'
     elif phase in ('not_open', 'registration', 'ready'):
-        action = 'Registration complete. The host will announce the official kickoff.'
+        action, route = ('Registration complete. The host will announce the kickoff.', 'guide')
     elif resource.knockout_until and resource.knockout_until > game_now:
-        action = 'Recover from your knockout before attacking again.'
+        action, route = 'Recover from your knockout; the Winter Arcade is available meanwhile.', 'winter'
     elif any(q.progress >= q.target and not q.claimed for q in quests):
-        action = 'You have a finished quest ready to claim!'
+        action, route = 'Claim a completed daily mission to collect its rewards.', 'quests'
     elif gift == 'Ready' or bonus == 'Ready':
-        action = 'Open your unlocked mystery present!'
+        action, route = 'Open the mystery present you have unlocked.', 'quests'
     elif resource.snowballs == 0:
-        action = 'You are out of snowballs. Try again after regeneration.'
+        action, route = 'Snowballs are regenerating. Visit the Winter Arcade in the meantime.', 'winter'
     elif throw_due is not None:
-        action = 'Your shared 30-second throw cooldown is active.'
+        action, route = 'Throw cooldown is active; check your quests while it runs.', 'quests'
+    elif arena_until is None:
+        action, route = 'Enter the arena to let rivals challenge you for 36 active hours.', 'player'
+    elif world and world.boss_enabled and world.boss_attempts < 6 and world.boss_points < 50:
+        action, route = 'Help take on the Snow Don!', 'world'
+    elif world and world.siege_attempts < 4 and world.siege_points < 50:
+        action, route = 'Help your city attack its fortress!', 'world'
+    elif resource.today_pvp < DAILY_PVP_CAP:
+        action, route = 'Find a rival-city player for your next snowball fight.', 'fight'
     else:
-        action = 'Ready to play: find a rival, fight the Snow Don or help your city.'
+        action, route = 'Try the Winter Arcade or review your daily progress.', 'winter'
     return Headquarters(player, phase, day, total, daily, rank, resource, quests, world,
-                        gift, bonus, ball_due, warm_due, throw_due, reset_due, action)
+                        gift, bonus, ball_due, warm_due, throw_due, reset_due, action,
+                        route, arena_until, knockout_due, shield_due)
