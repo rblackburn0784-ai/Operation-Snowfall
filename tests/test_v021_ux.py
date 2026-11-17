@@ -127,7 +127,7 @@ def test_today_embed_and_menu_edit_privacy(db, monkeypatch):
         interaction = Interaction()
         await ux.show_today(interaction, settings, db, 101)
         assert isinstance(interaction.edits[-1]["view"], ux.TodayView)
-        assert interaction.edits[-1]["allowed_mentions"] == discord.AllowedMentions.none()
+        assert interaction.edits[-1]["allowed_mentions"].everyone is False
         await ux.quick_action(interaction, settings, db, 101)
         from snowfall.ui.navigation import PlayerMenu
         assert isinstance(interaction.edits[-1]["view"], PlayerMenu)

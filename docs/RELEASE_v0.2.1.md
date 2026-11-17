@@ -14,7 +14,7 @@ This release upgrades the existing private, single-message navigation without ch
 
 ## Behaviour
 
-Recommendation order when LIVE: finish a claimable quest → open an unlocked gift → recover from KO / wait for ammo or cooldown → enter the arena if not active → Snow Don (if enabled and attempts/score remain) → City Siege → rival PvP → optional Winter Activities. Combat/economy engines remain authoritative and may deny an action whose eligibility changes after the menu opens.
+Recommendation order when LIVE: recover from KO → claim a completed quest → open an unlocked gift → wait for ammo or cooldown → enter the arena if not active → Snow Don (if enabled and attempts/score remain) → City Siege → rival PvP → optional Winter Activities. Combat/economy engines remain authoritative and may deny an action whose eligibility changes after the menu opens.
 
 Daily progress shows **attempt usage**, not invented rewards for exhausting all attempts. City standings remain honorary; only individual scores determine prizes.
 

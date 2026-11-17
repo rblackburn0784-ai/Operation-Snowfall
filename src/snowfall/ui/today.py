@@ -59,7 +59,7 @@ def today_embed(info: Headquarters, settings) -> discord.Embed:
             presents += f"\nBonus present: **{info.bonus_gift}**"
         card.add_field(name="🎁 Presents", value=presents, inline=False)
         if info.world is not None:
-            boss_text = (f"Disabled by host" if not info.world.boss_enabled else
+            boss_text = ("Disabled by host" if not info.world.boss_enabled else
                          f"{info.world.boss_attempts}/6 attempts")
             card.add_field(name="☃️ World attempts",
                            value=(f"Snow Don: **{boss_text}**\n"
