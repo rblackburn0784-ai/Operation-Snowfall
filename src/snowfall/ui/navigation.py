@@ -36,7 +36,7 @@ def _mode(settings) -> str:
 def _embed(title: str, description: str, settings, *, warning: bool = False) -> discord.Embed:
     colour = discord.Colour.orange() if warning else discord.Colour.from_rgb(106, 179, 219)
     card = discord.Embed(title=title, description=description, colour=colour)
-    card.set_footer(text=f"{_mode(settings)} • v0.2.2 • Private navigation")
+    card.set_footer(text=f"{_mode(settings)} • v0.2.3 • Private navigation")
     return card
 
 
@@ -253,6 +253,11 @@ class GameMenu(MenuView):
         from snowfall.ui.winter_fun import _display
         await _display(interaction, self.settings, self.store, self.owner_id, "Activities")
 
+    @discord.ui.button(label="Rivalry Dossier", emoji="📜", style=discord.ButtonStyle.primary, row=2)
+    async def rivalries(self, interaction, _):
+        from snowfall.ui.rivalries import show_rivalries
+        await show_rivalries(interaction, self.settings, self.store, self.owner_id)
+
     @discord.ui.button(label="Snowball Fight", emoji="🎯", style=discord.ButtonStyle.success)
     async def combat(self, interaction, _):
         from snowfall.ui.combat import TargetPicker
@@ -364,6 +369,11 @@ class PlayerMenu(MenuView):
     async def profile(self, interaction, _):
         from snowfall.ui.showcase import show_profile
         await show_profile(interaction, self.settings, self.store, self.owner_id)
+
+    @discord.ui.button(label="My Rivalries", emoji="📜", style=discord.ButtonStyle.secondary, row=1)
+    async def rivalries(self, interaction, _):
+        from snowfall.ui.rivalries import show_rivalries
+        await show_rivalries(interaction, self.settings, self.store, self.owner_id)
 
     @discord.ui.button(label="Enter Arena", emoji="🛡️", style=discord.ButtonStyle.success)
     async def ready(self, interaction, _):

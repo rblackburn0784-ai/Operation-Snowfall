@@ -1,4 +1,4 @@
-"""v0.2.1 personal daily hub and safe, read-only next-step navigation.
+"""v0.2.3 personal daily hub and safe, read-only next-step navigation.
 
 All buttons edit the same owner-checked ephemeral message. Quick Play only
 opens an existing action menu: the combat, economy and world engines still
@@ -14,6 +14,7 @@ import discord
 
 from snowfall.practice import pin
 from snowfall.services.experience import Headquarters, headquarters
+from snowfall.services.combat_intel import CombatIntelEngine
 from snowfall.ui.navigation import MenuView
 
 
@@ -25,11 +26,11 @@ def _due(value: datetime | None) -> str:
     return f"<t:{int(value.timestamp())}:R>" if value is not None else "Ready"
 
 
-def today_embed(info: Headquarters, settings) -> discord.Embed:
+def today_embed(info: Headquarters, settings, intel=None) -> discord.Embed:
     card = discord.Embed(title="📋 Today's Snowfall",
                          colour=discord.Colour.from_rgb(106, 179, 219))
     flag = "🧪 TEST — NO PRIZES" if getattr(settings, "mode", "production") == "practice" else "❄️ LIVE EVENT"
-    card.set_footer(text=f"{flag} • v0.2.1 • Personal view")
+    card.set_footer(text=f"{flag} • v0.2.3 • Personal view")
     if info.player is None:
         card.description = ("**Not registered yet.**\n"
                             "Choose **Do Next** to declare your own MafiaReturns name and city. "
@@ -67,6 +68,13 @@ def today_embed(info: Headquarters, settings) -> discord.Embed:
                            inline=True)
         card.add_field(name="🎯 PvP points", value=f"**{info.resources.today_pvp}/300** today",
                        inline=True)
+    if intel is not None and intel.revenge_alerts:
+        names = ", ".join(discord.utils.escape_markdown(r.name).replace("@", "＠")
+                          for r in intel.revenge_alerts[:3])
+        card.add_field(name=f"🔔 Revenge alerts · {len(intel.revenge_alerts)}",
+                       value=f"{names}\nOpen **/snowfun rivalries** for your private record. "
+                             "Eligibility is checked before every attack.",
+                       inline=False)
     card.add_field(name="⏱️ Your next timers",
                    value=(f"Snowball: **{_due(info.next_snowball)}**"
                           f" · Throw: **{_due(info.next_throw)}**\n"
@@ -85,8 +93,15 @@ async def show_today(interaction, settings, store, owner_id: int) -> None:
     await interaction.response.defer()
     try:
         info = await asyncio.to_thread(headquarters, store, settings.season_key, owner_id, _now())
+        intel = None
+        if info.player is not None and info.phase in ("live", "paused"):
+            try:
+                intel = await asyncio.to_thread(CombatIntelEngine(store).snapshot,
+                                                settings.season_key, owner_id)
+            except (ValueError, sqlite3.Error):
+                pass
         await interaction.edit_original_response(
-            content=None, embed=today_embed(info, settings), attachments=[],
+            content=None, embed=today_embed(info, settings, intel), attachments=[],
             view=TodayView(settings, store, owner_id, info),
             allowed_mentions=discord.AllowedMentions.none())
     except (ValueError, RuntimeError, sqlite3.Error) as exc:

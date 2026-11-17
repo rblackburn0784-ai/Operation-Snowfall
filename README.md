@@ -1,3 +1,14 @@
+# ❄️ v0.2.3 — Snowball Combat 2.0
+
+Combat now includes richer illustrated result cards, deterministic 1930s winter reactions,
+scored-hit streaks, earned retaliation highlights, and a **private Rivalry Dossier**.
+Use `/snowfun rivalries` or Game Menus → **Rivalry Dossier** to inspect feuds and
+revenge alerts; Today also shows pending alerts. The Target Finder has smart,
+revenge and low-warmth shortcuts, with live eligibility checked at confirmation.
+Kat's isolated Test Centre adds **Feint / Defensive Stance** demonstrations
+with **no** inventory, combat or leaderboard effects. No official combat rule,
+prize or database-schema changes. See [v0.2.3 release notes](docs/RELEASE_v0.2.3.md).
+
 # 🎩 v0.2.2 — Illustrated Player Cards & Cosmetic Collections
 
 Your purchased frames, banners, trails, specialist arcade gear and new winter mobster

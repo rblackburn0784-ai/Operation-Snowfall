@@ -138,7 +138,7 @@ def profile_card(name, city, resource, total, *, review="self-declared", showcas
     return _png(im)
 
 
-def battle_card(result, target: str, attacker: str="YOUR THROW") -> bytes:
+def battle_card(result, target: str, attacker: str="YOUR THROW", *, beat=None) -> bytes:
     city=clean(getattr(result,"target_city","Chicago"))
     im,d=_canvas(city, "KNOCKOUT!" if result.knocked_out else
                  ("CRITICAL HIT!" if result.critical else ("DIRECT HIT!" if result.hit else "SNOWBALL MISSED")),
@@ -149,6 +149,9 @@ def battle_card(result, target: str, attacker: str="YOUR THROW") -> bytes:
     _panel(d,(53,356,270,468),"Points gained",f"+{result.points_awarded}",colour="#c3edba")
     _panel(d,(291,356,508,468),"Throw style",result.style.title())
     d.text((570,469),"30-SECOND COOLDOWN",font=font(17,True),fill="#d5eafd")
+    if beat is not None:
+        from snowfall.graphics.combat_cards import decorate_battle
+        decorate_battle(im, result, beat)
     return _png(im)
 
 
@@ -261,11 +264,11 @@ def champions_card(players: Iterable, cities: Iterable, *, final: bool=False) ->
     return _png(im)
 
 
-def hit_animation(result, target: str, *, maximum_bytes=4_000_000) -> bytes | None:
+def hit_animation(result, target: str, *, maximum_bytes=4_000_000, beat=None) -> bytes | None:
     """Small original GIF effect, no external files beyond our own static battle card."""
     if not (result.hit and (result.critical or result.knocked_out)):
         return None
-    with Image.open(BytesIO(battle_card(result,target))) as picture:
+    with Image.open(BytesIO(battle_card(result,target,beat=beat))) as picture:
         base=picture.resize((480,270),Image.Resampling.BILINEAR).convert("RGB")
     frames=[]
     for i in range(9):
