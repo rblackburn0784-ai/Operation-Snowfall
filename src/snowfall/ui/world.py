@@ -184,13 +184,16 @@ class WorldConfirm(discord.ui.View):
             except (ValueError, OSError, sqlite3.Error):
                 pass
         if self.kind == "boss" and result.final_blow and not result.repeated:
-            animate = lambda: final_defeat_cinematic(result)
+            def animate():
+                return final_defeat_cinematic(result)
         elif self.kind == "boss" and not result.repeated:
-            animate = lambda: phase_transition_animation(result)
+            def animate():
+                return phase_transition_animation(result)
         elif result.repeated:
             animate = None
         else:
-            animate = lambda: cards.world_animation(result)
+            def animate():
+                return cards.world_animation(result)
         await delivery.edit_result(
             interaction, result_text(result, raid),
             WorldView(self.settings, self.store, self.owner_id),

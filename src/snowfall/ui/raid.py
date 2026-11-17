@@ -124,9 +124,11 @@ async def show_raid(interaction, settings, store, owner_id, *, page="Overview"):
     try:
         status, raid = await _load(settings, store, owner_id)
         if page == "Raiders":
-            render = lambda: raid_leaders_card(raid, city=status.city)
+            def render():
+                return raid_leaders_card(raid, city=status.city)
         else:
-            render = lambda: raid_board_card(raid, viewer_id=owner_id, city=status.city)
+            def render():
+                return raid_board_card(raid, viewer_id=owner_id, city=status.city)
         await delivery.edit_result(interaction, raid_text(raid, owner_id, page=page),
                                    view, render, alt=f"Day {raid.day} Snow Don "
                                    "raid milestones, shared damage and participants")
