@@ -72,6 +72,12 @@ class SnowFunGroup(app_commands.Group):
         await interaction.response.defer(ephemeral=True)
         await send_mystery(interaction, self.settings, self.store)
 
+    @app_commands.command(name="wire", description="Read the newspaper and submit an opt-in player dispatch")
+    async def wire(self, interaction: discord.Interaction):
+        from snowfall.ui.wire import send_wire
+        await interaction.response.defer(ephemeral=True)
+        await send_wire(interaction, self.settings, self.store)
+
     @app_commands.command(name="showcase", description="Publish your illustrated player card in this channel")
     @app_commands.checks.cooldown(1, 600.0, key=lambda i: (i.guild_id, i.user.id))
     async def showcase(self, interaction: discord.Interaction):

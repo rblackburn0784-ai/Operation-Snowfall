@@ -16,6 +16,7 @@ from snowfall.db.store import Store
 from snowfall.commands.public import SnowGroup
 from snowfall.commands.admin import SnowAdminGroup
 from snowfall.commands.winter_fun import SnowFunGroup
+from snowfall.commands.wire_admin import SnowWireAdminGroup
 from snowfall.ui.dashboard import Dashboard
 from snowfall.services.world import WorldEngine
 from snowfall.ui.broadcast import BroadcastPublisher
@@ -51,6 +52,7 @@ class SnowfallBot(discord.Client):
         self.tree.add_command(SnowGroup(*routes, practice=self.practice), guild=guild)
         self.tree.add_command(SnowAdminGroup(*routes, practice=self.practice), guild=guild)
         self.tree.add_command(SnowFunGroup(*routes, practice=self.practice), guild=guild)
+        self.tree.add_command(SnowWireAdminGroup(*routes, practice=self.practice), guild=guild)
 
         # /snow already has 25 commands, so this separate shortcut preserves all aliases.
         @app_commands.command(name="cityhq", description="Your city HQ, co-op mission, rivalries and Snowfall Wire")
@@ -91,6 +93,7 @@ class SnowfallBot(discord.Client):
             await asyncio.to_thread(WorldEngine(self.store).tick, self.settings.season_key, now)
             await self.broadcast.ensure_announcements(now)
             await self.broadcast.publish_wire_recaps(now)
+            await self.broadcast.publish_wire_flash(now)
         except Exception as exc:
             # SQLite/disk failures must not permanently kill the one-minute loop.
             log.exception("Daily broadcast scheduler issue: %s", exc)
@@ -130,7 +133,7 @@ class SnowfallBot(discord.Client):
 def main(argv: list[str] | None = None):
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    parser = argparse.ArgumentParser(description="Operation Snowfall v0.2.7")
+    parser = argparse.ArgumentParser(description="Operation Snowfall v0.2.8")
     parser.add_argument("--test", action="store_true", help="Obsolete: use /snowadmin test-start in the main bot")
     parser.add_argument("--backup-now", action="store_true", help="Create a verified backup then exit")
     parser.add_argument("--restore", metavar="BACKUP", help="Offline restore from a verified backup")

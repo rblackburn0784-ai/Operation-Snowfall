@@ -236,7 +236,7 @@ def test_board_is_season_scoped_and_no_purchases_or_prizes(store):
     assert not other_board.held("Chicago")
     assert all(m.hits_a == 0 and m.hits_b == 0 for m in other_board.matches)
     assert state_counts(store)[-1] == 0
-    assert store.schema_version() == 10
+    assert store.schema_version() == 11
 
 
 def test_player_city_scores_and_rivalry_stats_are_real_city_pvp_records(store):

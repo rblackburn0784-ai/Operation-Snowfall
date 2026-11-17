@@ -16,7 +16,7 @@ import unicodedata
 from snowfall.core.clock import as_utc
 
 CITIES = ("Chicago", "New York", "Detroit", "Philadelphia", "Las Vegas", "Los Angeles")
-DB_VERSION = 10
+DB_VERSION = 11
 
 
 class RegistrationError(ValueError):
@@ -529,6 +529,43 @@ class Store:
                         NEW.step < OLD.step OR NEW.score < OLD.score
                     BEGIN SELECT RAISE(ABORT,'arcade run integrity'); END""")
                 con.execute("PRAGMA user_version=10")
+            if version < 11:
+                # v0.2.8: opt-in, host-reviewed newspaper submissions only.
+                # The newspaper itself reads pre-existing immutable event data;
+                # no official score, prizes or game resources are modified.
+                con.execute("""CREATE TABLE IF NOT EXISTS wire_submissions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    season_key TEXT NOT NULL,
+                    discord_user_id INTEGER NOT NULL,
+                    day INTEGER NOT NULL CHECK(day BETWEEN 1 AND 7),
+                    headline TEXT NOT NULL CHECK(length(headline) BETWEEN 8 AND 76),
+                    story TEXT NOT NULL CHECK(length(story) BETWEEN 40 AND 500),
+                    status TEXT NOT NULL DEFAULT 'pending'
+                        CHECK(status IN ('pending','approved','rejected')),
+                    submitted_at_utc TEXT NOT NULL,
+                    reviewed_by INTEGER,
+                    reviewed_at_utc TEXT,
+                    UNIQUE(season_key,discord_user_id,day),
+                    FOREIGN KEY(season_key,discord_user_id)
+                        REFERENCES players(season_key,discord_user_id)
+                )""")
+                con.execute("CREATE INDEX IF NOT EXISTS idx_wire_submissions_review "
+                            "ON wire_submissions(season_key,day,status,id)")
+                con.execute("""CREATE TRIGGER IF NOT EXISTS wire_submission_no_delete
+                    BEFORE DELETE ON wire_submissions BEGIN
+                    SELECT RAISE(ABORT,'immutable wire submission'); END""")
+                con.execute("""CREATE TRIGGER IF NOT EXISTS wire_submission_review_once
+                    BEFORE UPDATE ON wire_submissions WHEN
+                        OLD.status != 'pending' OR NEW.status = 'pending' OR
+                        OLD.id != NEW.id OR
+                        OLD.season_key != NEW.season_key OR
+                        OLD.discord_user_id != NEW.discord_user_id OR
+                        OLD.day != NEW.day OR
+                        OLD.headline != NEW.headline OR OLD.story != NEW.story OR
+                        OLD.submitted_at_utc != NEW.submitted_at_utc OR
+                        NEW.reviewed_by IS NULL OR NEW.reviewed_at_utc IS NULL
+                    BEGIN SELECT RAISE(ABORT,'immutable wire editorial record'); END""")
+                con.execute("PRAGMA user_version=11")
         with self.connect() as con:
             result = con.execute("PRAGMA quick_check").fetchone()[0]
             if result != "ok":
