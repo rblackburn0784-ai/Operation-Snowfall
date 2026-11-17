@@ -16,7 +16,7 @@ import unicodedata
 from snowfall.core.clock import as_utc
 
 CITIES = ("Chicago", "New York", "Detroit", "Philadelphia", "Las Vegas", "Los Angeles")
-DB_VERSION = 10
+DB_VERSION = 11
 
 
 class RegistrationError(ValueError):
@@ -529,6 +529,41 @@ class Store:
                         NEW.step < OLD.step OR NEW.score < OLD.score
                     BEGIN SELECT RAISE(ABORT,'arcade run integrity'); END""")
                 con.execute("PRAGMA user_version=10")
+            if version < 11:
+                # Wire v2: community stories are opt-in, private until host
+                # approval. Submissions and moderation are append-only.
+                con.execute("""CREATE TABLE IF NOT EXISTS wire_submissions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    interaction_id TEXT NOT NULL UNIQUE,
+                    season_key TEXT NOT NULL,
+                    discord_user_id INTEGER NOT NULL,
+                    day INTEGER NOT NULL CHECK(day BETWEEN 1 AND 7),
+                    title TEXT NOT NULL CHECK(length(title) BETWEEN 6 AND 80),
+                    body TEXT NOT NULL CHECK(length(body) BETWEEN 20 AND 650),
+                    created_at_utc TEXT NOT NULL,
+                    UNIQUE(season_key,discord_user_id,day),
+                    FOREIGN KEY(season_key,discord_user_id)
+                        REFERENCES players(season_key,discord_user_id)
+                )""")
+                con.execute("""CREATE TABLE IF NOT EXISTS wire_decisions (
+                    submission_id INTEGER PRIMARY KEY,
+                    season_key TEXT NOT NULL,
+                    moderator_id INTEGER NOT NULL,
+                    verdict TEXT NOT NULL CHECK(verdict IN ('approved','rejected')),
+                    reason TEXT NOT NULL,
+                    decided_at_utc TEXT NOT NULL,
+                    FOREIGN KEY(submission_id) REFERENCES wire_submissions(id)
+                )""")
+                con.execute("CREATE INDEX IF NOT EXISTS idx_wire_story_day ON "
+                            "wire_submissions(season_key,day,id)")
+                for table in ("wire_submissions", "wire_decisions"):
+                    con.execute(f"""CREATE TRIGGER IF NOT EXISTS {table}_immutable_update
+                        BEFORE UPDATE ON {table} BEGIN
+                        SELECT RAISE(ABORT,'immutable Wire history'); END""")
+                    con.execute(f"""CREATE TRIGGER IF NOT EXISTS {table}_immutable_delete
+                        BEFORE DELETE ON {table} BEGIN
+                        SELECT RAISE(ABORT,'immutable Wire history'); END""")
+                con.execute("PRAGMA user_version=11")
         with self.connect() as con:
             result = con.execute("PRAGMA quick_check").fetchone()[0]
             if result != "ok":

@@ -69,6 +69,7 @@ def _text(page: str, snapshot, *, alert: str = "") -> str:
                          "🎩 Illustrated portraits, custom frames, banners, trails & wardrobe",
                          "🎲 Daily encounters",
                          "🕵️ Seven Christmas cases, evidence clues and hidden encounters",
+                         "🗞️ Snowfall Wire 2.0: headlines, player letters and seven editions",
                          "🎮 New Winter Arcade: five full games, city cups and cosmetic stamps",
                          "🎯 Target Practice · 🛡️ Blizzard Dodge · ☃️ Boss Drill",
                          "🎄 Rotating daily missions"))
@@ -159,6 +160,12 @@ class WinterActivitiesView(MenuView):
     async def social_arcade(self, interaction, _):
         from snowfall.ui.social_arcade import show_arcade
         await show_arcade(interaction, self.settings, self.store, self.owner_id)
+
+    @discord.ui.button(label="Snowfall Wire", emoji="🗞️",
+                       style=discord.ButtonStyle.secondary, row=3)
+    async def wire(self, interaction, _):
+        from snowfall.ui.wire import show_wire
+        await show_wire(interaction,self.settings,self.store,self.owner_id)
 
     @discord.ui.button(label="Mystery Casebook", emoji="🕵️",
                        style=discord.ButtonStyle.primary, row=2)

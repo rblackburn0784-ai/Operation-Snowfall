@@ -1,4 +1,4 @@
-"""v0.2.7 personal daily hub and safe, read-only next-step navigation.
+"""v0.2.8 personal daily hub and safe, read-only next-step navigation.
 
 All buttons edit the same owner-checked ephemeral message. Quick Play only
 opens an existing action menu: the combat, economy and world engines still
@@ -17,6 +17,7 @@ from snowfall.services.experience import Headquarters, headquarters
 from snowfall.services.combat_intel import CombatIntelEngine
 from snowfall.services.territory import TerritoryEngine
 from snowfall.services.mysteries import MysteryEngine
+from snowfall.services.wire import WireEngine
 from snowfall.ui.navigation import MenuView
 
 
@@ -28,11 +29,12 @@ def _due(value: datetime | None) -> str:
     return f"<t:{int(value.timestamp())}:R>" if value is not None else "Ready"
 
 
-def today_embed(info: Headquarters, settings, intel=None, wars=None, mystery=None) -> discord.Embed:
+def today_embed(info: Headquarters, settings, intel=None, wars=None, mystery=None,
+                wire=None) -> discord.Embed:
     card = discord.Embed(title="📋 Today's Snowfall",
                          colour=discord.Colour.from_rgb(106, 179, 219))
     flag = "🧪 TEST — NO PRIZES" if getattr(settings, "mode", "production") == "practice" else "❄️ LIVE EVENT"
-    card.set_footer(text=f"{flag} • v0.2.7 • Personal view")
+    card.set_footer(text=f"{flag} • v0.2.8 • Personal view")
     if info.player is None:
         card.description = ("**Not registered yet.**\n"
                             "Choose **Do Next** to declare your own MafiaReturns name and city. "
@@ -93,6 +95,14 @@ def today_embed(info: Headquarters, settings, intel=None, wars=None, mystery=Non
                    + ("\n🎁 Secret memento collected" if mystery.secret else "")
                    + "\nOpen **/snowfun mystery** to investigate."),
             inline=False)
+    if wire is not None and wire.recent:
+        lead = wire.recent[0]
+        card.add_field(
+            name="🗞️ Snowfall Wire 2.0",
+            value=(f"**{discord.utils.escape_markdown(lead.title).replace('@','＠')}**"
+                   f" — {discord.utils.escape_markdown(lead.detail).replace('@','＠')}"
+                   "\nBrowse **/snowfun wire** for editions and approved community letters."),
+            inline=False)
     if intel is not None and intel.revenge_alerts:
         names = ", ".join(discord.utils.escape_markdown(r.name).replace("@", "＠")
                           for r in intel.revenge_alerts[:3])
@@ -121,6 +131,7 @@ async def show_today(interaction, settings, store, owner_id: int) -> None:
         intel = None
         wars = None
         mystery = None
+        wire = None
         if info.player is not None and info.phase in ("live", "paused"):
             try:
                 intel = await asyncio.to_thread(CombatIntelEngine(store).snapshot,
@@ -138,8 +149,13 @@ async def show_today(interaction, settings, store, owner_id: int) -> None:
                     settings.season_key, owner_id, _now())
             except (ValueError, sqlite3.Error):
                 pass
+            try:
+                wire = await asyncio.to_thread(
+                    WireEngine(store).newsroom, settings.season_key, owner_id, _now())
+            except (ValueError, sqlite3.Error):
+                pass
         await interaction.edit_original_response(
-            content=None, embed=today_embed(info, settings, intel, wars, mystery), attachments=[],
+            content=None, embed=today_embed(info, settings, intel, wars, mystery, wire), attachments=[],
             view=TodayView(settings, store, owner_id, info),
             allowed_mentions=discord.AllowedMentions.none())
     except (ValueError, RuntimeError, sqlite3.Error) as exc:
@@ -293,6 +309,12 @@ class TodayView(MenuView):
     async def games(self, interaction, _):
         from snowfall.ui.navigation import show_game
         await show_game(interaction, self.settings, self.store, self.owner_id)
+
+    @discord.ui.button(label="Snowfall Wire", emoji="🗞️",
+                       style=discord.ButtonStyle.secondary, row=2)
+    async def wire(self, interaction, _):
+        from snowfall.ui.wire import show_wire
+        await show_wire(interaction,self.settings,self.store,self.owner_id)
 
     @discord.ui.button(label="Home", emoji="🏠", style=discord.ButtonStyle.secondary, row=2)
     async def home(self, interaction, _):

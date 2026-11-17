@@ -37,13 +37,13 @@ def game(tmp_path):
 
 
 def test_schema_reinitializes_and_preserves_immutable_score(game):
-    assert game.schema_version() == 10
+    assert game.schema_version() == 11
     with game.connect() as con:
         con.execute("INSERT INTO score_ledger (season_key,day,player_id,city,category,"
                     "points,source_key,created_at_utc) VALUES (?,?,?,?,'quest',20,?,?)",
                     (KEY, 1, 101, "Chicago", "prior", START.isoformat()))
     game.initialize()
-    assert game.schema_version() == 10
+    assert game.schema_version() == 11
     with game.connect() as con:
         assert con.execute("SELECT SUM(points) FROM score_ledger WHERE season_key=?", (KEY,)).fetchone()[0] == 20
         for table in ("cosmetic_unlocks", "cosmetic_equipped", "cosmetic_purchases", "arcade_events", "encounter_events"):
@@ -99,7 +99,7 @@ def test_concurrent_purchase_only_spends_once(game):
         results = list(pool.map(buy, [1, 2]))
     assert sum(result != "denied" for result in results) == 1
     assert game.connect is not None
-    assert game.schema_version() == 10
+    assert game.schema_version() == 11
     assert WinterFunEngine(game).shop(KEY, 101, START).balance == 0
 
 
@@ -230,7 +230,7 @@ def test_migrating_v7_retains_players_and_score_rows(game):
         con.execute("PRAGMA user_version=7")
     game.initialize()
     game.initialize()
-    assert game.schema_version() == 10
+    assert game.schema_version() == 11
     assert game.get_player(KEY, 101).mr_username == "Player101"
     assert CombatEngine(game).ledger_total(KEY, 101) == 20
     assert not WinterFunEngine(game).shop(KEY, 101, START).unlocked

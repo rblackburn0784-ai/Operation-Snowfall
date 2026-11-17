@@ -36,7 +36,7 @@ def _mode(settings) -> str:
 def _embed(title: str, description: str, settings, *, warning: bool = False) -> discord.Embed:
     colour = discord.Colour.orange() if warning else discord.Colour.from_rgb(106, 179, 219)
     card = discord.Embed(title=title, description=description, colour=colour)
-    card.set_footer(text=f"{_mode(settings)} • v0.2.7 • Private navigation")
+    card.set_footer(text=f"{_mode(settings)} • v0.2.8 • Private navigation")
     return card
 
 
@@ -281,6 +281,12 @@ class GameMenu(MenuView):
     async def winter_arcade(self, interaction, _):
         from snowfall.ui.social_arcade import show_arcade
         await show_arcade(interaction, self.settings, self.store, self.owner_id)
+
+    @discord.ui.button(label="Snowfall Wire", emoji="🗞️",
+                       style=discord.ButtonStyle.secondary, row=3)
+    async def wire(self, interaction, _):
+        from snowfall.ui.wire import show_wire
+        await show_wire(interaction,self.settings,self.store,self.owner_id)
 
     @discord.ui.button(label="Snowball Fight", emoji="🎯", style=discord.ButtonStyle.success)
     async def combat(self, interaction, _):
@@ -609,7 +615,8 @@ class BroadcastMenu(AdminPanel):
         super().__init__(settings, store, owner_id, manager)
         self.clear_items()  # Dedicated small host subpanel, not a second dashboard.
         for label, action in (("Update Leaderboard", "leaderboard"),
-                              ("Announce Current Day", "announcement")):
+                              ("Announce Current Day", "announcement"),
+                              ("Publish Latest Wire", "wire")):
             button = discord.ui.Button(label=label, style=discord.ButtonStyle.primary)
             async def trigger(interaction, action=action):
                 await _edit(interaction,
@@ -639,6 +646,8 @@ class BroadcastConfirm(AdminPanel):
                 try:
                     if action == "leaderboard":
                         msg = await publisher.update_leaderboard(_now())
+                    elif action == "wire":
+                        msg = await publisher.publish_wire_latest(_now())
                     else:
                         msg = await publisher.publish_current_day(_now(), refresh_existing=True)
                     result = f"✅ LIVE {action} updated: {msg.jump_url}"
