@@ -1,4 +1,4 @@
-"""Private v0.2.0 activity centre, wardrobe, encounters and no-prize arcade modes."""
+"""Private v0.2.2 activity centre, wardrobe, encounters and no-prize arcade modes."""
 from __future__ import annotations
 
 import asyncio
@@ -33,14 +33,17 @@ def _text(page: str, snapshot, *, alert: str = "") -> str:
     if page == "Shop":
         for key, item in COSMETICS.items():
             icon = "✅" if key in snapshot.unlocked else "🛍️"
-            sections.append(f"{icon} **{_escape(item.name)}** — {item.cost}✨ · {_escape(item.detail)}")
+            sections.append(f"{icon} **{_escape(item.name)}** [{item.rarity}] — "
+                            f"{item.cost}✨ · {_escape(item.detail)}")
         sections.append("Choose Buy Cosmetic below. Equipment bonuses work only in arcade modes.")
     elif page == "Wardrobe":
         for slot in SLOTS:
             key = snapshot.equipped.get(slot)
-            name = COSMETICS[key].name if key in COSMETICS else "Not equipped"
+            item = COSMETICS.get(key) if key else None
+            name = f"{item.name} [{item.rarity}]" if item else "Default / not equipped"
             sections.append(f"**{slot.title()}:** {_escape(name)}")
         sections.append(f"**Unlocked:** {len(snapshot.unlocked)}/{len(COSMETICS)} cosmetics and equipment")
+        sections.append("Use **My Card** to see your selected style and earned badges illustrated.")
     elif page == "Encounter":
         if snapshot.day:
             title, story, souvenir = ENCOUNTERS[snapshot.day - 1]
@@ -61,7 +64,9 @@ def _text(page: str, snapshot, *, alert: str = "") -> str:
             sections.append(f"**{mission.title}:** {mission.detail}")
         sections.append("Claim each mission through Daily Quests; normal rewards still apply.")
     else:
-        sections.extend(("🛍️ Shop & specialist equipment", "🎩 Wardrobe", "🎲 Daily encounters",
+        sections.extend(("🛍️ Rarity-labelled cosmetic shop & specialist equipment",
+                         "🎩 Illustrated portraits, custom frames, banners, trails & wardrobe",
+                         "🎲 Daily encounters",
                          "🎯 Target Practice · 🛡️ Blizzard Dodge · ☃️ Boss Drill",
                          "🎄 Rotating daily missions"))
     if alert:
@@ -146,6 +151,11 @@ class WinterActivitiesView(MenuView):
                                                 view=WinterPicker(self.settings, self.store,
                                                                   self.owner_id, "play"))
 
+    @discord.ui.button(label="My Card", emoji="🃏", style=discord.ButtonStyle.success, row=2)
+    async def card(self, interaction, _):
+        from snowfall.ui.showcase import show_profile
+        await show_profile(interaction, self.settings, self.store, self.owner_id)
+
     @discord.ui.button(label="Game Menus", emoji="🎮", style=discord.ButtonStyle.secondary, row=2)
     async def back(self, interaction, _):
         await show_game(interaction, self.settings, self.store, self.owner_id)
@@ -164,7 +174,7 @@ class WinterPicker(MenuView):
                        for k, (name, description) in MODES.items()]
         else:
             options = [discord.SelectOption(label=x.name, value=k,
-                       description=f"{x.cost} Snowflakes · {x.category}"[:100])
+                       description=f"{x.rarity} · {x.cost} Snowflakes · {x.category}"[:100])
                        for k, x in COSMETICS.items()]
         chooser = discord.ui.Select(placeholder=f"Choose an item to {action}", options=options)
 
@@ -183,7 +193,7 @@ class WinterPicker(MenuView):
                 display = COSMETICS[key].name if action == "buy" else MODES[key][0]
                 await interaction.response.edit_message(
                     content=f"Confirm {action} of **{_escape(display)}**? "
-                            "Mini-game points never count towards season prizes.",
+                            "Cosmetics do not change official scores, combat or prizes.",
                     embed=None, attachments=[],
                     view=WinterConfirm(self.settings, self.store, self.owner_id, action, key))
         chooser.callback = selected

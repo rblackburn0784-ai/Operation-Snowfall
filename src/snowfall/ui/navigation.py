@@ -36,7 +36,7 @@ def _mode(settings) -> str:
 def _embed(title: str, description: str, settings, *, warning: bool = False) -> discord.Embed:
     colour = discord.Colour.orange() if warning else discord.Colour.from_rgb(106, 179, 219)
     card = discord.Embed(title=title, description=description, colour=colour)
-    card.set_footer(text=f"{_mode(settings)} • v0.2.1 • Private navigation")
+    card.set_footer(text=f"{_mode(settings)} • v0.2.2 • Private navigation")
     return card
 
 
@@ -362,32 +362,8 @@ class PlayerMenu(MenuView):
 
     @discord.ui.button(label="My Profile", emoji="🧑", style=discord.ButtonStyle.secondary)
     async def profile(self, interaction, _):
-        from snowfall.graphics import cards, delivery
-        await interaction.response.defer()
-        p = await asyncio.to_thread(self.store.get_player, self.settings.season_key, self.owner_id)
-        if p is None:
-            await interaction.edit_original_response(content="Not registered. Select **Join / Register**.",
-                embed=None, attachments=[], view=PlayerMenu(self.settings, self.store, self.owner_id))
-            return
-        try:
-            engine = CombatEngine(self.store)
-            r = await asyncio.to_thread(engine.snapshot, self.settings.season_key,
-                                        self.owner_id, _now())
-            total = await asyncio.to_thread(engine.ledger_total,
-                                            self.settings.season_key, self.owner_id)
-        except CombatError as exc:
-            await interaction.edit_original_response(content=f"⚠️ {exc}", embed=None,
-                attachments=[], view=PlayerMenu(self.settings, self.store, self.owner_id))
-            return
-        from snowfall.ui.dashboard import escape_name
-        msg = (f"**{escape_name(p.mr_username)}** — {p.city}\n"
-               f"❄️ Snowballs: {r.snowballs}/12 • 🌡️ Warmth: {r.warmth}/100\n"
-               f"⭐ Snowflakes: {r.snowflakes} • 🏆 Total points: {total}\n"
-               "Use **Enter Arena** to become targetable for 36 active hours.")
-        await delivery.edit_result(interaction, msg,
-            PlayerMenu(self.settings, self.store, self.owner_id),
-            lambda: cards.profile_card(p.mr_username, p.city, r, total, review=p.review_state),
-            alt=f"Player profile for {p.mr_username}; {total} points")
+        from snowfall.ui.showcase import show_profile
+        await show_profile(interaction, self.settings, self.store, self.owner_id)
 
     @discord.ui.button(label="Enter Arena", emoji="🛡️", style=discord.ButtonStyle.success)
     async def ready(self, interaction, _):

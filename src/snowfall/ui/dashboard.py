@@ -54,8 +54,8 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
         ),
         color=0x78B9EA,
     )
-    embed.set_footer(text="v0.2.1 • TEST — NO PRIZES" if settings.is_test else
-                     "v0.2.1 • Live event, individual prizes only")
+    embed.set_footer(text="v0.2.2 • TEST — NO PRIZES" if settings.is_test else
+                     "v0.2.2 • Live event, individual prizes only")
     return embed
 
 
@@ -183,31 +183,9 @@ class Dashboard(discord.ui.View):
     @discord.ui.button(label="My Profile", style=discord.ButtonStyle.secondary,
                        custom_id="snowfall:v1:profile")
     async def profile_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        from snowfall.graphics.delivery import send_profile
+        from snowfall.ui.showcase import send_profile
         await interaction.response.defer(ephemeral=True)
-        p = await asyncio.to_thread(self.store.get_player, self.settings.season_key, interaction.user.id)
-        if p:
-            from snowfall.services.combat import CombatEngine, CombatError
-            try:
-                engine = CombatEngine(self.store)
-                r = await asyncio.to_thread(engine.snapshot, self.settings.season_key,
-                                            interaction.user.id, datetime.now(timezone.utc))
-                total = await asyncio.to_thread(engine.ledger_total, self.settings.season_key,
-                                                interaction.user.id)
-                msg = (f"**{escape_name(p.mr_username)}** — {p.city}\n"
-                       f"**Identity:** {p.review_state}\n"
-                       f"❄️ {r.snowballs}/12 snowballs • 🌡️ {r.warmth}/100 warmth\n"
-                       f"**Day PvP:** {r.today_pvp}/300 • **Total:** {total} points\n"
-                       "Use `/snow ready` to enter the arena; `/snow throw` to attack.")
-                await send_profile(interaction, msg, p.mr_username, p.city, r, total,
-                                   review=p.review_state)
-                return
-            except CombatError as exc:
-                msg = str(exc)
-        else:
-            msg = "Not registered. Click Join."
-        await interaction.followup.send(msg, ephemeral=True,
-                                        allowed_mentions=discord.AllowedMentions.none())
+        await send_profile(interaction, self.settings, self.store)
 
     @discord.ui.button(label="Rules", style=discord.ButtonStyle.secondary,
                        custom_id="snowfall:v1:rules")

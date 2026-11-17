@@ -1,3 +1,14 @@
+# 🎩 v0.2.2 — Illustrated Player Cards & Cosmetic Collections
+
+Your purchased frames, banners, trails, specialist arcade gear and new winter mobster
+portraits now appear on **illustrated 960×540 player cards**. The **16-badge** Trophy
+Cabinet adds three cosmetic collection milestones with fixed Common/Rare/Epic/Legendary
+rarity tiers. Preview your card from `/snow profile`, **My Card** in Wardrobe or
+Trophies, and optionally publish your own card with `/snowfun showcase` (10-minute
+per-user cooldown; no public posts from test-day sessions). All equipment remains
+outside official PvP, boss, siege and prize calculations. No database migration.
+See [v0.2.2 release notes](docs/RELEASE_v0.2.2.md).
+
 # 🎄 v0.2.0 — Expanded Christmas Gameplay
 
 Use `/snowfun menu` or **Winter Activities** in the Main Menu, Game Menus or Headquarters

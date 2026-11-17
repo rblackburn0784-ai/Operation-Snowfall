@@ -124,7 +124,10 @@ def _png(im: Image.Image) -> bytes:
     return out.getvalue()
 
 
-def profile_card(name, city, resource, total, *, review="self-declared") -> bytes:
+def profile_card(name, city, resource, total, *, review="self-declared", showcase=None) -> bytes:
+    if showcase is not None:
+        from snowfall.graphics.showcase_cards import profile_showcase_card
+        return profile_showcase_card(showcase)
     im,d=_canvas(city,"PLAYER PROFILE",f"{clean(name,42)}  •  {clean(city)}  •  {clean(review)}")
     _bar(d,(55,230,540,280),resource.warmth,100,"Warmth","#ed8684")
     _bar(d,(55,314,540,362),resource.snowballs,12,"Snowballs","#8bd8fb")
@@ -212,19 +215,24 @@ def trophy_cabinet_card(cabinet) -> bytes:
     unlocked = [badge for badge in cabinet.trophies if badge.unlocked]
     d.text((60, 217), f"UNLOCKED: {len(unlocked)} / {len(cabinet.trophies)}",
            font=font(24, True), fill="#d7eeff")
-    # Six heraldic medallions on the winter city scene, with compact captions.
-    for index, badge in enumerate(cabinet.trophies[:10]):
-        x = 74 + (index % 5) * 171
-        y = 268 + (index // 5) * 105
-        colour = (246, 210, 130) if badge.unlocked else (87, 107, 131)
-        d.ellipse((x, y, x + 62, y + 62), fill=(17, 34, 55, 245),
-                  outline=colour, width=4)
-        d.ellipse((x + 14, y + 14, x + 48, y + 48), outline=colour, width=2)
-        d.text((x + 23, y + 19), "*" if badge.unlocked else "-",
-               font=font(19, True), fill=colour)
-        name = _fit(d, badge.badge, 146, font(15, True))
-        d.text((x - 35, y + 64), name, font=font(15, True),
-               fill="#ffe5aa" if badge.unlocked else "#99adc0")
+    # Show the entire collection, including v0.2.2 fashion badges, in four rows.
+    from snowfall.services.achievements import BADGE_RARITIES
+    rim_colours = {"Common": "#c7e1f0", "Rare": "#86d7ff",
+                   "Epic": "#d9aeff", "Legendary": "#ffe0a0"}
+    for index, badge in enumerate(cabinet.trophies[:16]):
+        x = 58 + (index % 4) * 222
+        y = 248 + (index // 4) * 60
+        rarity = BADGE_RARITIES.get(badge.key, "Common")
+        colour = rim_colours[rarity] if badge.unlocked else "#6b7a8a"
+        d.ellipse((x, y, x + 43, y + 43), fill=(17, 34, 55, 245),
+                  outline=colour, width=3)
+        d.text((x + 13, y + 8), "★" if badge.unlocked else "·",
+               font=font(17, True), fill=colour)
+        title = _fit(d, badge.badge, 156, font(14, True))
+        d.text((x + 50, y + 3), title, font=font(14, True),
+               fill="#ffe6b2" if badge.unlocked else "#9cafbe")
+        subtitle = rarity if badge.unlocked else f"{badge.progress}/{badge.target}"
+        d.text((x + 50, y + 23), subtitle, font=font(12), fill=colour)
     d.text((60, 496), "COSMETIC TITLES ONLY • NO BONUS POINTS OR PRIZES",
            font=font(14, True), fill="#dceaf4")
     return _png(im)

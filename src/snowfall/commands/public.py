@@ -15,7 +15,7 @@ from snowfall.ui.world import send_world, city_board_text, individual_board_text
 from snowfall.ui.combat import ThrowMenu, send_target_menu
 from snowfall.ui.economy import send_inventory, send_quests
 from snowfall.ui.dashboard import CityPicker, escape_name, rules_text
-from snowfall.graphics.delivery import send_profile, send_champions
+from snowfall.graphics.delivery import send_champions
 from snowfall.ui.navigation import send_main_menu
 
 
@@ -104,26 +104,11 @@ class SnowGroup(app_commands.Group):
         await interaction.response.send_message("Choose your city, then confirm your MR username:",
                                                 view=CityPicker(self.settings, self.store), ephemeral=True)
 
-    @app_commands.command(name="profile", description="Check your warmth, snowballs and PvP points")
+    @app_commands.command(name="profile", description="Your illustrated card, equipped style and earned badges")
     async def profile(self, interaction: discord.Interaction):
+        from snowfall.ui.showcase import send_profile
         await interaction.response.defer(ephemeral=True)
-        p = await asyncio.to_thread(self.store.get_player, self.settings.season_key, interaction.user.id)
-        if p is None:
-            await interaction.followup.send("You are not registered. Use `/snow join`.", ephemeral=True)
-            return
-        try:
-            engine = CombatEngine(self.store)
-            resources = await asyncio.to_thread(engine.snapshot, self.settings.season_key,
-                                                interaction.user.id, _now())
-            total = await asyncio.to_thread(engine.ledger_total, self.settings.season_key,
-                                            interaction.user.id)
-        except CombatError as exc:
-            await interaction.followup.send(str(exc), ephemeral=True)
-            return
-        await send_profile(
-            interaction, _profile(p.mr_username, p.city, p.review_state, resources, total),
-            p.mr_username, p.city, resources, total, review=p.review_state,
-        )
+        await send_profile(interaction, self.settings, self.store)
 
     @app_commands.command(name="ready", description="Enter the arena and allow rival attacks for 36h")
     async def ready(self, interaction: discord.Interaction):
