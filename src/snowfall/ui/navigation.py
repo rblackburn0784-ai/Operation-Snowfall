@@ -36,7 +36,7 @@ def _mode(settings) -> str:
 def _embed(title: str, description: str, settings, *, warning: bool = False) -> discord.Embed:
     colour = discord.Colour.orange() if warning else discord.Colour.from_rgb(106, 179, 219)
     card = discord.Embed(title=title, description=description, colour=colour)
-    card.set_footer(text=f"{_mode(settings)} • v0.2.0a • Private navigation")
+    card.set_footer(text=f"{_mode(settings)} • v0.2.1 • Private navigation")
     return card
 
 
@@ -97,7 +97,8 @@ async def _home_embed(settings, store) -> discord.Embed:
     )
     card = dashboard_embed(settings, season, now, len(people))
     card.title = "❄️ Operation Snowfall — Main Menu"
-    card.add_field(name="🏠 My Headquarters", value="Timers • Daily progress • What to do next", inline=False)
+    card.add_field(name="📋 Today / ✨ Do Next", value="Your daily checklist and a smart shortcut to your next activity", inline=False)
+    card.add_field(name="🏠 My Headquarters", value="Timers • Rewards • Recovery • Arena status", inline=False)
     card.add_field(name="🎮 Game Menus", value="Snowballs • Inventory • Quests • Boss • Siege", inline=False)
     card.add_field(name="🧑 My Player", value="Register, view stats and enter the arena", inline=False)
     card.add_field(name="🏆 Rankings", value="Individual prizes and honorary city standings", inline=False)
@@ -133,7 +134,8 @@ async def show_game(interaction, settings, store, owner_id: int):
     settings, store = pin(settings, store)
     await _edit(interaction, view=GameMenu(settings, store, owner_id),
         embed=_embed("🎮 Game Menus", "Select a game section below. Every submenu has **Game Menus** and **Home** navigation.\n\n"
-                     "🎯 Fight rivals  •  🎒 Craft & equip  •  🎄 Daily missions\n"
+                     "✨ Do Next  •  📋 Today's progress  •  🎯 Fight rivals\n"
+                     "🎒 Craft & equip  •  🎄 Daily missions\n"
                      "☃️ Snow Don  •  🏰 City Siege  •  🏆 Rankings", settings))
 
 
@@ -173,6 +175,16 @@ class MainMenu(MenuView):
     async def headquarters(self, interaction, _):
         from snowfall.ui.headquarters import show_headquarters
         await show_headquarters(interaction, self.settings, self.store, self.owner_id)
+
+    @discord.ui.button(label="Today", emoji="📋", style=discord.ButtonStyle.success, row=1)
+    async def today(self, interaction, _):
+        from snowfall.ui.today import show_today
+        await show_today(interaction, self.settings, self.store, self.owner_id)
+
+    @discord.ui.button(label="Do Next", emoji="✨", style=discord.ButtonStyle.primary, row=1)
+    async def quick(self, interaction, _):
+        from snowfall.ui.today import quick_action
+        await quick_action(interaction, self.settings, self.store, self.owner_id)
 
     @discord.ui.button(label="Trophy Cabinet", emoji="🏆", style=discord.ButtonStyle.primary, row=2)
     async def trophies(self, interaction, _):
@@ -215,6 +227,16 @@ class GameMenu(MenuView):
     async def headquarters(self, interaction, _):
         from snowfall.ui.headquarters import show_headquarters
         await show_headquarters(interaction, self.settings, self.store, self.owner_id)
+
+    @discord.ui.button(label="Today", emoji="📋", style=discord.ButtonStyle.success, row=1)
+    async def today(self, interaction, _):
+        from snowfall.ui.today import show_today
+        await show_today(interaction, self.settings, self.store, self.owner_id)
+
+    @discord.ui.button(label="Do Next", emoji="✨", style=discord.ButtonStyle.primary, row=1)
+    async def quick(self, interaction, _):
+        from snowfall.ui.today import quick_action
+        await quick_action(interaction, self.settings, self.store, self.owner_id)
 
     @discord.ui.button(label="Trophy Cabinet", emoji="🏆", style=discord.ButtonStyle.primary, row=2)
     async def trophies(self, interaction, _):
