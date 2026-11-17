@@ -86,7 +86,7 @@ def test_recommendation_ko_pause_and_closure(db):
 
 
 def test_today_embed_and_menu_edit_privacy(db, monkeypatch):
-    discord = pytest.importorskip("discord")
+    pytest.importorskip("discord")
     from snowfall.ui import today as ux
     from snowfall.ui.navigation import MainMenu, GameMenu
     from snowfall.ui.headquarters import HeadquartersView
