@@ -24,6 +24,16 @@ class OperationsError(ValueError):
     """A rejected organiser operation with no partial changes."""
 
 
+def safe_csv_cell(value: object) -> str:
+    """Neutralise formulas when a staff member opens exported CSV in Excel/Sheets.
+
+    Quoting a CSV field does not prevent spreadsheet formula interpretation.
+    An apostrophe keeps the literal value visible rather than executing it.
+    """
+    cell = str(value)
+    return "'" + cell if cell.lstrip().startswith(("=", "+", "-", "@")) else cell
+
+
 def backup_sqlite(source: Path | str, directory: Path | str) -> Path:
     """Create an atomic, consistent WAL-aware backup with a SHA256 sidecar."""
     source, directory = Path(source).resolve(), Path(directory).resolve()
@@ -190,16 +200,44 @@ def reconcile(store: Store, season_key: str) -> dict:
         caps = con.execute("""SELECT player_id,day,SUM(points) AS score FROM score_ledger
             WHERE season_key=? AND category IN ('pvp','defense') GROUP BY player_id,day
             HAVING score>300""", (season_key,)).fetchall()
+        # Real quest ledger category is singular ('quest'). The previous
+        # plural check never matched anything and could not catch inflation.
         quest_duplicates = con.execute("""SELECT COUNT(*) FROM (
             SELECT player_id,day,SUM(points) AS score FROM score_ledger
-            WHERE season_key=? AND category='quests' GROUP BY player_id,day HAVING score>70)""",
+            WHERE season_key=? AND category='quest' GROUP BY player_id,day
+            HAVING score>60)""", (season_key,)).fetchone()[0]
+        quest_unbacked = con.execute("""SELECT COUNT(*) FROM score_ledger l
+            LEFT JOIN quest_claims q ON q.season_key=l.season_key
+              AND q.discord_user_id=l.player_id AND q.day=l.day
+              AND l.source_key='quest:' || q.day || ':' || q.quest_key
+            WHERE l.season_key=? AND l.category='quest'
+              AND (q.quest_key IS NULL OR l.points<>q.points)""",
+            (season_key,)).fetchone()[0]
+        quest_missing = con.execute("""SELECT COUNT(*) FROM quest_claims q
+            LEFT JOIN score_ledger l ON l.season_key=q.season_key
+              AND l.player_id=q.discord_user_id AND l.day=q.day
+              AND l.category='quest'
+              AND l.source_key='quest:' || q.day || ':' || q.quest_key
+            WHERE q.season_key=? AND l.id IS NULL""",
+            (season_key,)).fetchone()[0]
+        defense_mismatches = con.execute("""SELECT COUNT(*) FROM combat_events c
+            WHERE c.season_key=? AND c.defense_points<>COALESCE(
+                (SELECT SUM(l.points) FROM score_ledger l
+                 WHERE l.season_key=c.season_key AND l.player_id=c.target_id
+                   AND l.category='defense'
+                   AND l.source_key='combat:' || c.interaction_id),0)""",
             (season_key,)).fetchone()[0]
         ledger_count = con.execute("SELECT COUNT(*) FROM score_ledger WHERE season_key=?",
                                    (season_key,)).fetchone()[0]
-    return {"ok": not mismatches and not caps and not quest_duplicates,
+    return {"ok": not any((mismatches, caps, quest_duplicates, quest_unbacked,
+                           quest_missing, defense_mismatches)),
             "combat_events": len(rows), "ledger_entries": ledger_count,
             "mismatched_combat_ids": mismatches[:20],
-            "pvp_over_cap": [dict(r) for r in caps], "quest_over_cap_count": quest_duplicates}
+            "pvp_over_cap": [dict(r) for r in caps],
+            "quest_over_cap_count": quest_duplicates,
+            "quest_unbacked_count": quest_unbacked,
+            "quest_missing_count": quest_missing,
+            "defense_mismatch_count": defense_mismatches}
 
 
 def capture_final_awards(store: Store, season_key: str, host: int, now: datetime,
@@ -273,6 +311,6 @@ def award_csv(rows: list[dict]) -> bytes:
     writer.writerow(("place", "discord_user_id", "mr_username", "city", "points",
                      "reward", "status"))
     for r in rows:
-        writer.writerow((r["place"], r["discord_user_id"], r["mr_username"], r["city"],
-                         r["points"], r["reward"], r["status"]))
+        writer.writerow((r["place"], r["discord_user_id"], safe_csv_cell(r["mr_username"]),
+                         r["city"], r["points"], safe_csv_cell(r["reward"]), r["status"]))
     return output.getvalue().encode("utf-8-sig")
