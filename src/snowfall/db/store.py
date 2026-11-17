@@ -16,7 +16,7 @@ import unicodedata
 from snowfall.core.clock import as_utc
 
 CITIES = ("Chicago", "New York", "Detroit", "Philadelphia", "Las Vegas", "Los Angeles")
-DB_VERSION = 7
+DB_VERSION = 8
 
 
 class RegistrationError(ValueError):
@@ -373,6 +373,52 @@ class Store:
                         REFERENCES players(season_key, discord_user_id)
                 )""")
                 con.execute("PRAGMA user_version=7")
+            if version < 8:
+                # v0.2.0 uses separate score-neutral season-scoped storage.
+                con.execute("""CREATE TABLE IF NOT EXISTS cosmetic_unlocks (
+                    season_key TEXT NOT NULL, discord_user_id INTEGER NOT NULL,
+                    cosmetic_key TEXT NOT NULL, unlocked_at_utc TEXT NOT NULL,
+                    PRIMARY KEY(season_key,discord_user_id,cosmetic_key),
+                    FOREIGN KEY(season_key,discord_user_id)
+                        REFERENCES players(season_key,discord_user_id)
+                )""")
+                con.execute("""CREATE TABLE IF NOT EXISTS cosmetic_equipped (
+                    season_key TEXT NOT NULL, discord_user_id INTEGER NOT NULL,
+                    category TEXT NOT NULL, cosmetic_key TEXT NOT NULL,
+                    PRIMARY KEY(season_key,discord_user_id,category),
+                    FOREIGN KEY(season_key,discord_user_id)
+                        REFERENCES players(season_key,discord_user_id)
+                )""")
+                con.execute("""CREATE TABLE IF NOT EXISTS cosmetic_purchases (
+                    interaction_id TEXT PRIMARY KEY, season_key TEXT NOT NULL,
+                    discord_user_id INTEGER NOT NULL, day INTEGER NOT NULL,
+                    cosmetic_key TEXT NOT NULL, cost INTEGER NOT NULL CHECK(cost>=0),
+                    detail TEXT NOT NULL, purchased_at_utc TEXT NOT NULL
+                )""")
+                con.execute("""CREATE TABLE IF NOT EXISTS encounter_events (
+                    interaction_id TEXT PRIMARY KEY, season_key TEXT NOT NULL,
+                    discord_user_id INTEGER NOT NULL, day INTEGER NOT NULL CHECK(day BETWEEN 1 AND 7),
+                    souvenir TEXT NOT NULL, choice TEXT NOT NULL,
+                    encountered_at_utc TEXT NOT NULL,
+                    UNIQUE(season_key,discord_user_id,day)
+                )""")
+                con.execute("""CREATE TABLE IF NOT EXISTS arcade_events (
+                    interaction_id TEXT PRIMARY KEY, season_key TEXT NOT NULL,
+                    discord_user_id INTEGER NOT NULL, day INTEGER NOT NULL CHECK(day BETWEEN 1 AND 7),
+                    mode TEXT NOT NULL, style TEXT NOT NULL,
+                    score INTEGER NOT NULL CHECK(score>=0),
+                    equip TEXT, played_at_utc TEXT NOT NULL
+                )""")
+                con.execute("CREATE INDEX IF NOT EXISTS idx_arcade_mode_day ON "
+                            "arcade_events(season_key,discord_user_id,day,mode)")
+                for table in ("cosmetic_purchases", "encounter_events", "arcade_events", "cosmetic_unlocks"):
+                    con.execute(f"""CREATE TRIGGER IF NOT EXISTS {table}_immutable_update
+                        BEFORE UPDATE ON {table} BEGIN
+                        SELECT RAISE(ABORT,'immutable winter event'); END""")
+                    con.execute(f"""CREATE TRIGGER IF NOT EXISTS {table}_immutable_delete
+                        BEFORE DELETE ON {table} BEGIN
+                        SELECT RAISE(ABORT,'immutable winter event'); END""")
+                con.execute("PRAGMA user_version=8")
         with self.connect() as con:
             result = con.execute("PRAGMA quick_check").fetchone()[0]
             if result != "ok":
