@@ -336,6 +336,12 @@ def publication_text(edition: Edition, *, max_stories=2) -> str:
          "*Factual game records below; player roleplay is labelled separately.*"]
     for h in edition.verified:
         out.append(f"**{h.category}: {h.title}** — {h.detail}")
+    # Preserve the authoritative locked city standings from the legacy
+    # recap, including its explicit no-qualified-cities outcome.
+    for line in edition.report_text.splitlines():
+        if line.startswith("🏙️ **CITY BUSINESS:**"):
+            out.append(line)
+            break
     if edition.stories:
         out.append("✉️ **APPROVED COMMUNITY FICTION**")
         for story in edition.stories[:max_stories]:
