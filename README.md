@@ -1,3 +1,19 @@
+# 🕵️ v0.2.6 — Christmas Mysteries & Secret Encounters
+
+The seven-day Snowfall event now features **seven playable Christmas detective
+cases**, each with three evidence leads, a limited two-attempt deduction, and
+a hidden Christmas encounter. Players collect **narrative-only souvenirs**,
+track their clues and solved days in an illustrated detective casebook, and
+receive private progress hints from the Today dashboard.
+
+Open **/snowfun mystery**, **Game Menus → Mystery Casebook**, or
+**Winter Activities → Mystery Casebook**. Clues, guesses and hidden
+encounters are stored with transaction-safe, immutable records. **No official
+scores, Snowflakes, gear, paid prizes or combat rules change.** Database schema
+upgrades to v9; back up the SQLite file before the first launch.
+
+Read the [v0.2.6 release notes](docs/RELEASE_v0.2.6.md).
+
 # 🗺️ v0.2.5 — City Wars & Territory Control
 
 An interactive six-city **Discord territory map** now lets players choose

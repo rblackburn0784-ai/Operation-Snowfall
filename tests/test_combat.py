@@ -45,7 +45,7 @@ def prepare(s):
 
 
 def test_migration_and_immutable_history(store):
-    assert store.schema_version() == 8
+    assert store.schema_version() == 9
     prepare(store)
     result = CombatEngine(store, FixedRng(.1, .9)).throw(KEY, 1, 2, "quick", "evt1", START)
     assert result.points_awarded == 13
@@ -361,7 +361,7 @@ def test_migration_from_existing_v2_keeps_season_and_users(tmp_path):
     replacement = Store(path)
     replacement.initialize()
     replacement.initialize()  # migration is repeat-safe
-    assert replacement.schema_version() == 8
+    assert replacement.schema_version() == 9
     assert replacement.get_player(KEY, 123).mr_username == "Legacy_User"
     assert replacement.season(KEY).planned_start == START
     assert CombatEngine(replacement).snapshot(KEY, 123, START).snowballs == 8

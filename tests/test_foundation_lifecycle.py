@@ -73,7 +73,7 @@ def test_persistence_and_finalization_checks(db, tmp_path):
     reopened = Store(db.path)
     reopened.initialize()
     assert reopened.season(KEY).phase(START + timedelta(hours=2)) == 'live'
-    assert reopened.schema_version() == 8
+    assert reopened.schema_version() == 9
     assert db.audit_count(KEY) == 1
 
 def test_registration_after_pause_and_dispute_audit(db):

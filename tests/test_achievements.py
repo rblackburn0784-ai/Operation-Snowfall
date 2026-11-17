@@ -24,9 +24,9 @@ def setup(tmp_path):
 
 
 def test_migration_to_v7_is_idempotent_and_starts_with_no_titles(setup):
-    assert setup.schema_version() == 8
+    assert setup.schema_version() == 9
     setup.initialize()
-    assert setup.schema_version() == 8
+    assert setup.schema_version() == 9
     assert AchievementEngine(setup).cabinet(SEASON, 11).equipped_title == DEFAULT_TITLE
     with setup.connect() as con:
         assert 'player_titles' in {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
@@ -149,7 +149,7 @@ def test_real_old_v6_database_upgrade_keeps_score_tables(tmp_path):
         con.execute('PRAGMA user_version=6')
         con.execute('DROP TABLE player_titles')
     store.initialize()
-    assert store.schema_version() == 8
+    assert store.schema_version() == 9
     with store.connect() as con:
         assert con.execute('SELECT points FROM score_ledger').fetchone()[0] == 20
         assert con.execute('SELECT COUNT(*) FROM player_titles').fetchone()[0] == 0
