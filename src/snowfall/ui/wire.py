@@ -14,7 +14,7 @@ import discord
 
 from snowfall.graphics import delivery, wire_cards
 from snowfall.practice import pin, practice_expired
-from snowfall.services.wire import WireEngine, WireError, clean_name, edition_text
+from snowfall.services.wire import WireEngine, WireError, edition_text
 from snowfall.ui.navigation import MenuView, show_home, show_game
 
 
