@@ -36,7 +36,7 @@ def _mode(settings) -> str:
 def _embed(title: str, description: str, settings, *, warning: bool = False) -> discord.Embed:
     colour = discord.Colour.orange() if warning else discord.Colour.from_rgb(106, 179, 219)
     card = discord.Embed(title=title, description=description, colour=colour)
-    card.set_footer(text=f"{_mode(settings)} • v0.2.5 • Private navigation")
+    card.set_footer(text=f"{_mode(settings)} • v0.2.6 • Private navigation")
     return card
 
 
@@ -269,6 +269,12 @@ class GameMenu(MenuView):
     async def territory(self, interaction, _):
         from snowfall.ui.territory import show_territory
         await show_territory(interaction, self.settings, self.store, self.owner_id)
+
+    @discord.ui.button(label="Mystery Casebook", emoji="🕵️",
+                       style=discord.ButtonStyle.primary, row=3)
+    async def mystery(self, interaction, _):
+        from snowfall.ui.mysteries import show_mystery
+        await show_mystery(interaction, self.settings, self.store, self.owner_id)
 
     @discord.ui.button(label="Snowball Fight", emoji="🎯", style=discord.ButtonStyle.success)
     async def combat(self, interaction, _):

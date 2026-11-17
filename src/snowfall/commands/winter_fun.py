@@ -64,6 +64,12 @@ class SnowFunGroup(app_commands.Group):
         await show_territory(interaction, self.settings, self.store,
                              interaction.user.id, deferred=True)
 
+    @app_commands.command(name="mystery", description="Investigate Christmas cases and secret winter encounters")
+    async def mystery(self, interaction: discord.Interaction):
+        from snowfall.ui.mysteries import send_mystery
+        await interaction.response.defer(ephemeral=True)
+        await send_mystery(interaction, self.settings, self.store)
+
     @app_commands.command(name="showcase", description="Publish your illustrated player card in this channel")
     @app_commands.checks.cooldown(1, 600.0, key=lambda i: (i.guild_id, i.user.id))
     async def showcase(self, interaction: discord.Interaction):

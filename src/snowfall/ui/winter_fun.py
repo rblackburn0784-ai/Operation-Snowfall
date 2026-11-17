@@ -67,6 +67,7 @@ def _text(page: str, snapshot, *, alert: str = "") -> str:
         sections.extend(("🛍️ Rarity-labelled cosmetic shop & specialist equipment",
                          "🎩 Illustrated portraits, custom frames, banners, trails & wardrobe",
                          "🎲 Daily encounters",
+                         "🕵️ Seven Christmas cases, evidence clues and hidden encounters",
                          "🎯 Target Practice · 🛡️ Blizzard Dodge · ☃️ Boss Drill",
                          "🎄 Rotating daily missions"))
     if alert:
@@ -150,6 +151,12 @@ class WinterActivitiesView(MenuView):
                                                 embed=None, attachments=[],
                                                 view=WinterPicker(self.settings, self.store,
                                                                   self.owner_id, "play"))
+
+    @discord.ui.button(label="Mystery Casebook", emoji="🕵️",
+                       style=discord.ButtonStyle.primary, row=2)
+    async def mystery(self, interaction, _):
+        from snowfall.ui.mysteries import show_mystery
+        await show_mystery(interaction, self.settings, self.store, self.owner_id)
 
     @discord.ui.button(label="My Card", emoji="🃏", style=discord.ButtonStyle.success, row=2)
     async def card(self, interaction, _):

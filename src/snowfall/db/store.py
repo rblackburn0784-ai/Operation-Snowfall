@@ -16,7 +16,7 @@ import unicodedata
 from snowfall.core.clock import as_utc
 
 CITIES = ("Chicago", "New York", "Detroit", "Philadelphia", "Las Vegas", "Los Angeles")
-DB_VERSION = 8
+DB_VERSION = 9
 
 
 class RegistrationError(ValueError):
@@ -419,6 +419,49 @@ class Store:
                         BEFORE DELETE ON {table} BEGIN
                         SELECT RAISE(ABORT,'immutable winter event'); END""")
                 con.execute("PRAGMA user_version=8")
+            if version < 9:
+                # v0.2.6: independent narrative-only detective log, with no
+                # foreign key to scoring/economy/prizes. One entry per unique
+                # clue and at most one secret per player/day, enforced in DB.
+                con.execute("""CREATE TABLE IF NOT EXISTS mystery_clues (
+                    interaction_id TEXT PRIMARY KEY,
+                    season_key TEXT NOT NULL, discord_user_id INTEGER NOT NULL,
+                    day INTEGER NOT NULL CHECK(day BETWEEN 1 AND 7),
+                    lead_key TEXT NOT NULL, found_at_utc TEXT NOT NULL,
+                    UNIQUE(season_key,discord_user_id,day,lead_key),
+                    FOREIGN KEY(season_key,discord_user_id)
+                        REFERENCES players(season_key,discord_user_id)
+                )""")
+                con.execute("""CREATE TABLE IF NOT EXISTS mystery_guesses (
+                    interaction_id TEXT PRIMARY KEY,
+                    season_key TEXT NOT NULL, discord_user_id INTEGER NOT NULL,
+                    day INTEGER NOT NULL CHECK(day BETWEEN 1 AND 7),
+                    suspect_key TEXT NOT NULL, correct INTEGER NOT NULL
+                        CHECK(correct IN (0,1)), created_at_utc TEXT NOT NULL,
+                    FOREIGN KEY(season_key,discord_user_id)
+                        REFERENCES players(season_key,discord_user_id)
+                )""")
+                con.execute("""CREATE TABLE IF NOT EXISTS mystery_secrets (
+                    interaction_id TEXT PRIMARY KEY,
+                    season_key TEXT NOT NULL, discord_user_id INTEGER NOT NULL,
+                    day INTEGER NOT NULL CHECK(day BETWEEN 1 AND 7),
+                    variant INTEGER NOT NULL CHECK(variant BETWEEN 0 AND 2),
+                    choice TEXT NOT NULL, souvenir TEXT NOT NULL,
+                    found_at_utc TEXT NOT NULL,
+                    UNIQUE(season_key,discord_user_id,day),
+                    FOREIGN KEY(season_key,discord_user_id)
+                        REFERENCES players(season_key,discord_user_id)
+                )""")
+                con.execute("CREATE INDEX IF NOT EXISTS idx_mystery_guesses_day ON "
+                            "mystery_guesses(season_key,discord_user_id,day)")
+                for table in ("mystery_clues", "mystery_guesses", "mystery_secrets"):
+                    con.execute(f"""CREATE TRIGGER IF NOT EXISTS {table}_immutable_update
+                        BEFORE UPDATE ON {table} BEGIN
+                        SELECT RAISE(ABORT,'immutable mystery history'); END""")
+                    con.execute(f"""CREATE TRIGGER IF NOT EXISTS {table}_immutable_delete
+                        BEFORE DELETE ON {table} BEGIN
+                        SELECT RAISE(ABORT,'immutable mystery history'); END""")
+                con.execute("PRAGMA user_version=9")
         with self.connect() as con:
             result = con.execute("PRAGMA quick_check").fetchone()[0]
             if result != "ok":
