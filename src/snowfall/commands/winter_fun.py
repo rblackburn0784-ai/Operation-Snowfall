@@ -51,6 +51,12 @@ class SnowFunGroup(app_commands.Group):
         await interaction.response.defer(ephemeral=True)
         await send_rivalries(interaction, self.settings, self.store)
 
+    @app_commands.command(name="raid", description="Cooperative Snow Don raid, honours and victory replay")
+    async def raid(self, interaction: discord.Interaction):
+        from snowfall.ui.raid import send_raid
+        await interaction.response.defer(ephemeral=True)
+        await send_raid(interaction, self.settings, self.store)
+
     @app_commands.command(name="showcase", description="Publish your illustrated player card in this channel")
     @app_commands.checks.cooldown(1, 600.0, key=lambda i: (i.guild_id, i.user.id))
     async def showcase(self, interaction: discord.Interaction):

@@ -17,7 +17,7 @@ class Settings:
 
 def test_snowfun_commands_are_under_discord_limits():
     group = SnowFunGroup(Settings(), object())
-    assert {c.name for c in group.commands} == {"menu", "shop", "wardrobe", "encounter", "arcade", "showcase", "rivalries"}
+    assert {c.name for c in group.commands} == {"menu", "shop", "wardrobe", "encounter", "arcade", "showcase", "rivalries", "raid"}
     assert len(group.commands) <= 25
 
 

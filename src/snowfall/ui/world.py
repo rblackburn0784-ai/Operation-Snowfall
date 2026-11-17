@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import sqlite3
 from datetime import datetime, timezone
 
 import discord
@@ -11,7 +12,9 @@ from snowfall.practice import pin, practice_expired
 from snowfall.services.world import WorldEngine, WorldError, BOSS_LIMIT, SIEGE_LIMIT
 from snowfall.ui.dashboard import escape_name
 from snowfall.graphics import cards, delivery
-from snowfall.services.boss_personality import reaction_for_result
+from snowfall.services.boss_personality import (reaction_for_result, boss_banter, phase_story)
+from snowfall.services.boss_raid import RaidEngine
+from snowfall.graphics.raid_cards import phase_transition_animation, final_defeat_cinematic
 
 
 def now():
@@ -35,18 +38,37 @@ def status_text(state):
             "against a personal training echo/rubble pile. No extra clear bonuses.")
 
 
-def result_text(r):
+def result_text(r, raid=None):
+    """Authoritative saved points plus optional score-neutral theatrical context."""
     target = 'Snow Don' if r.kind == 'boss' else f'{r.city} fortress'
     action = '💥 Hit!' if r.hit else '💨 Missed!'
     detail = 'Personal training echo' if r.kind == 'boss' and r.echo else (
         'Practice rubble pile' if r.echo else 'Shared battlefield')
-    return (f"**{action} {target} — Day {r.day}**\n"
-            f"Damage: **{r.damage}** | Points: **+{r.points}**"
-            f"{' | Theme bonus: +' + str(r.theme_points) if r.theme_points else ''}\n"
-            f"{detail} | Remaining shared HP: **{r.hp_after}/{r.max_hp}**\n"
-            + ('\n' + reaction_for_result(r) if reaction_for_result(r) else '')
-            + ('🎉 **FINAL BLOW!**' if r.final_blow else '')
-            + ('\n*Repeated Discord interaction; no resources spent again.*' if r.repeated else ''))
+    lines = [f"**{action} {target} — Day {r.day}**",
+             f"Damage: **{r.damage}** | Points: **+{r.points}**"
+             + (f" | Theme bonus: +{r.theme_points}" if r.theme_points else ""),
+             f"{detail} | Remaining shared HP: **{r.hp_after}/{r.max_hp}**"]
+    if r.kind == "boss":
+        comment = boss_banter(r)
+        if comment:
+            lines.append(f"🎙️ *{comment}*")
+        phases = phase_story(r)
+        if phases:
+            lines.append(phases)
+        older = reaction_for_result(r)
+        if older:
+            lines.append(older)
+        if raid is not None and raid.enabled:
+            lines.append(
+                f"🤝 Raid progress: **{raid.progress}%** · **{raid.contributors}** "
+                f"shared raider(s) · **{raid.hit_count}** real hits"
+            )
+    if r.final_blow:
+        lines.append("🎬 **FINAL BLOW!** The Snow Don finale is unlocked."
+                     if r.kind == "boss" else "🏰 **FORTRESS CLEARED!**")
+    if r.repeated:
+        lines.append("*Previously saved Discord interaction; nothing spent or awarded again.*")
+    return "\n".join(lines)
 
 
 def city_board_text(rows):
@@ -100,6 +122,12 @@ class WorldView(discord.ui.View):
     async def siege(self, interaction, _):
         await self._attack(interaction, 'siege')
 
+    @discord.ui.button(label='Raid Headquarters', emoji='🤝',
+                       style=discord.ButtonStyle.primary, row=1)
+    async def raid(self, interaction, _):
+        from snowfall.ui.raid import show_raid
+        await show_raid(interaction, self.settings, self.store, self.owner_id)
+
     @discord.ui.button(label='Refresh', style=discord.ButtonStyle.secondary)
     async def refresh(self, interaction, _):
         await interaction.response.defer()
@@ -146,12 +174,33 @@ class WorldConfirm(discord.ui.View):
                 content=f'⚠️ {exc} No snowballs were spent.',
                 view=WorldView(self.settings, self.store, self.owner_id))
             return
+        # The authoritative attack is fully committed above. Additional reads,
+        # GIFs or raid data cannot modify the hit, personal score or clear bonus.
+        raid = None
+        if self.kind == "boss":
+            try:
+                raid = await asyncio.to_thread(RaidEngine(self.store).report,
+                                               self.settings.season_key, result.day)
+            except (ValueError, OSError, sqlite3.Error):
+                pass
+        if self.kind == "boss" and result.final_blow and not result.repeated:
+            def animate():
+                return final_defeat_cinematic(result)
+        elif self.kind == "boss" and not result.repeated:
+            def animate():
+                return phase_transition_animation(result)
+        elif result.repeated:
+            animate = None
+        else:
+            def animate():
+                return cards.world_animation(result)
         await delivery.edit_result(
-            interaction, result_text(result), WorldView(self.settings, self.store, self.owner_id),
+            interaction, result_text(result, raid),
+            WorldView(self.settings, self.store, self.owner_id),
             lambda: cards.world_result_card(result),
             alt=(f"{self.kind} attempt: {'hit' if result.hit else 'miss'}, "
                  f"{result.damage} damage, {result.points} points"),
-            animate=lambda: cards.world_animation(result),
+            animate=animate,
         )
 
     @discord.ui.button(label='Cancel', style=discord.ButtonStyle.secondary)

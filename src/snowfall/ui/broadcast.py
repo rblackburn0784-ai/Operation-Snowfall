@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 from io import BytesIO
 from datetime import datetime
+import sqlite3
 
 import discord
 
@@ -12,6 +13,7 @@ from snowfall.services.community import CommunityEngine, wire_story
 from snowfall.graphics.community_cards import wire_report_card
 from snowfall.services.world import WorldEngine, THEMES
 from snowfall.services.boss_personality import phase_announcement, reached_phases
+from snowfall.services.boss_raid import RaidEngine
 from snowfall.services.broadcast import (
     daily_announcement, registration_announcement, waiting_announcement,
     completed_announcement, boss_defeated_announcement, boss_is_defeated,
@@ -247,8 +249,13 @@ class BroadcastPublisher:
                     defeated = await asyncio.to_thread(boss_is_defeated, self.store,
                                                         self.settings.season_key, day)
                     if defeated:
+                        try:
+                            raid = await asyncio.to_thread(RaidEngine(self.store).report,
+                                                           self.settings.season_key, day)
+                        except (ValueError, sqlite3.Error):
+                            raid = None  # Never block the one-time defeat announcement.
                         await self._notice(f"boss_defeated_day_{day}",
-                                           boss_defeated_announcement(day), now)
+                                           boss_defeated_announcement(day, raid), now)
                     else:
                         phases = await asyncio.to_thread(reached_phases, self.store,
                                                          self.settings.season_key, day)

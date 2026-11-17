@@ -1,4 +1,4 @@
-"""v0.2.3 personal daily hub and safe, read-only next-step navigation.
+"""v0.2.4 personal daily hub and safe, read-only next-step navigation.
 
 All buttons edit the same owner-checked ephemeral message. Quick Play only
 opens an existing action menu: the combat, economy and world engines still
@@ -30,7 +30,7 @@ def today_embed(info: Headquarters, settings, intel=None) -> discord.Embed:
     card = discord.Embed(title="📋 Today's Snowfall",
                          colour=discord.Colour.from_rgb(106, 179, 219))
     flag = "🧪 TEST — NO PRIZES" if getattr(settings, "mode", "production") == "practice" else "❄️ LIVE EVENT"
-    card.set_footer(text=f"{flag} • v0.2.3 • Personal view")
+    card.set_footer(text=f"{flag} • v0.2.4 • Personal view")
     if info.player is None:
         card.description = ("**Not registered yet.**\n"
                             "Choose **Do Next** to declare your own MafiaReturns name and city. "

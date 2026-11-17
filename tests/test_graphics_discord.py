@@ -72,4 +72,6 @@ def test_mobile_navigation_has_one_persistent_dashboard_and_public_podium():
     assert all(getattr(control, "row", None) is None or control.row <= 4
                for control in dashboard.children)
     assert any(control.custom_id == "snowfall:v1:podium" for control in dashboard.children)
-    assert len(WorldView(SimpleNamespace(guild_id=13), object(), 7).children) <= 5
+    world_view = WorldView(SimpleNamespace(guild_id=13), object(), 7)
+    assert len(world_view.children) <= 6
+    assert "Raid Headquarters" in {getattr(b, "label", None) for b in world_view.children}
