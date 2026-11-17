@@ -126,7 +126,7 @@ def headquarters(store: Store, season_key: str, user_id: int, now: datetime) -> 
     elif resource.knockout_until and resource.knockout_until > game_now:
         action, route = 'Recover from your knockout; the Winter Arcade is available meanwhile.', 'winter'
     elif any(q.progress >= q.target and not q.claimed for q in quests):
-        action, route = 'Claim a completed daily mission to collect its rewards.', 'quests'
+        action, route = 'Claim a completed daily quest to collect its rewards.', 'quests'
     elif gift == 'Ready' or bonus == 'Ready':
         action, route = 'Open the mystery present you have unlocked.', 'quests'
     elif resource.snowballs == 0:

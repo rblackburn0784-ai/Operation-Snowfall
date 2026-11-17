@@ -59,7 +59,9 @@ def test_recommendation_claim_present_and_arena(db):
     EconomyEngine(db).present(KEY, 101, "v021-gift", START)
     state = headquarters(db, KEY, 101, START)
     assert state.daily_gift == "Opened"
-    assert state.next_action_route == "player"
+    # The existing economy actions already count as arena activity.
+    assert state.next_action_route == "world"
+    assert state.arena_until is not None
     CombatEngine(db).ready(KEY, 101, START)
     state = headquarters(db, KEY, 101, START + timedelta(seconds=1))
     assert state.arena_until == START + timedelta(hours=36)
