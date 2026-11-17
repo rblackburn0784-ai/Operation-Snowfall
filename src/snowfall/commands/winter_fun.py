@@ -45,6 +45,12 @@ class SnowFunGroup(app_commands.Group):
     async def arcade(self, interaction: discord.Interaction):
         await self._open(interaction, "Arcade")
 
+    @app_commands.command(name="rivalries", description="Private PvP records, hit streaks and revenge alerts")
+    async def rivalries(self, interaction: discord.Interaction):
+        from snowfall.ui.rivalries import send_rivalries
+        await interaction.response.defer(ephemeral=True)
+        await send_rivalries(interaction, self.settings, self.store)
+
     @app_commands.command(name="showcase", description="Publish your illustrated player card in this channel")
     @app_commands.checks.cooldown(1, 600.0, key=lambda i: (i.guild_id, i.user.id))
     async def showcase(self, interaction: discord.Interaction):

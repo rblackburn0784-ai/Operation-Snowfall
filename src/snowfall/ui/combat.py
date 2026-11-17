@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import secrets
+import sqlite3
 from datetime import datetime, timezone
 
 import discord
@@ -14,6 +15,8 @@ import discord
 from snowfall.practice import pin, practice_expired
 
 from snowfall.services.combat import ATTACKS, CombatEngine, CombatError, CombatResult
+from snowfall.services.combat_intel import CombatIntelEngine, target_order
+from snowfall.services.combat_flair import fight_beat
 from snowfall.ui.dashboard import escape_name
 from snowfall.graphics import cards, delivery
 
@@ -24,6 +27,10 @@ def _now():
 
 def _result_text(result: CombatResult, target: str) -> str:
     name = escape_name(target)
+    if result.repeated:
+        return (f"🔁 This **{result.style.title()}** against **{name}** was already recorded. "
+                f"Original result: **{'hit' if result.hit else 'miss'}**; "
+                "no second snowball or score was consumed.")
     if not result.hit:
         spent = "Golden Snowball" if result.style == "golden" else "snowball"
         return (f"❄️ Your **{result.style.title()}** missed **{name}**! "
@@ -78,9 +85,18 @@ class CombatMenu(discord.ui.View):
                 embed=None, attachments=[],
             )
             return
+        try:
+            intel = await asyncio.to_thread(CombatIntelEngine(self.store).snapshot,
+                                            self.settings.season_key, self.owner_id)
+        except (ValueError, sqlite3.Error):
+            intel = None
+        alerts = len(intel.revenge_alerts) if intel is not None else 0
         await interaction.response.edit_message(
-            content="🎯 **Choose a rival from another city:**",
-            view=TargetPicker(self.settings, self.store, interaction.user.id, targets),
+            content="🎯 **Choose a rival from another city:**"
+                    + (f"\n🔔 **{alerts} private revenge alert(s)** in your rivalry dossier."
+                       if alerts else ""),
+            view=TargetPicker(self.settings, self.store, interaction.user.id, targets,
+                              intel=intel),
             embed=None, attachments=[],
         )
 
@@ -96,35 +112,52 @@ def suggested_targets(targets):
                                            t.discord_user_id))
 
 
-async def open_target_menu(interaction, settings, store, owner_id):
-    """Open the existing target picker by editing the current private message."""
+async def open_target_menu(interaction, settings, store, owner_id, *, mode="smart"):
+    """Re-read live eligibility and personal history; never auto-perform a throw."""
     settings, store = pin(settings, store)
     await interaction.response.defer()
     try:
         options = await asyncio.to_thread(CombatEngine(store).targets, settings.season_key,
                                           owner_id, _now())
-        if options:
-            view = TargetPicker(settings, store, owner_id, options)
-            content = (f'🎯 **{len(options)} eligible rival(s)** — Recommended keeps your legal '
-                       'scoring opportunities in mind. Or choose any rival / Surprise Me.')
+        try:
+            intel = await asyncio.to_thread(CombatIntelEngine(store).snapshot,
+                                            settings.season_key, owner_id)
+        except (ValueError, sqlite3.Error):
+            intel = None
+        ordered = target_order(options, intel, mode) if intel is not None else (
+            suggested_targets(options) if mode != "revenge" else [])
+        if ordered:
+            view = TargetPicker(settings, store, owner_id, ordered, intel=intel, mode=mode)
+            label = "pending revenge rivals" if mode == "revenge" else "eligible rival(s)"
+            content = (f"🎯 **{len(ordered)} {label}** — "
+                       "Choose a rival or use the quick-target buttons. All throws "
+                       "still require confirmation and live eligibility checks.")
+            if intel is not None and intel.revenge_alerts:
+                content += f"\n🔔 **{len(intel.revenge_alerts)} pending revenge alert(s)** in your history."
         else:
             view = RetryView(settings, store, owner_id)
-            content = 'No eligible rivals right now. Ask players in other cities to use `/snow ready`.'
-    except CombatError as exc:
+            content = ('No pending revenge rivals are currently eligible. An alert '
+                       'does not override KO recovery, shields or scoring limits.'
+                       if mode == "revenge" else
+                       'No eligible rivals right now. Ask players in other cities to use /snow ready.')
+    except (CombatError, ValueError) as exc:
         view = RetryView(settings, store, owner_id)
-        content = f'⚠️ {exc}'
+        content = f"⚠️ {exc}"
     await interaction.edit_original_response(content=content, embed=None,
-                                              attachments=[], view=view)
+                                              attachments=[], view=view,
+                                              allowed_mentions=discord.AllowedMentions.none())
 
 
 class TargetPicker(CombatMenu):
-    def __init__(self, settings, store, owner_id: int, targets):
+    def __init__(self, settings, store, owner_id: int, targets, *, intel=None, mode="smart"):
         super().__init__(settings, store, owner_id)
         settings, store = self.settings, self.store
-        self.targets = suggested_targets(targets)
+        self.intel = intel
+        self.mode = mode
+        self.targets = target_order(targets, intel, mode) if intel is not None else suggested_targets(targets)
         self.names = {str(t.discord_user_id): t.mr_username for t in self.targets}
         options = [discord.SelectOption(
-            label=f"{t.mr_username} — {t.city}"[:100],
+            label=f"{'🔔 ' if intel and intel.rival(t.discord_user_id) and intel.rival(t.discord_user_id).pending_revenge else ''}{t.mr_username} — {t.city}"[:100],
             description=f"Warmth {t.warmth}/100 · {t.hits_remaining} scored hits left"[:100],
             value=str(t.discord_user_id),
         ) for t in self.targets]
@@ -142,43 +175,88 @@ class TargetPicker(CombatMenu):
         selector.callback = chosen
         self.add_item(selector)
 
-    async def _surprise(self, interaction, recommended=False):
-        # Re-fetch live eligibility at the point of selection. The attack is
-        # independently validated on confirmation, as with manual selection.
+    async def _surprise(self, interaction, mode="random"):
+        # Read eligibility at selection. CombatEngine checks again on confirmation.
         try:
             pool = await asyncio.to_thread(CombatEngine(self.store).targets,
                                             self.settings.season_key, self.owner_id, _now())
         except CombatError as exc:
-            await interaction.response.edit_message(content=f'⚠️ {exc}', embed=None,
+            await interaction.response.edit_message(content=f"⚠️ {exc}", embed=None,
                 attachments=[], view=RetryView(self.settings, self.store, self.owner_id))
             return
-        if not pool:
-            await interaction.response.edit_message(content='No eligible rivals left. Try later.',
+        try:
+            intel = await asyncio.to_thread(CombatIntelEngine(self.store).snapshot,
+                                             self.settings.season_key, self.owner_id)
+        except (ValueError, sqlite3.Error):
+            intel = None  # Rivalry history is optional: target browsing must still work.
+        if mode == "random":
+            ordered = pool  # Keep the engine's original pool unmodified for uniform choice.
+        elif intel is not None:
+            ordered = target_order(pool, intel, mode)
+        elif mode == "revenge":
+            ordered = []  # Never fabricate a pending revenge match.
+        elif mode == "vulnerable":
+            ordered = sorted(pool, key=lambda t: (t.warmth, t.mr_username.casefold()))
+        else:
+            ordered = suggested_targets(pool)
+        if not ordered:
+            await interaction.response.edit_message(
+                content=("No revenge rivals are eligible. Alerts do not bypass "
+                         "shields, recovery or the daily cap." if mode == "revenge"
+                         else "No eligible rivals left. Try later."),
                 embed=None, attachments=[],
                 view=RetryView(self.settings, self.store, self.owner_id))
             return
-        target = suggested_targets(pool)[0] if recommended else secrets.choice(pool)
-        mode = 'Recommended rival' if recommended else 'Surprise rival'
+        target = secrets.choice(ordered) if mode == "random" else ordered[0]
+        labels = {"smart": "Recommended rival", "random": "Surprise rival",
+                  "revenge": "Revenge target", "vulnerable": "Low-warmth rival"}
         await interaction.response.edit_message(
-            content=f'🎯 **{mode}: {escape_name(target.mr_username)}** ({target.city}) — '
-                    f'{target.hits_remaining} scored hit(s) available. Choose your throw:',
+            content=f"🎯 **{labels[mode]}: {escape_name(target.mr_username)}** ({target.city}) — "
+                    f"{target.hits_remaining} scored hit(s) available. Choose your throw:",
             view=ThrowMenu(self.settings, self.store, self.owner_id,
                            target.discord_user_id, target.mr_username),
             embed=None, attachments=[])
 
-    @discord.ui.button(label='Recommended Rival', emoji='✨', style=discord.ButtonStyle.primary, row=1)
+    @discord.ui.button(label="Recommended Rival", emoji="✨", style=discord.ButtonStyle.primary, row=1)
     async def recommended(self, interaction, _):
-        await self._surprise(interaction, recommended=True)
+        await self._surprise(interaction, mode="smart")
 
-    @discord.ui.button(label='Surprise Me', emoji='🎲', style=discord.ButtonStyle.success, row=1)
+    @discord.ui.button(label="Surprise Me", emoji="🎲", style=discord.ButtonStyle.success, row=1)
     async def random_rival(self, interaction, _):
-        await self._surprise(interaction)
+        await self._surprise(interaction, mode="random")
+
+    @discord.ui.button(label="Revenge Rival", emoji="🔔", style=discord.ButtonStyle.primary, row=1)
+    async def revenge(self, interaction, _):
+        await self._surprise(interaction, mode="revenge")
+
+    @discord.ui.button(label="Low Warmth", emoji="🥶", style=discord.ButtonStyle.secondary, row=1)
+    async def low_warmth(self, interaction, _):
+        await self._surprise(interaction, mode="vulnerable")
+
+    @discord.ui.button(label="Rivalry Dossier", emoji="📜", style=discord.ButtonStyle.secondary, row=2)
+    async def dossier(self, interaction, _):
+        from snowfall.ui.rivalries import show_rivalries
+        await show_rivalries(interaction, self.settings, self.store, self.owner_id)
+
+    @discord.ui.button(label="Refresh Targets", emoji="🔄", style=discord.ButtonStyle.secondary, row=2)
+    async def refresh(self, interaction, _):
+        await open_target_menu(interaction, self.settings, self.store, self.owner_id)
 
 
 class ThrowMenu(CombatMenu):
     def __init__(self, settings, store, owner_id: int, target_id: int, name: str):
         super().__init__(settings, store, owner_id)
         self.target_id, self.name = target_id, name
+        if getattr(self.settings, "mode", "production") == "practice":
+            drill = discord.ui.Button(label="Tactics Lab", emoji="🧪",
+                                      style=discord.ButtonStyle.secondary, row=1)
+            async def open_lab(interaction):
+                from snowfall.ui.combat_lab import CombatLab
+                view = CombatLab(self.settings, self.store, self.owner_id, self.target_id, self.name)
+                await interaction.response.edit_message(
+                    content=view._description(), view=view, embed=None, attachments=[])
+            drill.callback = open_lab
+            self.add_item(drill)
 
     async def _choose(self, interaction: discord.Interaction, style: str):
         chance, damage, score = ATTACKS[style]
@@ -235,17 +313,35 @@ class ConfirmThrow(CombatMenu):
             await interaction.edit_original_response(
                 content=f"⚠️ {exc}\nNo snowball was spent.", view=RetryView(
                     self.settings, self.store, self.owner_id,
-                ),
+                ), embed=None, attachments=[],
             )
             return
+        # The battle is committed before reading statistics or drawing art.
+        # Visual failures cannot revert, duplicate or change an official throw.
+        beat = None
+        try:
+            intel = await asyncio.to_thread(CombatIntelEngine(self.store).snapshot,
+                                            self.settings.season_key, self.owner_id)
+            beat = fight_beat(result, intel)
+        except (ValueError, sqlite3.Error):
+            pass
+        caption = _result_text(result, self.name)
+        if beat is not None:
+            caption += (f"\n🎙️ *{beat.reaction}*"
+                        f"\n🔥 Scored-hit streak: **{beat.streak}**"
+                        f" (best **{beat.personal_best}**) · "
+                        f"Rivalry hits: **{beat.pair_hits}–{beat.pair_received}**")
+            if beat.revenge:
+                caption += "\n🔔 **REVENGE LANDED!** Your retaliation is on the record."
         await delivery.edit_result(
-            interaction, _result_text(result, self.name),
-            RetryView(self.settings, self.store, self.owner_id),
-            lambda: cards.battle_card(result, self.name),
+            interaction, caption,
+            RetryView(self.settings, self.store, self.owner_id,
+                      target_id=self.target_id, target_name=self.name),
+            lambda: cards.battle_card(result, self.name, beat=beat),
             alt=(f"{self.style} throw against {self.name}: "
                  f"{'hit' if result.hit else 'miss'}; "
                  f"{result.warmth_damage} damage, {result.points_awarded} points"),
-            animate=lambda: cards.hit_animation(result, self.name),
+            animate=lambda: cards.hit_animation(result, self.name, beat=beat),
         )
 
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
@@ -254,6 +350,26 @@ class ConfirmThrow(CombatMenu):
 
 
 class RetryView(CombatMenu):
+    def __init__(self, settings, store, owner_id, *, target_id=None, target_name=None):
+        super().__init__(settings, store, owner_id)
+        if target_id is not None and target_name:
+            button = discord.ui.Button(label="Rematch Preview", emoji="🎯",
+                                       style=discord.ButtonStyle.primary, row=1)
+            async def rematch(interaction):
+                await interaction.response.edit_message(
+                    content=f"🎯 Rematch with {escape_name(target_name)}? "
+                            "Choose a throw; live eligibility is verified on confirmation.",
+                    embed=None, attachments=[],
+                    view=ThrowMenu(self.settings, self.store, self.owner_id,
+                                   target_id, target_name))
+            button.callback = rematch
+            self.add_item(button)
+
+    @discord.ui.button(label="Rivalry Dossier", emoji="📜", style=discord.ButtonStyle.secondary, row=1)
+    async def dossier(self, interaction, _):
+        from snowfall.ui.rivalries import show_rivalries
+        await show_rivalries(interaction, self.settings, self.store, self.owner_id)
+
     @discord.ui.button(label='Surprise Me', emoji='🎲', style=discord.ButtonStyle.success)
     async def surprise(self, interaction, _):
         await open_target_menu(interaction, self.settings, self.store, self.owner_id)
@@ -265,6 +381,7 @@ class RetryView(CombatMenu):
 
 async def send_target_menu(interaction: discord.Interaction, settings, store):
     """For slash commands or dashboard; caller must defer response ephemerally."""
+    settings, store = pin(settings, store)
     try:
         targets = await asyncio.to_thread(CombatEngine(store).targets,
                                           settings.season_key, interaction.user.id, _now())
@@ -278,7 +395,15 @@ async def send_target_menu(interaction: discord.Interaction, settings, store):
             ephemeral=True,
         )
         return
+    try:
+        intel = await asyncio.to_thread(CombatIntelEngine(store).snapshot,
+                                        settings.season_key, interaction.user.id)
+    except (ValueError, sqlite3.Error):
+        intel = None
+    alerts = len(intel.revenge_alerts) if intel is not None else 0
     await interaction.followup.send(
-        "🎯 **Pick a rival:**", view=TargetPicker(settings, store, interaction.user.id, targets),
+        "🎯 **Pick a rival:**" + (f"\n🔔 {alerts} revenge alert(s) in your dossier."
+                                  if alerts else ""),
+        view=TargetPicker(settings, store, interaction.user.id, targets, intel=intel),
         ephemeral=True, allowed_mentions=discord.AllowedMentions.none(),
     )
