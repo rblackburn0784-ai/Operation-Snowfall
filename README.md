@@ -1,3 +1,12 @@
+# 🎄 v0.2.0 — Expanded Christmas Gameplay
+
+Use `/snowfun menu` or **Winter Activities** in the Main Menu, Game Menus or Headquarters
+for rotating Day 1–7 quests, a Snowflake cosmetic shop, selectable specialist arcade
+gear, daily surprise encounters and three Steady/Risky arcade modes. New gear affects
+arcade score only: official PvP, Snow Don, city standings and individual prizes retain
+their established rules. SQLite upgrades to v8 without rewriting historical records.
+See [v0.2.0 Release Notes](docs/RELEASE_v0.2.0.md).
+
 # 🗞️ Operation Snowfall v0.1.9 — City Rivalries & Community
 
 Use `/cityhq` or `/snow menu` → City Headquarters for your city's illustrated progress,

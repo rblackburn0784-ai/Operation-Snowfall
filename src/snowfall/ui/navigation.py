@@ -36,7 +36,7 @@ def _mode(settings) -> str:
 def _embed(title: str, description: str, settings, *, warning: bool = False) -> discord.Embed:
     colour = discord.Colour.orange() if warning else discord.Colour.from_rgb(106, 179, 219)
     card = discord.Embed(title=title, description=description, colour=colour)
-    card.set_footer(text=f"{_mode(settings)} • v0.1.9 • Private navigation")
+    card.set_footer(text=f"{_mode(settings)} • v0.2.0 • Private navigation")
     return card
 
 
@@ -103,7 +103,8 @@ async def _home_embed(settings, store) -> discord.Embed:
     card.add_field(name="🏆 Rankings", value="Individual prizes and honorary city standings", inline=False)
     card.add_field(name="🏅 Trophy Cabinet", value="Cosmetic achievements, titles and personal records", inline=False)
     card.add_field(name="🏙️ City Headquarters", value="Co-op missions • Rivalries • Snowfall Wire", inline=False)
-    card.set_footer(text=f"{_mode(settings)} • v0.1.9 • Only you can see this menu")
+    card.add_field(name="🎄 Winter Activities", value="Shop • Wardrobe • Encounters • Arcade", inline=False)
+    card.set_footer(text=f"{_mode(settings)} • v0.2.0 • Only you can see this menu")
     return card
 
 
@@ -183,6 +184,11 @@ class MainMenu(MenuView):
         from snowfall.ui.community import show_city
         await show_city(interaction, self.settings, self.store, self.owner_id)
 
+    @discord.ui.button(label="Winter Activities", emoji="🎄", style=discord.ButtonStyle.primary, row=2)
+    async def winter_fun(self, interaction, _):
+        from snowfall.ui.winter_fun import _display
+        await _display(interaction, self.settings, self.store, self.owner_id, "Activities")
+
     @discord.ui.button(label="My Player", emoji="🧑", style=discord.ButtonStyle.secondary)
     async def player(self, interaction, _):
         await show_player(interaction, self.settings, self.store, self.owner_id)
@@ -219,6 +225,11 @@ class GameMenu(MenuView):
     async def city_hq(self, interaction, _):
         from snowfall.ui.community import show_city
         await show_city(interaction, self.settings, self.store, self.owner_id)
+
+    @discord.ui.button(label="Winter Activities", emoji="🎄", style=discord.ButtonStyle.primary, row=2)
+    async def winter_fun(self, interaction, _):
+        from snowfall.ui.winter_fun import _display
+        await _display(interaction, self.settings, self.store, self.owner_id, "Activities")
 
     @discord.ui.button(label="Snowball Fight", emoji="🎯", style=discord.ButtonStyle.success)
     async def combat(self, interaction, _):
@@ -310,6 +321,11 @@ class PlayerMenu(MenuView):
     async def city_hq(self, interaction, _):
         from snowfall.ui.community import show_city
         await show_city(interaction, self.settings, self.store, self.owner_id)
+
+    @discord.ui.button(label="Winter Activities", emoji="🎄", style=discord.ButtonStyle.primary, row=2)
+    async def winter_fun(self, interaction, _):
+        from snowfall.ui.winter_fun import _display
+        await _display(interaction, self.settings, self.store, self.owner_id, "Activities")
 
     @discord.ui.button(label="Join / Register", emoji="❄️", style=discord.ButtonStyle.primary)
     async def join(self, interaction, _):

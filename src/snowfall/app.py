@@ -15,6 +15,7 @@ from snowfall.core.permissions import permitted_guild
 from snowfall.db.store import Store
 from snowfall.commands.public import SnowGroup
 from snowfall.commands.admin import SnowAdminGroup
+from snowfall.commands.winter_fun import SnowFunGroup
 from snowfall.ui.dashboard import Dashboard
 from snowfall.services.world import WorldEngine
 from snowfall.ui.broadcast import BroadcastPublisher
@@ -49,6 +50,7 @@ class SnowfallBot(discord.Client):
         routes = (ScopedSettings(self.practice), ScopedStore(self.practice))
         self.tree.add_command(SnowGroup(*routes, practice=self.practice), guild=guild)
         self.tree.add_command(SnowAdminGroup(*routes, practice=self.practice), guild=guild)
+        self.tree.add_command(SnowFunGroup(*routes, practice=self.practice), guild=guild)
 
         # /snow already has 25 commands, so this separate shortcut preserves all aliases.
         @app_commands.command(name="cityhq", description="Your city HQ, co-op mission, rivalries and Snowfall Wire")
@@ -125,7 +127,7 @@ class SnowfallBot(discord.Client):
 def main(argv: list[str] | None = None):
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    parser = argparse.ArgumentParser(description="Operation Snowfall v0.1.9")
+    parser = argparse.ArgumentParser(description="Operation Snowfall v0.2.0")
     parser.add_argument("--test", action="store_true", help="Obsolete: use /snowadmin test-start in the main bot")
     parser.add_argument("--backup-now", action="store_true", help="Create a verified backup then exit")
     parser.add_argument("--restore", metavar="BACKUP", help="Offline restore from a verified backup")
