@@ -9,8 +9,8 @@ import sqlite3
 import discord
 
 from snowfall.services.combat import CombatEngine
-from snowfall.services.community import CommunityEngine, wire_story
-from snowfall.graphics.community_cards import wire_report_card
+from snowfall.services.wire import WireEngine, edition_text
+from snowfall.graphics.wire_cards import edition_card, flash_card
 from snowfall.services.world import WorldEngine, THEMES
 from snowfall.services.boss_personality import phase_announcement, reached_phases
 from snowfall.services.boss_raid import RaidEngine
@@ -202,28 +202,75 @@ class BroadcastPublisher:
                                       now, refresh_existing=refresh_existing)
 
     async def publish_wire_recaps(self, now: datetime):
-        """One completed-day Wire issue per tick; no practice data in live announcements."""
+        """One completed day issue per scheduler tick; idempotent across restarts.
+
+        Keeps the historical wire_day_# message markers and edits no
+        previously published edition without explicit host permission.
+        """
         if not self.settings.announcement_channel_id or self.settings.is_test:
             return None
         async with self._lock:
-            engine = CommunityEngine(self.store)
-            completed = await asyncio.to_thread(
-                engine.latest_completed_day, self.settings.season_key, now)
-            for day in range(1, completed + 1):
+            engine = WireEngine(self.store)
+            latest = await asyncio.to_thread(
+                engine.latest_day, self.settings.season_key, now)
+            for day in range(1, latest + 1):
+                issue = await asyncio.to_thread(
+                    engine.edition, self.settings.season_key, day, now)
+                if not issue.completed:
+                    continue
                 kind = f"wire_day_{day}"
                 saved = await asyncio.to_thread(
                     self.store.get_published, self.settings.season_key, kind)
                 if saved:
                     continue
-                report = await asyncio.to_thread(
-                    engine.recap, self.settings.season_key, day, now)
                 try:
-                    image = await asyncio.to_thread(wire_report_card, report)
+                    illustration = await asyncio.to_thread(edition_card, issue)
                 except (OSError, ValueError, MemoryError):
-                    image = None
-                return await self._notice(kind, wire_story(report), now,
-                                          illustration=image)
+                    illustration = None
+                return await self._notice(kind, edition_text(issue), now,
+                                          illustration=illustration)
         return None
+
+    async def publish_wire_issue(self, now: datetime, day: int,
+                                 *, refresh_existing: bool = False):
+        """Host-authorised explicit publish/refresh for one available issue.
+
+        A live issue is separate from the automatic completed-day recap.
+        It never opens future-day data or publishes raw unapproved stories.
+        """
+        if not self.settings.announcement_channel_id or self.settings.is_test:
+            raise ValueError("Public newspaper publishing is disabled in practice or without a channel.")
+        async with self._lock:
+            engine=WireEngine(self.store)
+            issue=await asyncio.to_thread(engine.edition,self.settings.season_key,day,now)
+            kind=(f"wire_day_{day}" if issue.completed else f"wire_live_day_{day}")
+            try:
+                illustration=await asyncio.to_thread(edition_card,issue)
+            except (OSError,ValueError,MemoryError):
+                illustration=None
+            return await self._notice(
+                kind,edition_text(issue),now,refresh_existing=refresh_existing,
+                illustration=illustration)
+
+    async def publish_wire_flash(self, now: datetime):
+        """One automatic newsflash per day, only on a real logged milestone."""
+        if not self.settings.announcement_channel_id or self.settings.is_test:
+            return None
+        async with self._lock:
+            engine=WireEngine(self.store)
+            event=await asyncio.to_thread(engine.flash,self.settings.season_key,now)
+            if event is None:
+                return None
+            day,text=event
+            kind=f"wire_flash_day_{day}"
+            if await asyncio.to_thread(
+                    self.store.get_published,self.settings.season_key,kind):
+                return None
+            try:
+                image=await asyncio.to_thread(flash_card,day,"STREETS ARE BUZZING")
+            except (OSError,ValueError,MemoryError):
+                image=None
+            return await self._notice(kind,text,now,illustration=image)
 
     async def ensure_announcements(self, now: datetime):
         """One registration, seven daily, one boss-defeat/day, one closing post."""

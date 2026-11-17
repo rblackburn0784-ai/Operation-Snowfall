@@ -1,3 +1,28 @@
+# 🗞️ v0.2.8 — Snowfall Wire 2.0
+
+The Christmas event now has a **seven-day, illustrated 1930s-style
+newspaper**, with live in-world reports, past editions, verified
+player/city highlights, opt-in player dispatches and a host editorial desk.
+
+Players can browse with `/snowfun wire` or through Game Menus,
+Winter Activities and City HQ. Optional player stories must be approved
+by a configured event host before appearing publicly. Hosts can review
+and preview privately through **Admin / Test → Wire Editorial** or
+`/snowwireadmin`, then publish with explicit confirmation.
+
+The existing automatic day-by-day Wire broadcasts are enhanced rather
+than replaced. New one-per-day factual newsflashes appear after recorded
+activity milestones. Public announcements remain idempotent across
+restarts and do not post into practice channels.
+
+No points, ammunition, Snowflakes, combat advantages, city control or
+prizes are awarded for player stories or the newspaper.
+
+**SQLite schema v11** adds a moderation-only submission log; back up the
+database before first launch.
+
+[Read the full v0.2.8 release notes](docs/RELEASE_v0.2.8.md).
+
 # 🎮 v0.2.7 — Winter Arcade & Social Games
 
 Five **interactive winter mini-games** now work independently of combat:

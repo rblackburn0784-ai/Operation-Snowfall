@@ -10,7 +10,7 @@ import discord
 
 from snowfall.graphics import community_cards
 from snowfall.practice import pin
-from snowfall.services.community import CommunityEngine, CommunityError, wire_story
+from snowfall.services.community import CommunityEngine, CommunityError
 from snowfall.ui.navigation import MenuView, show_game, show_home
 
 log = logging.getLogger(__name__)
@@ -89,6 +89,10 @@ async def _city_data(settings, store, user_id):
 
 async def _show(interaction, settings, store, owner_id: int, mode: str):
     settings, store = pin(settings, store)
+    if mode == "wire":
+        from snowfall.ui.wire import show_wire
+        await show_wire(interaction, settings, store, owner_id)
+        return
     await interaction.response.defer()
     view = CityHubView(settings, store, owner_id)
     try:
@@ -103,15 +107,6 @@ async def _show(interaction, settings, store, owner_id: int, mode: str):
             content = rivalries_text(info.city, info.rivalries)
         elif mode == "mission":
             content = mission_text(info)
-        elif mode == "wire":
-            now = _now()
-            engine = CommunityEngine(store)
-            day = await asyncio.to_thread(engine.latest_completed_day, settings.season_key, now)
-            if day <= 0:
-                content = "🗞️ **The Snowfall Wire**\nFirst report opens after Day 1 has ended."
-            else:
-                report = await asyncio.to_thread(engine.recap, settings.season_key, day, now)
-                content = wire_story(report, practice=getattr(settings, "is_test", False))
         else:
             content = "Unknown city menu."
         await interaction.edit_original_response(content=content, embed=None,

@@ -216,7 +216,7 @@ def test_persistence_after_restart_and_migration_from_v9(game):
     assert moved.session.step==1
     reopened=Store(game.path)
     reopened.initialize()
-    assert reopened.schema_version()==10
+    assert reopened.schema_version()==11
     again=SocialArcadeEngine(reopened).begin(SEASON,101,"snowman",START)
     assert again.session_id==begun.session_id and again.step==1
     assert SocialArcadeEngine(reopened).move(
@@ -230,7 +230,7 @@ def test_persistence_after_restart_and_migration_from_v9(game):
         players_before=con.execute("SELECT COUNT(*) FROM players").fetchone()[0]
     reopened.initialize()
     reopened.initialize()
-    assert reopened.schema_version()==10
+    assert reopened.schema_version()==11
     with reopened.connect() as con:
         assert con.execute("SELECT COUNT(*) FROM players").fetchone()[0]==players_before
         assert con.execute("PRAGMA quick_check").fetchone()[0]=="ok"

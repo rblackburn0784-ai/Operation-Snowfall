@@ -582,6 +582,12 @@ class AdminPanel(MenuView):
                         "day's announcement. Confirm before posting. Neither action touches test data.",
                         self.settings))
 
+    @discord.ui.button(label="Wire Editorial", emoji="🗞️",
+                       style=discord.ButtonStyle.primary)
+    async def wire_editor(self, interaction, _):
+        from snowfall.ui.wire_admin import show_wire_desk
+        await show_wire_desk(interaction, self.settings, self.store, self.owner_id)
+
     @discord.ui.button(label="Host Commands", emoji="📋", style=discord.ButtonStyle.secondary)
     async def help(self, interaction, _):
         msg = ("**Other host commands** (typed in Discord for extra safeguards):\n"
