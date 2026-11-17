@@ -52,6 +52,9 @@ def test_full_live_day_all_engines_share_valid_state_without_bonus_exploits(tmp_
                               START + timedelta(minutes=3+i))
         assert result.hit and result.points > 0
 
+    assert world.attack(KEY, 101, "siege", "siege-0",
+                        START + timedelta(minutes=6)).hit
+
     at = START + timedelta(minutes=8)
     assert all(not quest.claimed for quest in economy.quests(KEY, 101, at))
     for key in ("throws", "rivals", "community"):
@@ -59,6 +62,9 @@ def test_full_live_day_all_engines_share_valid_state_without_bonus_exploits(tmp_
     assert all(q.claimed for q in economy.quests(KEY, 101, at))
     assert economy.present(KEY, 101, "one-present", at).source == "daily"
     assert economy.present(KEY, 101, "another-present", at).repeated
+    assert economy.inventory(KEY, 101, at).quantities["cocoa"] >= 1
+    assert "Guard activated" in economy.guard(KEY, 101, "on", "guard-on", at).text
+    assert "Guard lowered" in economy.guard(KEY, 101, "off", "guard-off", at).text
 
     pre_arcade_score = combat.ledger_total(KEY, 101)
     assert pre_arcade_score > 60
@@ -77,6 +83,7 @@ def test_full_live_day_all_engines_share_valid_state_without_bonus_exploits(tmp_
     trophies = AchievementEngine(store).cabinet(KEY, 101)
     assert trophies.records.pvp_hits == 2
     assert trophies.records.boss_attacks == 3
+    assert trophies.records.siege_attacks == 1
     assert trophies.records.quests == 3
 
     audit = reconcile(store, KEY)
