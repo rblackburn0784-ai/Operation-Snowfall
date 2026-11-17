@@ -23,14 +23,15 @@ async def _cabinet(settings, store, owner_id):
 
 def cabinet_text(cabinet, page: int = 0) -> str:
     """Text fallback includes progress for each locked badge."""
-    groups = (cabinet.trophies[:7], cabinet.trophies[7:])
+    midpoint = (len(cabinet.trophies) + 1) // 2
+    groups = (cabinet.trophies[:midpoint], cabinet.trophies[midpoint:])
     section = groups[page % len(groups)]
     rows = [f"🏆 **{discord.utils.escape_markdown(cabinet.player_name)} — Trophy Cabinet**",
             f"**Equipped title:** {discord.utils.escape_markdown(cabinet.equipped_title)}",
             f"**Badges:** {cabinet.unlocked_count}/{len(cabinet.trophies)} unlocked\n"]
     for badge in section:
         status = '🏅' if badge.unlocked else '🔒'
-        rows.append(f"{status} **{badge.badge}** — {badge.progress}/{badge.target}\n"
+        rows.append(f"{status} **{badge.badge}** [{badge.rarity}] — {badge.progress}/{badge.target}\n"
                     f"   {badge.description} • Title: *{badge.title}*")
     rows.append("\nCosmetics only. Badges do not change scoring, combat, or prizes.")
     return '\n'.join(rows)
@@ -142,6 +143,11 @@ class TrophyCabinet(MenuView):
         except TrophyError as exc:
             await interaction.edit_original_response(content=f'⚠️ {exc}', embed=None,
                     attachments=[], view=self)
+
+    @discord.ui.button(label='My Card', emoji='🃏', style=discord.ButtonStyle.success, row=1)
+    async def player_card(self, interaction, _):
+        from snowfall.ui.showcase import show_profile
+        await show_profile(interaction, self.settings, self.store, self.owner_id)
 
     @discord.ui.button(label='Headquarters', emoji='🏠', style=discord.ButtonStyle.secondary, row=1)
     async def headquarters(self, interaction, _):

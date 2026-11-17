@@ -36,18 +36,20 @@ async def edit_result(interaction, text: str, view, renderer, *, alt: str, anima
         await interaction.edit_original_response(content=text,embed=None,view=view,attachments=[])
 
 
-async def send_profile(interaction, text, name, city, resource, total, *, review="self-declared"):
+async def send_profile(interaction, text, name, city, resource, total, *,
+                       review="self-declared", showcase=None, view=None):
     """Use only after defer(ephemeral=True); respects Discord's message size limits."""
     try:
-        picture=await asyncio.to_thread(cards.profile_card,name,city,resource,total,review=review)
+        picture=await asyncio.to_thread(cards.profile_card,name,city,resource,total,
+                                        review=review,showcase=showcase)
         embed=discord.Embed(colour=discord.Colour.from_rgb(114,184,218))
         embed.set_image(url="attachment://profile.png")
         await interaction.followup.send(content=text,embed=embed,
             file=_asset(picture,"profile.png",f"Profile for {cards.clean(name)} of {cards.clean(city)}; {total} points"),
-            ephemeral=True,allowed_mentions=discord.AllowedMentions.none())
+            view=view,ephemeral=True,allowed_mentions=discord.AllowedMentions.none())
     except (discord.HTTPException,OSError,ValueError,MemoryError) as exc:
         log.warning("Profile image unavailable; sending text: %s",exc)
-        await interaction.followup.send(content=text,ephemeral=True,
+        await interaction.followup.send(content=text,view=view,ephemeral=True,
                                         allowed_mentions=discord.AllowedMentions.none())
 
 

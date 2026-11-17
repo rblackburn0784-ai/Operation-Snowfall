@@ -1,4 +1,4 @@
-"""Scoring-neutral v0.2.0 cosmetics, equipment, encounters and winter arcade modes.
+"""Scoring-neutral v0.2.2 cosmetics, equipment, encounters and winter arcade modes.
 
 No methods insert score_ledger, mutate combat/PvE ledgers, create paid awards,
 or alter official combat rules. All data is season-scoped and isolated in the
@@ -29,19 +29,27 @@ class Cosmetic:
     detail: str
     # Arcade gear advantages never apply to PvP, siege or boss fights.
     arcade_bonus: float = 0.0
+    rarity: str = "Common"  # Fixed cosmetic tier; never a loot-box or drop chance.
 
 
 COSMETICS: dict[str, Cosmetic] = {x.key: x for x in (
-    Cosmetic("ice_frame", "Icy Noir Frame", "frame", 8, "Frosted portrait edging"),
-    Cosmetic("gold_frame", "Golden Gutter Frame", "frame", 15, "Shimmering golden edging"),
-    Cosmetic("snow_trail", "Snowstorm Trail", "trail", 6, "Blue sparkling snowball trail"),
-    Cosmetic("candy_trail", "Candy Cane Trail", "trail", 10, "Red-and-white snowball trail"),
-    Cosmetic("goggles", "Glacier Goggles", "gear", 10, "Improved aim in Target Practice only", .10),
-    Cosmetic("boots", "Froststep Boots", "gear", 10, "Better evasion in Blizzard Dodge only", .10),
-    Cosmetic("scarf", "Snow Don Scarf", "gear", 12, "Extra damage in Boss Drill only", .10),
-    Cosmetic("midnight_banner", "Midnight Mob Banner", "banner", 8, "1930s noir profile header"),
+    Cosmetic("ice_frame", "Icy Noir Frame", "frame", 8, "Frosted portrait edging", rarity="Common"),
+    Cosmetic("gold_frame", "Golden Gutter Frame", "frame", 15, "Golden art-deco profile frame", rarity="Epic"),
+    Cosmetic("holly_frame", "Holly & Ivy Frame", "frame", 10, "Festive green and berry trim", rarity="Rare"),
+    Cosmetic("snow_trail", "Snowstorm Trail", "trail", 6, "Blue sparkling snowball trail", rarity="Common"),
+    Cosmetic("candy_trail", "Candy Cane Trail", "trail", 10, "Candy-red and white snow trail", rarity="Rare"),
+    Cosmetic("goggles", "Glacier Goggles", "gear", 10, "Improved aim in Target Practice only", .10, "Rare"),
+    Cosmetic("boots", "Froststep Boots", "gear", 10, "Better evasion in Blizzard Dodge only", .10, "Rare"),
+    Cosmetic("scarf", "Snow Don Scarf", "gear", 12, "Extra damage in Boss Drill only", .10, "Epic"),
+    Cosmetic("midnight_banner", "Midnight Mob Banner", "banner", 8, "1930s midnight profile header", rarity="Rare"),
+    Cosmetic("aurora_banner", "Aurora Skyline Banner", "banner", 14, "Icy violet aurora skyline", rarity="Epic"),
+    Cosmetic("gilded_banner", "Gilded Speakeasy Banner", "banner", 18, "Gold 1930s art-deco marquee", rarity="Legendary"),
+    Cosmetic("noir_detective", "Noir Detective", "portrait", 8, "Illustrated trench-coat detective", rarity="Common"),
+    Cosmetic("winter_enforcer", "Winter Enforcer", "portrait", 14, "Illustrated winter mob enforcer", rarity="Epic"),
+    Cosmetic("frost_spectre", "Frost Spectre", "portrait", 18, "Illustrated mysterious frost figure", rarity="Legendary"),
 )}
-SLOTS = ("frame", "trail", "gear", "banner")
+SLOTS = ("frame", "trail", "gear", "banner", "portrait")
+RARITY_ORDER = ("Common", "Rare", "Epic", "Legendary")
 MODES = {
     "target": ("Target Practice", "Five practice throws at ice cans; the goggles improve accuracy"),
     "dodge": ("Blizzard Dodge", "Dodge five flying snowdrifts; Froststep Boots help"),

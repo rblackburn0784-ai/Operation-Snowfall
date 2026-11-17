@@ -36,7 +36,7 @@ def _mode(settings) -> str:
 def _embed(title: str, description: str, settings, *, warning: bool = False) -> discord.Embed:
     colour = discord.Colour.orange() if warning else discord.Colour.from_rgb(106, 179, 219)
     card = discord.Embed(title=title, description=description, colour=colour)
-    card.set_footer(text=f"{_mode(settings)} • v0.2.1 • Private navigation")
+    card.set_footer(text=f"{_mode(settings)} • v0.2.2 • Private navigation")
     return card
 
 

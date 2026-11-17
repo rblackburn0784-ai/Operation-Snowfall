@@ -38,7 +38,7 @@ def test_initial_cabinet_is_all_locked_without_score_effects(setup):
     assert before.unlocked_count == 0
     assert before.records.accuracy == 0
     assert before.records.pvp_hits == 0
-    assert len(before.trophies) == 13
+    assert len(before.trophies) == 16
     with pytest.raises(TrophyError, match='locked'):
         engine.equip(SEASON, 11, 'deadeye')
     with setup.connect() as con:

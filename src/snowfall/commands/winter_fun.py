@@ -44,3 +44,21 @@ class SnowFunGroup(app_commands.Group):
     @app_commands.command(name="arcade", description="Play no-prize winter mini-games")
     async def arcade(self, interaction: discord.Interaction):
         await self._open(interaction, "Arcade")
+
+    @app_commands.command(name="showcase", description="Publish your illustrated player card in this channel")
+    @app_commands.checks.cooldown(1, 600.0, key=lambda i: (i.guild_id, i.user.id))
+    async def showcase(self, interaction: discord.Interaction):
+        from snowfall.ui.showcase import publish_card
+        await publish_card(interaction, self.settings, self.store)
+
+    @showcase.error
+    async def showcase_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.CommandOnCooldown):
+            text = f"Your showcase cooldown is active. Try again in {int(error.retry_after) + 1}s."
+            if interaction.response.is_done():
+                await interaction.followup.send(text, ephemeral=True)
+            else:
+                await interaction.response.send_message(text, ephemeral=True)
+            return
+        raise error
+

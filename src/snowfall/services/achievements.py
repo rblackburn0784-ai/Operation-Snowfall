@@ -34,6 +34,8 @@ class CombatRecords:
     active_days: int
     hot_chocolates: int
     successful_boss_hits: int
+    cosmetics_unlocked: int = 0
+    style_slots: int = 0
 
     @property
     def accuracy(self) -> float:
@@ -63,9 +65,21 @@ TROPHIES = (
     TrophySpec('golden_legend', 'Golden Legend', 'Golden Snowballer', 'Win a Golden Snowball', 'golden_gifts', 1),
     TrophySpec('seven_days', 'Seven-Day Veteran', 'Snowfall Veteran', 'Score on all seven event days', 'active_days', 7),
     TrophySpec('cocoa_club', 'Hot Chocolate Club', 'Cocoa Connoisseur', 'Use 5 Hot Chocolates', 'hot_chocolates', 5),
+    TrophySpec('first_style', 'Fresh Threads', 'Winter Trendsetter', 'Unlock your first cosmetic', 'cosmetics_unlocked', 1),
+    TrophySpec('collector', 'Collector’s Club', 'Snowfall Collector', 'Collect five cosmetics', 'cosmetics_unlocked', 5),
+    TrophySpec('full_outfit', 'Dressed to Impress', 'Frost Fashion Icon',
+               'Equip a frame, trail, gear, banner and portrait', 'style_slots', 5),
 )
 SPEC_BY_KEY = {spec.key: spec for spec in TROPHIES}
 DEFAULT_TITLE = 'Snowball Recruit'
+BADGE_RARITIES = {
+    'first_flurry': 'Common', 'deadeye': 'Rare', 'rival_hunter': 'Rare',
+    'critical_ace': 'Epic', 'knockout_artist': 'Epic', 'don_destroyer': 'Epic',
+    'boss_regular': 'Rare', 'fort_breaker': 'Rare', 'quest_master': 'Rare',
+    'gift_collector': 'Common', 'golden_legend': 'Legendary',
+    'seven_days': 'Legendary', 'cocoa_club': 'Common',
+    'first_style': 'Common', 'collector': 'Rare', 'full_outfit': 'Legendary',
+}
 
 
 @dataclass(frozen=True)
@@ -77,6 +91,10 @@ class Trophy:
     progress: int
     target: int
     unlocked: bool
+
+    @property
+    def rarity(self) -> str:
+        return BADGE_RARITIES.get(self.key, 'Common')
 
 
 @dataclass(frozen=True)
@@ -126,12 +144,23 @@ def _records(con, key: str, player_id: int) -> CombatRecords:
     cocoa = con.execute('''SELECT COUNT(*) FROM item_events
         WHERE season_key=? AND discord_user_id=? AND operation='use' AND item_key='cocoa' ''',
         (key, player_id)).fetchone()[0]
+    cosmetics = con.execute('''SELECT COUNT(*) FROM cosmetic_unlocks
+        WHERE season_key=? AND discord_user_id=?''', (key, player_id)).fetchone()[0]
+    # Count only still-owned equipment keys in the canonical five display slots.
+    from snowfall.services.winter_fun import COSMETICS, SLOTS
+    valid = con.execute('''SELECT e.category,e.cosmetic_key FROM cosmetic_equipped e
+        INNER JOIN cosmetic_unlocks u ON u.season_key=e.season_key
+          AND u.discord_user_id=e.discord_user_id AND u.cosmetic_key=e.cosmetic_key
+        WHERE e.season_key=? AND e.discord_user_id=?''', (key, player_id)).fetchall()
+    slots = sum(1 for category, cosmetic in valid
+                if category in SLOTS and cosmetic in COSMETICS and
+                COSMETICS[cosmetic].category == category)
     return CombatRecords(_number(c, 'throws'), _number(c, 'hits'), _number(c, 'crits'),
                          _number(c, 'kos'), _number(c, 'rivals'), _number(c, 'best'),
                          _number(w, 'boss_damage'), _number(w, 'boss_attacks'),
                          _number(w, 'siege_damage'), _number(w, 'siege_attacks'),
                          int(q), _number(g, 'gifts'), _number(g, 'golden'), int(active),
-                         int(cocoa), _number(w, 'boss_hits'))
+                         int(cocoa), _number(w, 'boss_hits'), int(cosmetics), slots)
 
 
 class AchievementEngine:

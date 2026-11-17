@@ -28,7 +28,7 @@ def test_trophy_buttons_and_record_layout(tmp_path):
     assert {'Equip Title', 'Combat Records', 'Game Menus', 'Home', 'Headquarters'} <= labels
     assert all(i.row is None or 0 <= i.row <= 4 for i in view.children)
     cab = AchievementEngine(store).cabinet('menu-test', 27)
-    assert '0/13' in cabinet_text(cab)
+    assert '0/16' in cabinet_text(cab)
     assert 'SnowDude' in records_embed(cab).description
     choice = TitleChooser(config, store, 27, cab)
     selects = [item for item in choice.children if hasattr(item, 'options')]
