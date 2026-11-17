@@ -5,9 +5,7 @@ images are unavailable. Fictional districts are not geographical assertions.
 """
 from __future__ import annotations
 
-from PIL import Image, ImageDraw
-
-from snowfall.graphics.cards import _canvas, _fit, _png, font, clean
+from snowfall.graphics.cards import _canvas, _fit, _png, font
 
 MAP_POSITIONS = {
     "Los Angeles": (144, 398),
