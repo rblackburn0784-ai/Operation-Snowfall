@@ -10,6 +10,7 @@ import discord
 
 from snowfall.services.combat import CombatEngine
 from snowfall.services.community import CommunityEngine, wire_story
+from snowfall.services.wire import WireEngine, Edition, publication_text
 from snowfall.graphics.community_cards import wire_report_card
 from snowfall.services.world import WorldEngine, THEMES
 from snowfall.services.boss_personality import phase_announcement, reached_phases
@@ -221,9 +222,60 @@ class BroadcastPublisher:
                     image = await asyncio.to_thread(wire_report_card, report)
                 except (OSError, ValueError, MemoryError):
                     image = None
-                return await self._notice(kind, wire_story(report), now,
+                wire = WireEngine(self.store)
+                head = await asyncio.to_thread(wire.headlines,
+                                               self.settings.season_key, day)
+                letters = await asyncio.to_thread(wire.public_stories,
+                                                  self.settings.season_key, day)
+                edition = Edition(day,report.theme,True,"THE DAY'S LEDGER IS IN",
+                                  head,wire_story(report),letters)
+                return await self._notice(kind, publication_text(edition), now,
                                           illustration=image)
         return None
+
+    async def publish_wire_latest(self, now: datetime):
+        """Host-operated completed-day newspaper; idempotent with scheduler.
+
+        Reuses the existing wire_day_N marker, never a separate duplicate post.
+        Never publishes practice database content to the live channel.
+        """
+        if self.settings.is_test:
+            raise ValueError("Practice newspaper broadcasts must stay private.")
+        if not self.settings.announcement_channel_id:
+            raise ValueError("Configure an announcements channel first.")
+        async with self._lock:
+            completed = await asyncio.to_thread(
+                CommunityEngine(self.store).latest_completed_day,
+                self.settings.season_key, now)
+            if not completed:
+                raise ValueError("No fully completed event day to publish.")
+            existing = await asyncio.to_thread(
+                self.store.get_published, self.settings.season_key,
+                f"wire_day_{completed}")
+            if existing:
+                # Do not edit already-published roleplay or results retrospectively.
+                channel = await self._get_channel(self.settings.announcement_channel_id)
+                found = await self._fetch_existing(channel, f"wire_day_{completed}")
+                if found is not None:
+                    return found
+            report = await asyncio.to_thread(
+                CommunityEngine(self.store).recap,
+                self.settings.season_key, completed, now)
+            wire = WireEngine(self.store)
+            headlines = await asyncio.to_thread(
+                wire.headlines,self.settings.season_key,completed)
+            stories = await asyncio.to_thread(
+                wire.public_stories,self.settings.season_key,completed)
+            edition = Edition(completed,report.theme,True,
+                              "THE DAY'S LEDGER IS IN",
+                              headlines,wire_story(report),stories)
+            try:
+                image = await asyncio.to_thread(wire_report_card,report)
+            except (OSError,ValueError,MemoryError):
+                image = None
+            return await self._notice(
+                f"wire_day_{completed}",publication_text(edition),now,
+                illustration=image)
 
     async def ensure_announcements(self, now: datetime):
         """One registration, seven daily, one boss-defeat/day, one closing post."""

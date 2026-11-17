@@ -1,3 +1,26 @@
+# 🗞️ v0.2.8 — Snowfall Wire 2.0
+
+The seven-day **Snowfall Wire** is now a fully browsable illustrated
+1930s-style Christmas newspaper, with live *verified* event headlines,
+daily archived issues, factual championship, city, boss and community
+reporting, and a **Letters to the Editor** system.
+
+Players may submit **one fictional story per day** for host approval.
+The new **Editorial Desk** keeps drafts private until approved; approved
+stories appear in the community archive and optional excerpts in the
+automatic daily Wire. **Admin → Broadcasts → Publish Latest Wire** reuses
+the existing one-post-per-day marker and cannot duplicate an issue.
+Live newsroom figures are labelled provisional; completed-day reports
+come from the existing authoritative game record.
+
+Access via `/snowfun wire`, Game Menus, Winter Activities and Today.
+Two new independent moderation tables raise SQLite schema to **v11**,
+with append-only submission and editorial decision histories.
+**No official points, equipment, Snowflakes, combat rewards, territory
+honours or individual prizes change.** Back up your database before upgrading.
+
+[Read the full v0.2.8 release notes](docs/RELEASE_v0.2.8.md).
+
 # 🎮 v0.2.7 — Winter Arcade & Social Games
 
 Five **interactive winter mini-games** now work independently of combat:
