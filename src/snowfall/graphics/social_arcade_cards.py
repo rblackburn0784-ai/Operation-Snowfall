@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from snowfall.graphics.cards import _canvas, _png, _fit, font
-from snowfall.services.social_arcade import GAMES, STAMPS
+from snowfall.services.social_arcade import STAMPS
 
 
 def _panel(draw, bounds, title, value=None, *, tint="#b8e9f6"):

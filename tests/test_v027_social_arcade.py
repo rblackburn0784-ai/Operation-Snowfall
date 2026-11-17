@@ -340,7 +340,7 @@ def test_discord_arcade_buttons_dropdowns_and_one_message_updates(game,monkeypat
     discord=pytest.importorskip("discord")
     from snowfall.ui.social_arcade import (
         ArcadeHubView,ArcadePlayView,ArcadeBoardView,show_arcade,
-        show_arcade_session,hub_text,game_text,begin_game,
+        show_arcade_session,hub_text,game_text,
     )
     from snowfall.ui.winter_fun import WinterActivitiesView
     from snowfall.ui.navigation import GameMenu
@@ -358,6 +358,8 @@ def test_discord_arcade_buttons_dropdowns_and_one_message_updates(game,monkeypat
     assert "Winter Arcade" in {getattr(x,"label","")
                                 for x in WinterActivitiesView(settings,game,101).children}
     assert "arcade" in {c.name for c in SnowFunGroup(settings,game).commands}
+    assert "Winter Arcade" in {getattr(x,"label","")
+                                for x in TodayView(settings,game,101).children}
     assert "Casual" in hub_text(lobby)
     first=engine.begin(SEASON,101,"gallery",START)
     view=ArcadePlayView(settings,game,101,first)
