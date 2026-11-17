@@ -20,7 +20,10 @@ quest rewards, boss stats, combat odds or database tables have been changed.
    prize CSVs prefix leading spreadsheet formula characters from
    self-declared player names or organiser-supplied reward descriptions
    with an apostrophe, so opening an export does not evaluate them.
-5. **Release identification:** menu, dashboard and app version strings
+5. **Scheduler resilience:** unexpected database, disk or graphics exceptions are
+   logged and retried on the next scheduled tick rather than permanently
+   terminating the live broadcast, leaderboard or backup task.
+6. **Release identification:** menu, dashboard and app version strings
    reflect v0.2.0a. The Python package uses `0.2.0.post1` (the
    PEP 440-compliant post-release equivalent, instead of an alpha
    version numerically older than v0.2.0).
