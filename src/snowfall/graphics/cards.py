@@ -124,7 +124,10 @@ def _png(im: Image.Image) -> bytes:
     return out.getvalue()
 
 
-def profile_card(name, city, resource, total, *, review="self-declared") -> bytes:
+def profile_card(name, city, resource, total, *, review="self-declared", showcase=None) -> bytes:
+    if showcase is not None:
+        from snowfall.graphics.showcase_cards import profile_showcase_card
+        return profile_showcase_card(showcase)
     im,d=_canvas(city,"PLAYER PROFILE",f"{clean(name,42)}  •  {clean(city)}  •  {clean(review)}")
     _bar(d,(55,230,540,280),resource.warmth,100,"Warmth","#ed8684")
     _bar(d,(55,314,540,362),resource.snowballs,12,"Snowballs","#8bd8fb")
