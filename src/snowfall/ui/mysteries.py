@@ -64,7 +64,7 @@ def case_text(snapshot, page="case", alert=""):
                 parts.append("🔐 Your two accusations were incorrect. "
                              "The next case opens tomorrow.")
             else:
-                parts.append(f"🎩 **Suspects:** " +
+                parts.append("🎩 **Suspects:** " +
                              " · ".join(_safe(label) for _, label in case.suspects))
                 parts.append(f"**Accusations remaining:** "
                              f"{2-snapshot.guesses}/2 · "
