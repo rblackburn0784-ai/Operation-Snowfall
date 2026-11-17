@@ -2,11 +2,14 @@
 from __future__ import annotations
 
 import asyncio
+from io import BytesIO
 from datetime import datetime
 
 import discord
 
 from snowfall.services.combat import CombatEngine
+from snowfall.services.community import CommunityEngine, wire_story
+from snowfall.graphics.community_cards import wire_report_card
 from snowfall.services.world import WorldEngine, THEMES
 from snowfall.services.boss_personality import phase_announcement, reached_phases
 from snowfall.services.broadcast import (
@@ -145,7 +148,7 @@ class BroadcastPublisher:
             return message
 
     async def _notice(self, kind: str, content: str, now: datetime,
-                      *, refresh_existing: bool = False):
+                      *, refresh_existing: bool = False, illustration: bytes | None = None):
         """At-most-once normal delivery; recover an orphaned message after a crash."""
         channel = await self._get_channel(self.settings.announcement_channel_id)
         marker = f"Snowfall marker:{self.settings.season_key}:{kind}"
@@ -162,8 +165,18 @@ class BroadcastPublisher:
                                         channel.id, existing.id, now)
             return existing
         if existing is None:
-            message = await channel.send(content,
-                                         allowed_mentions=discord.AllowedMentions.none())
+            if illustration:
+                try:
+                    message = await channel.send(content,
+                        file=discord.File(BytesIO(illustration), filename="snowfall-wire.png",
+                                          description="Snowfall Wire illustrated daily recap"),
+                        allowed_mentions=discord.AllowedMentions.none())
+                except (discord.HTTPException, OSError, ValueError):
+                    message = await channel.send(content,
+                        allowed_mentions=discord.AllowedMentions.none())
+            else:
+                message = await channel.send(content,
+                    allowed_mentions=discord.AllowedMentions.none())
         else:
             message = await existing.edit(content=content,
                                           allowed_mentions=discord.AllowedMentions.none())
@@ -185,6 +198,30 @@ class BroadcastPublisher:
             return await self._notice(f"theme_day_{day}",
                                       daily_announcement(day, paused=state.phase(now)=="paused"),
                                       now, refresh_existing=refresh_existing)
+
+    async def publish_wire_recaps(self, now: datetime):
+        """One completed-day Wire issue per tick; no practice data in live announcements."""
+        if not self.settings.announcement_channel_id or self.settings.is_test:
+            return None
+        async with self._lock:
+            engine = CommunityEngine(self.store)
+            completed = await asyncio.to_thread(
+                engine.latest_completed_day, self.settings.season_key, now)
+            for day in range(1, completed + 1):
+                kind = f"wire_day_{day}"
+                saved = await asyncio.to_thread(
+                    self.store.get_published, self.settings.season_key, kind)
+                if saved:
+                    continue
+                report = await asyncio.to_thread(
+                    engine.recap, self.settings.season_key, day, now)
+                try:
+                    image = await asyncio.to_thread(wire_report_card, report)
+                except (OSError, ValueError, MemoryError):
+                    image = None
+                return await self._notice(kind, wire_story(report), now,
+                                          illustration=image)
+        return None
 
     async def ensure_announcements(self, now: datetime):
         """One registration, seven daily, one boss-defeat/day, one closing post."""

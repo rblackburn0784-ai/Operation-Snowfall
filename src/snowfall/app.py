@@ -49,6 +49,17 @@ class SnowfallBot(discord.Client):
         routes = (ScopedSettings(self.practice), ScopedStore(self.practice))
         self.tree.add_command(SnowGroup(*routes, practice=self.practice), guild=guild)
         self.tree.add_command(SnowAdminGroup(*routes, practice=self.practice), guild=guild)
+
+        # /snow already has 25 commands, so this separate shortcut preserves all aliases.
+        @app_commands.command(name="cityhq", description="Your city HQ, co-op mission, rivalries and Snowfall Wire")
+        async def cityhq(interaction: discord.Interaction):
+            from snowfall.ui.community import send_city
+            self.practice.for_interaction(interaction.channel_id)
+            settings, store = self.practice.selected()
+            await interaction.response.defer(ephemeral=True)
+            await send_city(interaction, settings, store)
+
+        self.tree.add_command(cityhq, guild=guild)
         # All buttons must have fixed custom_ids and timeout=None so old messages work.
         self.add_view(Dashboard(self.settings, self.store))
         try:
@@ -77,6 +88,7 @@ class SnowfallBot(discord.Client):
         try:
             await asyncio.to_thread(WorldEngine(self.store).tick, self.settings.season_key, now)
             await self.broadcast.ensure_announcements(now)
+            await self.broadcast.publish_wire_recaps(now)
         except (discord.HTTPException, ValueError, RuntimeError) as exc:
             log.exception("Daily broadcast scheduler issue: %s", exc)
 
@@ -113,7 +125,7 @@ class SnowfallBot(discord.Client):
 def main(argv: list[str] | None = None):
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    parser = argparse.ArgumentParser(description="Operation Snowfall v0.1.6a")
+    parser = argparse.ArgumentParser(description="Operation Snowfall v0.1.9")
     parser.add_argument("--test", action="store_true", help="Obsolete: use /snowadmin test-start in the main bot")
     parser.add_argument("--backup-now", action="store_true", help="Create a verified backup then exit")
     parser.add_argument("--restore", metavar="BACKUP", help="Offline restore from a verified backup")

@@ -161,6 +161,11 @@ class HeadquartersView(MenuView):
         from snowfall.ui.trophies import show_cabinet
         await show_cabinet(interaction, self.settings, self.store, self.owner_id)
 
+    @discord.ui.button(label='City Headquarters', emoji='🏙️', style=discord.ButtonStyle.primary, row=2)
+    async def city_hq(self, interaction, _):
+        from snowfall.ui.community import show_city
+        await show_city(interaction, self.settings, self.store, self.owner_id)
+
     @discord.ui.button(label='Guided Start', emoji='📖', style=discord.ButtonStyle.secondary, row=2)
     async def tutorial(self, interaction, _):
         await show_tour(interaction, self.settings, self.store, self.owner_id, 0)

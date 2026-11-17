@@ -1,3 +1,11 @@
+# 🗞️ Operation Snowfall v0.1.9 — City Rivalries & Community
+
+Use `/cityhq` or `/snow menu` → City Headquarters for your city's illustrated progress,
+daily co-op mission, PvP rivalries and the Snowfall Wire. Illustrated end-of-day recaps post
+to `#Announcements` at most once per completed game day, restart-safe. The one-message
+five-minute `#leaderboard` is unchanged. City honours never change paid rewards,
+individual scores or fairness limits. See [release notes](docs/RELEASE_v0.1.9.md).
+
 # 🏆 v0.1.8 — Achievements & Boss Personality
 
 Open `/snow trophies` (also available from Main Menu, Game Menus, My Player and Headquarters) to see 13 illustrated cosmetic milestones, equip an earned **title**, and inspect personal combat records. The Snow Don reacts at 75%, 50% and 25% shared health, with golden final-blow victory artwork. No scoring/prize changes; schema v7 stores only equipped titles. See [Release Notes](docs/RELEASE_v0.1.8.md).
