@@ -34,6 +34,9 @@ def card_text(info: Showcase, *, public: bool = False) -> str:
         f"🎖️ **{info.badge_count}/{info.badge_total}** earned badges · "
         f"🎨 **{info.owned_count}/{info.cosmetic_total}** owned cosmetics",
     ]
+    if info.arcade_stamps:
+        lines.append(f"🎟️ **Winter Arcade:** {len(info.arcade_stamps)}/11 "
+                     "decorative passport stamps")
     for slot in SLOTS:
         key = info.equipped.get(slot)
         item = COSMETICS.get(key) if key else None

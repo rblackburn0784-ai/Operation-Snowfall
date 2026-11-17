@@ -124,13 +124,13 @@ def headquarters(store: Store, season_key: str, user_id: int, now: datetime) -> 
     elif phase in ('not_open', 'registration', 'ready'):
         action, route = ('Registration complete. The host will announce the kickoff.', 'guide')
     elif resource.knockout_until and resource.knockout_until > game_now:
-        action, route = 'Recover from your knockout; the Winter Arcade is available meanwhile.', 'winter'
+        action, route = 'Recover from your knockout; play the Winter Arcade while you heal.', 'arcade'
     elif any(q.progress >= q.target and not q.claimed for q in quests):
         action, route = 'Claim a completed daily quest to collect its rewards.', 'quests'
     elif gift == 'Ready' or bonus == 'Ready':
         action, route = 'Open the mystery present you have unlocked.', 'quests'
     elif resource.snowballs == 0:
-        action, route = 'Snowballs are regenerating. Visit the Winter Arcade in the meantime.', 'winter'
+        action, route = 'Snowballs are regenerating. Play the five-game Winter Arcade.', 'arcade'
     elif throw_due is not None:
         action, route = 'Throw cooldown is active; check your quests while it runs.', 'quests'
     elif arena_until is None:
@@ -142,7 +142,7 @@ def headquarters(store: Store, season_key: str, user_id: int, now: datetime) -> 
     elif resource.today_pvp < DAILY_PVP_CAP:
         action, route = 'Find a rival-city player for your next snowball fight.', 'fight'
     else:
-        action, route = 'Try the Winter Arcade or review your daily progress.', 'winter'
+        action, route = 'Try the five-game Winter Arcade or review your daily progress.', 'arcade'
     return Headquarters(player, phase, day, total, daily, rank, resource, quests, world,
                         gift, bonus, ball_due, warm_due, throw_due, reset_due, action,
                         route, arena_until, knockout_due, shield_due)
