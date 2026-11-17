@@ -1,0 +1,46 @@
+"""Dedicated, private winter activities command group (the /snow group is full)."""
+from __future__ import annotations
+
+import discord
+from discord import app_commands
+
+from snowfall.core.permissions import permitted_guild
+from snowfall.ui.winter_fun import send_activities
+
+
+class SnowFunGroup(app_commands.Group):
+    def __init__(self, settings, store, practice=None):
+        super().__init__(name="snowfun", description="Christmas shop, encounters and extra modes")
+        self.settings, self.store, self.practice = settings, store, practice
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if self.practice is not None:
+            self.practice.for_interaction(interaction.channel_id)
+        if not permitted_guild(interaction.guild_id, self.settings.guild_id):
+            await interaction.response.send_message("Use the dedicated Snowfall server.", ephemeral=True)
+            return False
+        return True
+
+    async def _open(self, interaction: discord.Interaction, page: str) -> None:
+        await interaction.response.defer(ephemeral=True)
+        await send_activities(interaction, self.settings, self.store, page=page)
+
+    @app_commands.command(name="menu", description="Open Winter Activities and arcade menu")
+    async def menu(self, interaction: discord.Interaction):
+        await self._open(interaction, "Activities")
+
+    @app_commands.command(name="shop", description="Browse cosmetic outfits and specialist gear")
+    async def shop(self, interaction: discord.Interaction):
+        await self._open(interaction, "Shop")
+
+    @app_commands.command(name="wardrobe", description="Equip unlocked frames, gear and trails")
+    async def wardrobe(self, interaction: discord.Interaction):
+        await self._open(interaction, "Wardrobe")
+
+    @app_commands.command(name="encounter", description="Find today's special Christmas encounter")
+    async def encounter(self, interaction: discord.Interaction):
+        await self._open(interaction, "Encounter")
+
+    @app_commands.command(name="arcade", description="Play no-prize winter mini-games")
+    async def arcade(self, interaction: discord.Interaction):
+        await self._open(interaction, "Arcade")
