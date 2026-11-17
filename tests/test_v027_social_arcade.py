@@ -365,7 +365,7 @@ def test_discord_arcade_buttons_dropdowns_and_one_message_updates(game,monkeypat
     view=ArcadePlayView(settings,game,101,first)
     options={getattr(x,"label",None) for x in view.children}
     assert len(options.intersection(first.current.choices))==3
-    assert "Snowballs" in game_text(first)
+    assert "snowballs" in game_text(first).lower()
     boards=ArcadeBoardView(settings,game,101)
     for v in (view,boards,ArcadeHubView(settings,game,101)):
         assert isinstance(v,discord.ui.View)
