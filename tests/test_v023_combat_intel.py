@@ -188,8 +188,8 @@ def test_discord_menus_and_sandbox_tactics_are_private_and_score_neutral(game):
     for view in menus:
         assert len(view.children) <= 25
         assert all(b.row is None or b.row <= 4 for b in view.children)
-    assert "Revenge Rival" in {b.label for b in menus[0].children}
-    assert "Rivalry Dossier" in {b.label for b in menus[1].children}
+    assert "Revenge Rival" in {getattr(b, 'label', None) for b in menus[0].children}
+    assert "Rivalry Dossier" in {getattr(b, 'label', None) for b in menus[1].children}
     alert = rivalry_text(CombatIntelEngine(game).snapshot(KEY, 101))
     assert "No outstanding" in alert
 

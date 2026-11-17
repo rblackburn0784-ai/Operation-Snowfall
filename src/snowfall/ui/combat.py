@@ -180,13 +180,25 @@ class TargetPicker(CombatMenu):
         try:
             pool = await asyncio.to_thread(CombatEngine(self.store).targets,
                                             self.settings.season_key, self.owner_id, _now())
-            intel = await asyncio.to_thread(CombatIntelEngine(self.store).snapshot,
-                                             self.settings.season_key, self.owner_id)
-        except (CombatError, ValueError, sqlite3.Error) as exc:
+        except CombatError as exc:
             await interaction.response.edit_message(content=f"⚠️ {exc}", embed=None,
                 attachments=[], view=RetryView(self.settings, self.store, self.owner_id))
             return
-        ordered = target_order(pool, intel, mode if mode != "random" else "smart")
+        try:
+            intel = await asyncio.to_thread(CombatIntelEngine(self.store).snapshot,
+                                             self.settings.season_key, self.owner_id)
+        except (ValueError, sqlite3.Error):
+            intel = None  # Rivalry history is optional: target browsing must still work.
+        if mode == "random":
+            ordered = pool  # Keep the engine's original pool unmodified for uniform choice.
+        elif intel is not None:
+            ordered = target_order(pool, intel, mode)
+        elif mode == "revenge":
+            ordered = []  # Never fabricate a pending revenge match.
+        elif mode == "vulnerable":
+            ordered = sorted(pool, key=lambda t: (t.warmth, t.mr_username.casefold()))
+        else:
+            ordered = suggested_targets(pool)
         if not ordered:
             await interaction.response.edit_message(
                 content=("No revenge rivals are eligible. Alerts do not bypass "
