@@ -92,7 +92,7 @@ class CombatMenu(discord.ui.View):
             intel = None
         alerts = len(intel.revenge_alerts) if intel is not None else 0
         await interaction.response.edit_message(
-            content=f"🎯 **Choose a rival from another city:**"
+            content="🎯 **Choose a rival from another city:**"
                     + (f"\n🔔 **{alerts} private revenge alert(s)** in your rivalry dossier."
                        if alerts else ""),
             view=TargetPicker(self.settings, self.store, interaction.user.id, targets,
