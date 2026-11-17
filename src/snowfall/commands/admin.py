@@ -21,6 +21,7 @@ from snowfall.services.world import THEMES
 from snowfall.ops import (
     OperationsError, approve_launch, is_approved, check_health, backup_sqlite,
     adjust_personal_score, reconcile, capture_final_awards, mark_prize, award_csv,
+    safe_csv_cell,
 )
 
 
@@ -270,7 +271,8 @@ class SnowAdminGroup(app_commands.Group):
         writer = csv.writer(output)
         writer.writerow(["discord_user_id", "mr_username", "city", "joined_at_utc", "review_state"])
         for p in players:
-            writer.writerow([p.discord_user_id, p.mr_username, p.city, p.joined_at_utc, p.review_state])
+            writer.writerow([p.discord_user_id, safe_csv_cell(p.mr_username),
+                             p.city, p.joined_at_utc, p.review_state])
         blob = io.BytesIO(output.getvalue().encode("utf-8-sig"))
         await interaction.followup.send(
             "Private staff registration export — **not** a prize list.",
@@ -457,7 +459,10 @@ class SnowAdminGroup(app_commands.Group):
             f"PvP events: {result['combat_events']} • Ledger entries: {result['ledger_entries']}\n"
             f"Mismatched events: {result['mismatched_combat_ids']}\n"
             f"PvP over cap: {result['pvp_over_cap']}\n"
-            f"Quest over cap: {result['quest_over_cap_count']}", ephemeral=True)
+            f"Quest over cap: {result['quest_over_cap_count']} • "
+            f"Unbacked quest credits: {result['quest_unbacked_count']} • "
+            f"Missing quest credits: {result['quest_missing_count']} • "
+            f"Defense mismatches: {result['defense_mismatch_count']}", ephemeral=True)
 
     @app_commands.command(name="backup", description="Host: create an immediate verified database backup")
     async def backup(self, interaction: discord.Interaction):

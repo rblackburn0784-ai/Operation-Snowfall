@@ -124,13 +124,19 @@ def _city_progress(con: sqlite3.Connection, season: str, city: str, day: int,
                 AND p.review_state NOT IN ('flagged','disqualified')""",
             (season, day, city))
     if key in ("siege_damage", "boss_damage", "pve"):
-        aggregate = "COUNT(*)" if key == "pve" else "COALESCE(SUM(damage),0)"
-        kind = "" if key == "pve" else " AND kind=?"
-        echo_filter = "" if key == "pve" else " AND echo=0"
+        aggregate = "COUNT(*)" if key == "pve" else "COALESCE(SUM(e.damage),0)"
+        kind = "" if key == "pve" else " AND e.kind=?"
+        echo_filter = "" if key == "pve" else " AND e.echo=0"
         params = ((season, day, city) if key == "pve" else
                   (season, day, city, "siege" if key == "siege_damage" else "boss"))
-        return _one(con, f"""SELECT {aggregate} FROM pve_events
-            WHERE season_key=? AND day=? AND city=?{echo_filter}{kind}""", params)
+        # Match the PvP/quest/gift eligibility rules: review-flagged accounts
+        # cannot contribute to cooperative milestones through PvE either.
+        return _one(con, f"""SELECT {aggregate} FROM pve_events e
+            JOIN players p ON p.season_key=e.season_key
+              AND p.discord_user_id=e.attacker_id
+            WHERE e.season_key=? AND e.day=? AND e.city=?
+              AND p.review_state NOT IN ('flagged','disqualified')
+              {echo_filter}{kind}""", params)
     raise CommunityError("Unknown community objective")
 
 
