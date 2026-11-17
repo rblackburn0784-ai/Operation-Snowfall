@@ -1,3 +1,18 @@
+# 🗺️ v0.2.5 — City Wars & Territory Control
+
+An interactive six-city **Discord territory map** now lets players choose
+their city and event day, inspect unique team banners, see daily opponent
+matchups, pursue shared missions and review five opponent cities' genuine
+PvP statistics. Each day's **12 fictional honorary districts** are derived
+from existing legitimate city missions, score-ledger contributions and
+cross-city scored hits: six home strongholds plus six contested frontiers.
+Tied or inactive frontiers remain neutral. Five full rotation rounds and
+two rematches cover the seven-day competition. **Territory control grants
+no new points, Snowflakes, items, paid prizes or combat advantages.**
+
+Open **Game Menus → City Wars Map**, **City Headquarters → Territory Map**
+or `/snowfun territory`. See [v0.2.5 release notes](docs/RELEASE_v0.2.5.md).
+
 # ☃️ v0.2.4 — Snow Don Boss Evolution
 
 The Snow Don now has new mobster reactions, animated damage-phase transitions

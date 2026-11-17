@@ -166,6 +166,12 @@ class CityHubView(MenuView):
     async def wire(self, interaction, _):
         await _show(interaction, self.settings, self.store, self.owner_id, "wire")
 
+    @discord.ui.button(label="Territory Map", emoji="🗺️",
+                       style=discord.ButtonStyle.primary, row=1)
+    async def territory(self, interaction, _):
+        from snowfall.ui.territory import show_territory
+        await show_territory(interaction, self.settings, self.store, self.owner_id)
+
     @discord.ui.button(label="Game Menus", emoji="🎮", style=discord.ButtonStyle.secondary, row=1)
     async def back(self, interaction, _):
         await show_game(interaction, self.settings, self.store, self.owner_id)
