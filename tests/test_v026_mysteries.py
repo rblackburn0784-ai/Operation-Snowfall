@@ -237,8 +237,10 @@ def test_parallel_double_clicks_and_user_identity_boundary(game):
     assert sorted(repeated for _, repeated in output) == [False, True]
     with game.connect() as con:
         assert con.execute("SELECT COUNT(*) FROM mystery_clues").fetchone()[0] == 1
+        saved_id = con.execute(
+            "SELECT interaction_id FROM mystery_clues").fetchone()[0]
     with pytest.raises(MysteryError, match="another investigation"):
-        engine.investigate(KEY, 201, "door", "thread-1", START)
+        engine.investigate(KEY, 201, "door", saved_id, START)
     with pytest.raises(MysteryError, match="Register"):
         engine.snapshot(KEY, 9999, START)
     game.review(KEY, 900, 101, "flagged", "Identity review", START)
