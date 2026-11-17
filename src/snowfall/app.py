@@ -91,7 +91,8 @@ class SnowfallBot(discord.Client):
             await asyncio.to_thread(WorldEngine(self.store).tick, self.settings.season_key, now)
             await self.broadcast.ensure_announcements(now)
             await self.broadcast.publish_wire_recaps(now)
-        except (discord.HTTPException, ValueError, RuntimeError) as exc:
+        except Exception as exc:
+            # SQLite/disk failures must not permanently kill the one-minute loop.
             log.exception("Daily broadcast scheduler issue: %s", exc)
 
     @refresh_world.before_loop
@@ -102,7 +103,8 @@ class SnowfallBot(discord.Client):
     async def refresh_leaderboard(self):
         try:
             await self.broadcast.update_leaderboard(datetime.now(timezone.utc))
-        except (discord.HTTPException, ValueError, RuntimeError) as exc:
+        except Exception as exc:
+            # Keep retrying after unexpected database or render failures.
             log.exception("Five-minute leaderboard refresh failed: %s", exc)
 
     @refresh_leaderboard.before_loop
@@ -116,7 +118,8 @@ class SnowfallBot(discord.Client):
             saved = await asyncio.to_thread(backup_sqlite, self.store.path,
                                              self.settings.backup_dir)
             log.info("[%s] Daily backup stored: %s", self.settings.mode, saved)
-        except (OSError, RuntimeError, ValueError) as exc:
+        except Exception as exc:
+            # Preserve the loop if SQLite raises a database-specific exception.
             log.exception("Daily SQLite backup failed: %s", exc)
 
     @backup_loop.before_loop
