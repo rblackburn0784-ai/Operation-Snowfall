@@ -207,7 +207,8 @@ class CommunityEngine:
                      if state.started_at is not None else [])
         city = player.city
         city_standing = next((s for s in standings if s.city == city), None)
-        rank = next((i for i, s in enumerate(standings, 1) if s.city == city), None)
+        rank = next((i for i, s in enumerate(standings, 1)
+                     if s.city == city and s.score_x100 > 0), None)
         with self.store.connect() as con:
             members = _one(con, """SELECT COUNT(*) FROM players
                 WHERE season_key=? AND city=?
@@ -274,8 +275,11 @@ class CommunityEngine:
                 ORDER BY score_x100 DESC,city ASC""", (season, day)).fetchall()
             top_score = int(cities[0]["score_x100"]) if cities else 0
             tied = tuple(r["city"] for r in cities if r["score_x100"] == top_score)
-            participants = _one(con, """SELECT COUNT(DISTINCT player_id)
-                FROM score_ledger WHERE season_key=? AND day=? AND points>0""",
+            participants = _one(con, """SELECT COUNT(DISTINCT l.player_id)
+                FROM score_ledger l JOIN players p ON p.season_key=l.season_key
+                    AND p.discord_user_id=l.player_id
+                WHERE l.season_key=? AND l.day=? AND l.points>0
+                    AND p.review_state NOT IN ('flagged','disqualified')""",
                 (season, day))
             pvp_throws, pvp_hits, best_hit = con.execute("""SELECT COUNT(*),
                 COALESCE(SUM(hit),0), COALESCE(MAX(warmth_damage+armour_damage),0)

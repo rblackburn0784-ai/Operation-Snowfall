@@ -45,6 +45,7 @@ def test_new_city_headquarters_and_unregistered_rejection(store):
     go_live(store)
     info = engine.headquarters(KEY, 11, START)
     assert info.day == 1 and info.objective.target == 4
+    assert info.city_rank is None  # zero-score cities are not ranked yet
     assert info.objective.progress == 0 and not info.objective.completed
     assert info.city_siege_hp is not None
 
