@@ -36,7 +36,7 @@ def quests_text(quests) -> str:
     for q in quests:
         state = "✅ Claimed" if q.claimed else ("🟩 Claim ready" if q.progress >= q.target else "⬜ In progress")
         lines.append(f"• **{q.name}:** {q.progress}/{q.target} — {state}")
-    lines.append("Community: attempt the Snow Don or city siege. Existing winter preparation also counts.")
+    lines.append("Daily mission objectives rotate; alternative NPC/preparation routes help when PvP rivals are scarce.")
     return "\n".join(lines)
 
 
@@ -184,15 +184,15 @@ class QuestsMenu(EconomyView):
         await interaction.edit_original_response(content=message + "\n\n" + quests_text(data),
                                                  view=QuestsMenu(self.settings, self.store, self.owner_id))
 
-    @discord.ui.button(label="Claim Gloves", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="Claim Mission 1", style=discord.ButtonStyle.primary)
     async def gloves(self, interaction, _):
         await self._claim(interaction, "throws")
 
-    @discord.ui.button(label="Claim Rivals", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="Claim Mission 2", style=discord.ButtonStyle.primary)
     async def rivals(self, interaction, _):
         await self._claim(interaction, "rivals")
 
-    @discord.ui.button(label="Claim Preparation", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="Claim Mission 3", style=discord.ButtonStyle.primary)
     async def community(self, interaction, _):
         await self._claim(interaction, "community")
 

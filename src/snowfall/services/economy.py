@@ -15,6 +15,7 @@ from typing import Protocol
 from snowfall.core.clock import as_utc
 from snowfall.db.store import Store, _parse, _timestamp
 from snowfall.services.combat import CombatEngine, CombatError, _game_now, SNOWFLAKE_CAP
+from snowfall.services.daily_missions import daily_progress, missions_for_day
 
 ITEM_CAPS = {"cocoa": 3, "fort": 2, "mittens": 2, "bomb": 2, "golden": 1}
 ITEM_COSTS = {"cocoa": 8, "fort": 10, "mittens": 6, "bomb": 15}
@@ -296,22 +297,7 @@ class EconomyEngine:
 
     @staticmethod
     def _quest_progress(con: sqlite3.Connection, season: str, user: int, day: int):
-        attempts = int(con.execute("SELECT COUNT(*) FROM combat_events WHERE season_key=? "
-                   "AND attacker_id=? AND day=?", (season, user, day)).fetchone()[0])
-        rivals = int(con.execute("SELECT COUNT(DISTINCT target_id) FROM combat_events "
-                   "WHERE season_key=? AND attacker_id=? AND day=? AND hit=1 "
-                   "AND points_awarded>0", (season, user, day)).fetchone()[0])
-        # A legal boss/siege attempt now fulfils the community objective.
-        # Existing v0.1.3 winter-preparation actions remain valid as a
-        # non-PvP fallback for a seven-day season already in progress.
-        npc = int(con.execute("SELECT COUNT(*) FROM pve_events WHERE season_key=? "
-                      "AND attacker_id=? AND day=?", (season, user, day)).fetchone()[0])
-        preparation = int(con.execute("SELECT COUNT(*) FROM item_events WHERE season_key=? "
-                       "AND discord_user_id=? AND day=? "
-                       "AND operation IN ('craft','use','guard_on')",
-                       (season, user, day)).fetchone()[0])
-        return {"throws": attempts + npc, "rivals": rivals,
-                "community": npc + preparation}
+        return daily_progress(con, season, user, day)
 
     def quests(self, season: str, user: int, now: datetime) -> list[QuestView]:
         now = as_utc(now)
@@ -323,14 +309,15 @@ class EconomyEngine:
                 raise EconomyError(str(exc)) from exc
             day = state.day(now)
             if day is None:
-                return [QuestView(k, QUEST_NAMES[k], 0, t, False)
-                        for k, t in QUEST_TARGETS.items()]
+                return [QuestView(m.key, m.title, 0, m.target, False)
+                        for m in missions_for_day(1)]
             progress = self._quest_progress(con, season, user, day)
             claimed = {r[0] for r in con.execute("SELECT quest_key FROM quest_claims "
                            "WHERE season_key=? AND discord_user_id=? AND day=?",
                            (season, user, day)).fetchall()}
-            return [QuestView(k, QUEST_NAMES[k], min(progress[k], t), t, k in claimed)
-                    for k, t in QUEST_TARGETS.items()]
+            return [QuestView(m.key, m.title, min(progress[m.key], m.target),
+                              m.target, m.key in claimed)
+                    for m in missions_for_day(day)]
 
     def claim_quest(self, season: str, user: int, quest: str, now: datetime) -> ActionResult:
         if quest not in QUEST_TARGETS:
@@ -340,13 +327,14 @@ class EconomyEngine:
             con.execute("BEGIN IMMEDIATE")
             _, player, game_now, day = self._need_live(con, season, user, now)
             self._initialize(con, season, user)
+            mission = next(m for m in missions_for_day(day) if m.key == quest)
             if con.execute("SELECT 1 FROM quest_claims WHERE season_key=? "
                            "AND discord_user_id=? AND day=? AND quest_key=?",
                            (season, user, day, quest)).fetchone():
-                return ActionResult(f"{QUEST_NAMES[quest]} was already claimed today.", repeated=True)
+                return ActionResult(f"{mission.title} was already claimed today.", repeated=True)
             progress = self._quest_progress(con, season, user, day)[quest]
-            if progress < QUEST_TARGETS[quest]:
-                raise EconomyError(f"Objective not complete: {progress}/{QUEST_TARGETS[quest]}.")
+            if progress < mission.target:
+                raise EconomyError(f"Objective not complete: {progress}/{mission.target}.")
             resource = CombatEngine(self.store)._resources(con, season, user, game_now)
             flakes_granted = min(2, SNOWFLAKE_CAP - resource["snowflakes"])
             con.execute("INSERT INTO quest_claims(season_key,discord_user_id,day,quest_key,"
@@ -372,7 +360,7 @@ class EconomyEngine:
                     VALUES (?,?,?,?,'theme',10,'theme:d3:quest',?)""",
                     (season, day, user, player['city'], _timestamp(now)))
                 theme_extra = 10
-            return ActionResult(f"✅ {QUEST_NAMES[quest]} complete! +20 points and "
+            return ActionResult(f"✅ {mission.title} complete! +20 points and "
                                 f"+{flakes_granted} Snowflakes."
                                 + (" Day 3 Whiteout bonus: +10 points!" if theme_extra else ""))
 
