@@ -10,7 +10,7 @@ import discord
 
 from snowfall.graphics import delivery, wire_cards
 from snowfall.practice import pin
-from snowfall.services.wire import WireEngine, WireError, publication_text, story_caption
+from snowfall.services.wire import WireEngine, WireError, story_caption
 from snowfall.ui.navigation import MenuView, show_game, show_home
 
 
@@ -91,19 +91,22 @@ async def show_wire(interaction,settings,store,owner,*,page="home",day=None,
             news=await asyncio.to_thread(engine.newsroom,settings.season_key,owner,_now())
             msg=newsroom_text(news,alert)
             view=WireView(settings,store,owner,news)
-            art=lambda:wire_cards.wire_front_card(newsroom=news)
+            def art():
+                return wire_cards.wire_front_card(newsroom=news)
         elif page=="edition":
             edition=await asyncio.to_thread(engine.edition,settings.season_key,
                                             owner,day,_now())
             msg=edition_text(edition,alert)
             view=EditionView(settings,store,owner,edition)
-            art=lambda:wire_cards.wire_front_card(edition=edition)
+            def art():
+                return wire_cards.wire_front_card(edition=edition)
         elif page=="stories":
             stories=await asyncio.to_thread(engine.stories,settings.season_key,
                                             owner,_now(),day=day)
             msg=stories_text(stories)
             view=StoryListView(settings,store,owner,stories)
-            art=lambda:wire_cards.wire_stories_card(stories)
+            def art():
+                return wire_cards.wire_stories_card(stories)
         elif page=="moderation":
             if owner not in _hosts(settings):
                 raise WireError("Host access required.")
@@ -116,7 +119,8 @@ async def show_wire(interaction,settings,store,owner,*,page="home",day=None,
                               for s in stories) if stories else
                     "No letters currently await review."))
             view=ModerationListView(settings,store,owner,stories)
-            art=lambda:wire_cards.wire_stories_card(stories)
+            def art():
+                return wire_cards.wire_stories_card(stories)
         else:
             raise WireError("Unknown newspaper page.")
         await delivery.edit_result(interaction,msg,view,art,
