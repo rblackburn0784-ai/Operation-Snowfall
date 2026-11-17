@@ -54,8 +54,8 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
         ),
         color=0x78B9EA,
     )
-    embed.set_footer(text="v0.2.0a • TEST — NO PRIZES" if settings.is_test else
-                     "v0.2.0a • Live event, individual prizes only")
+    embed.set_footer(text="v0.2.1 • TEST — NO PRIZES" if settings.is_test else
+                     "v0.2.1 • Live event, individual prizes only")
     return embed
 
 
