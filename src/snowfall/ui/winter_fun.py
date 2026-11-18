@@ -89,6 +89,17 @@ async def _display(interaction, settings, store, owner: int, page: str, *, alert
         view.page = page
     except WinterFunError as exc:
         description = f"⚠️ {_escape(str(exc))}\nRegister first to access your winter activities."
+    if page == "Shop" and "snapshot" in locals():
+        try:
+            from io import BytesIO as _SnowBytesIO
+            from snowfall.graphics.snowverhaul import shop_card as _snow_shop_card
+            png = await asyncio.to_thread(_snow_shop_card, snapshot)
+            await interaction.edit_original_response(content=description, embed=None,
+                attachments=[discord.File(_SnowBytesIO(png), filename="snowverhaul-shop.png")],
+                view=view, allowed_mentions=discord.AllowedMentions.none())
+            return
+        except (OSError, ValueError, TypeError):
+            pass
     await interaction.edit_original_response(content=description, embed=None, attachments=[],
                                              view=view, allowed_mentions=discord.AllowedMentions.none())
 
