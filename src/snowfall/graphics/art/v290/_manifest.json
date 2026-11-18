@@ -1,0 +1,1005 @@
+{
+  "version": "2.9.0a",
+  "packs": "A-J",
+  "assets": [
+    {
+      "asset": "arcade/catch.webp",
+      "size": [
+        960,
+        540
+      ],
+      "bytes": 233870,
+      "sha256": "3c98edf77e8afee8b9d259c8b1010e0ce4d843a5b679e242bdcead796b1d2810"
+    },
+    {
+      "asset": "arcade/gallery.webp",
+      "size": [
+        960,
+        540
+      ],
+      "bytes": 220196,
+      "sha256": "20dbde794192966b4361bd1af9251f41a548130afa930affb7b777fabca48884"
+    },
+    {
+      "asset": "arcade/safe.webp",
+      "size": [
+        960,
+        540
+      ],
+      "bytes": 232130,
+      "sha256": "9fcd819e586a3f9f424f9f7a16496f789acb6338e3f349e35fab0ae0b7884b05"
+    },
+    {
+      "asset": "arcade/snowman.webp",
+      "size": [
+        960,
+        540
+      ],
+      "bytes": 236808,
+      "sha256": "dbb597a5387c11e1a5c9f4cdc5b96a9361591fcbd1229e60b848996e0771a811"
+    },
+    {
+      "asset": "arcade/trivia.webp",
+      "size": [
+        960,
+        540
+      ],
+      "bytes": 226094,
+      "sha256": "a99cf3aa0db1b9a621d453c0a2e138c35db2a2e1724fedcedf0b02a829e372b5"
+    },
+    {
+      "asset": "boss/final_defeat.webp",
+      "size": [
+        950,
+        535
+      ],
+      "bytes": 172362,
+      "sha256": "23639808814071fd68824bc6422c140db535aa78216e17165a1a852c93d1f341"
+    },
+    {
+      "asset": "boss/phase_frostfire.webp",
+      "size": [
+        520,
+        650
+      ],
+      "bytes": 154134,
+      "sha256": "b1c6b9b654f20088d13ccafa1cfcc021dab61d447a57fcb6e197095b0d1f89ee"
+    },
+    {
+      "asset": "boss/phase_ice.webp",
+      "size": [
+        520,
+        650
+      ],
+      "bytes": 133142,
+      "sha256": "19b93d7791135aa110889dc513415328a85a9b9c09111edb791b9d7889df1daf"
+    },
+    {
+      "asset": "boss/rage_snowball.webp",
+      "size": [
+        520,
+        650
+      ],
+      "bytes": 147516,
+      "sha256": "0d07fdae7444c3a5888b31dd2573dc93901c0533867a48dc247897beb79f7b53"
+    },
+    {
+      "asset": "boss/rage_tommy.webp",
+      "size": [
+        520,
+        650
+      ],
+      "bytes": 139906,
+      "sha256": "faa2b6adc91de2b2620ee392d6b7a7f1fddc0448b62736a28d156f8a76060ee2"
+    },
+    {
+      "asset": "boss/raid_celebration.webp",
+      "size": [
+        950,
+        535
+      ],
+      "bytes": 208384,
+      "sha256": "9437643149bda4ac1585dd9d38c29185dc51266ec7f5b8368dc436e8951e26eb"
+    },
+    {
+      "asset": "boss/snow_don_0.webp",
+      "size": [
+        700,
+        875
+      ],
+      "bytes": 154414,
+      "sha256": "0c49f15c89fb13a47bb9250faf1ddefc4595aaf2819681259bac917dc02c226f"
+    },
+    {
+      "asset": "boss/victory_screen.webp",
+      "size": [
+        950,
+        535
+      ],
+      "bytes": 149838,
+      "sha256": "f5bc014d65d40bbef8293088ca8bf31ffc943f9c46e4423d3811346f909cf7b2"
+    },
+    {
+      "asset": "cities/banners/chicago_district_banner.png",
+      "size": [
+        560,
+        560
+      ],
+      "bytes": 231303,
+      "sha256": "537adc4a18e92f9bd132f3c27e9722066d35c4affb7e73a465082c2e4049bea4"
+    },
+    {
+      "asset": "cities/banners/detroit_district_banner.png",
+      "size": [
+        560,
+        560
+      ],
+      "bytes": 237785,
+      "sha256": "926916de599ed49bd0a19009bb5d2ded425517ae1cbfe9409bbeffc50f76b592"
+    },
+    {
+      "asset": "cities/banners/las_vegas_district_banner.png",
+      "size": [
+        560,
+        560
+      ],
+      "bytes": 243462,
+      "sha256": "6b717937bfd0c7f7099633441ed7a538018cf17d373b074095c01b45fa4b427c"
+    },
+    {
+      "asset": "cities/banners/los_angeles_district_banner.png",
+      "size": [
+        560,
+        560
+      ],
+      "bytes": 239677,
+      "sha256": "e15d895930f94ec4624d612f4955424dea61687a28f9d3ed09bea1ed1d018319"
+    },
+    {
+      "asset": "cities/banners/new_york_district_banner.png",
+      "size": [
+        560,
+        560
+      ],
+      "bytes": 243511,
+      "sha256": "48f3e1bb7333cbc7b7bf742283151c8ef6f9fa9167fe5973ec91c2c4b6168bb0"
+    },
+    {
+      "asset": "cities/banners/philadelphia_district_banner.png",
+      "size": [
+        560,
+        560
+      ],
+      "bytes": 240622,
+      "sha256": "e71f923f5b0195430bc93c634f08f21bf660ce1c1c4b12ca844e705ebffeb51e"
+    },
+    {
+      "asset": "cities/crests/chicago_crest.png",
+      "size": [
+        560,
+        560
+      ],
+      "bytes": 531755,
+      "sha256": "d95b32c1fc53b3aa80dea66aec42bd157b14386471890b7e42b6735936314cdd"
+    },
+    {
+      "asset": "cities/crests/detroit_crest.png",
+      "size": [
+        560,
+        560
+      ],
+      "bytes": 532975,
+      "sha256": "a271709a01a71b0a930cd9a0a446566f22c8ff8ef06e7ed9ffb5ebac6356ad11"
+    },
+    {
+      "asset": "cities/crests/las_vegas_crest.png",
+      "size": [
+        560,
+        560
+      ],
+      "bytes": 527985,
+      "sha256": "845e0c2e776293c0c55281daac7ab0002636eaf1925f494f87e1c1eecabc960b"
+    },
+    {
+      "asset": "cities/crests/los_angeles_crest.png",
+      "size": [
+        560,
+        560
+      ],
+      "bytes": 568047,
+      "sha256": "4be9307b364d63cd59bafc49918c3b056e410b95e3d4b610aa3498632300613c"
+    },
+    {
+      "asset": "cities/crests/new_york_crest.png",
+      "size": [
+        560,
+        560
+      ],
+      "bytes": 566459,
+      "sha256": "b58d6c40136b24857682b15385f35637e8c30550832e195e8cfa141eb0509a7c"
+    },
+    {
+      "asset": "cities/crests/philadelphia_crest.png",
+      "size": [
+        560,
+        560
+      ],
+      "bytes": 555878,
+      "sha256": "c8a23cc6b16ca990a591f8d6314ef43f8e9bc4111fc85e3c132dc7a0b6901871"
+    },
+    {
+      "asset": "cities/map/six_city_territory_map.png",
+      "size": [
+        1280,
+        720
+      ],
+      "bytes": 334156,
+      "sha256": "9894198618bcf0617727a77c9badec3abaaf0f4d898e7770cf60e9f004325d76"
+    },
+    {
+      "asset": "cities/outcomes/city_defeat_background.png",
+      "size": [
+        1280,
+        720
+      ],
+      "bytes": 1096006,
+      "sha256": "7b5021e920fb6e78ea6bf3bd4bf98f1e8c02d57450d06136b0685833dd35b269"
+    },
+    {
+      "asset": "cities/outcomes/city_victory_background.png",
+      "size": [
+        1280,
+        720
+      ],
+      "bytes": 1118922,
+      "sha256": "af659ab0b4562a16c56f71824f776144ec45dae893f0209bb073bf8a2b80e547"
+    },
+    {
+      "asset": "combat/critical_hit.png",
+      "size": [
+        480,
+        320
+      ],
+      "bytes": 292688,
+      "sha256": "3d049c1c2caadf0d879729f9e4e7dbb08c67e3b344b952e4a46dd8ecfb16011c"
+    },
+    {
+      "asset": "combat/fort_breached.png",
+      "size": [
+        480,
+        320
+      ],
+      "bytes": 283508,
+      "sha256": "e09db3e119ac36ab0355f764b36d6b87a81f73fe5df8d126745f5d463df44a2e"
+    },
+    {
+      "asset": "combat/fort_critical.png",
+      "size": [
+        480,
+        320
+      ],
+      "bytes": 232966,
+      "sha256": "ffe4b9fcb370a1b063b12a2069fd511cfd1880d9b6c5e72184e653caa66b7a55"
+    },
+    {
+      "asset": "combat/fort_damaged.png",
+      "size": [
+        480,
+        320
+      ],
+      "bytes": 218050,
+      "sha256": "b6bcdf978ee70e743f58ab6d2ecaa16a4c64080cbf0be39410dbea05d9fa87f2"
+    },
+    {
+      "asset": "combat/frost_impact.png",
+      "size": [
+        480,
+        320
+      ],
+      "bytes": 305860,
+      "sha256": "9abec21ec9efa4398b9d2dda13aec34b72790e0e57437ca567ebacd2d74c3e94"
+    },
+    {
+      "asset": "combat/hit_streak.png",
+      "size": [
+        480,
+        320
+      ],
+      "bytes": 310678,
+      "sha256": "7e5792c1e4c3b44a82e616b32b73a133d10ebe4b31181665b5c640525287617d"
+    },
+    {
+      "asset": "combat/knockout.png",
+      "size": [
+        480,
+        320
+      ],
+      "bytes": 287713,
+      "sha256": "e56150c6b89b1baa9a3ec88aef7ca6996b2d4d4cc3de8772594e545d64ee48d0"
+    },
+    {
+      "asset": "combat/miss.png",
+      "size": [
+        480,
+        320
+      ],
+      "bytes": 242961,
+      "sha256": "c6beb808221001e2127fc60c77e1fefc4639bfe05309243960c56b3c080e799d"
+    },
+    {
+      "asset": "combat/shield_block.png",
+      "size": [
+        480,
+        320
+      ],
+      "bytes": 263684,
+      "sha256": "403d04f511e41f6933f04e4756349e330eaa796e785d318bcf28b044d2080e11"
+    },
+    {
+      "asset": "combat/shield_shatter.png",
+      "size": [
+        480,
+        320
+      ],
+      "bytes": 263591,
+      "sha256": "5a2896c070063b6104190ea8778be1ff9a74909e16880e1494640f534b20f3b7"
+    },
+    {
+      "asset": "combat/snowball_impact.png",
+      "size": [
+        480,
+        320
+      ],
+      "bytes": 274793,
+      "sha256": "bd274d7209a87bea3905ed7cdac0d629d0e2e6efea0239f6301a1ca31938414a"
+    },
+    {
+      "asset": "combat/snowball_volley.png",
+      "size": [
+        480,
+        320
+      ],
+      "bytes": 215878,
+      "sha256": "91f7f4dec6e2cb94d02dfb13fffa2b249ab98ae138871693dfca69b9e8f53830"
+    },
+    {
+      "asset": "cosmetics/backgrounds/headquarters.webp",
+      "size": [
+        960,
+        540
+      ],
+      "bytes": 171370,
+      "sha256": "810d89197a93f722d4696bb53a058e62cc2d5170ef710e82f09ec8961d2937a7"
+    },
+    {
+      "asset": "cosmetics/backgrounds/shop.webp",
+      "size": [
+        960,
+        540
+      ],
+      "bytes": 191646,
+      "sha256": "77cd986e539dbe8868f432ca81daa4a8365608ad2ba66b2f24c06fa233001ffb"
+    },
+    {
+      "asset": "cosmetics/banners/aurora_banner.png",
+      "size": [
+        1000,
+        111
+      ],
+      "bytes": 213006,
+      "sha256": "0763b1b84500f61f060204a763a0f7203702b6152d3914ce8de3a169cb78dce3"
+    },
+    {
+      "asset": "cosmetics/banners/gilded_banner.png",
+      "size": [
+        1000,
+        111
+      ],
+      "bytes": 199202,
+      "sha256": "cecb0e4254ab5ca04f9e2554b2cac7dc25b3b821272cf1a73be05f828e5cb6b0"
+    },
+    {
+      "asset": "cosmetics/banners/midnight_banner.png",
+      "size": [
+        1000,
+        111
+      ],
+      "bytes": 211800,
+      "sha256": "dd7f7f02e6010806af6f8d0312ac10b8e14b7fda4d88455b9952b0e4b83804bf"
+    },
+    {
+      "asset": "cosmetics/frames/gold_frame.png",
+      "size": [
+        400,
+        400
+      ],
+      "bytes": 200936,
+      "sha256": "82f39764443c3bad1b569481faeb13df3e1cd7cd67892e126a00e3e743d3de56"
+    },
+    {
+      "asset": "cosmetics/frames/holly_frame.png",
+      "size": [
+        400,
+        400
+      ],
+      "bytes": 232307,
+      "sha256": "e102b59c862500fb47732dde0687e3f492ef2051b545806f4810c4592830325d"
+    },
+    {
+      "asset": "cosmetics/frames/ice_frame.png",
+      "size": [
+        400,
+        400
+      ],
+      "bytes": 208326,
+      "sha256": "4448c8a1043e86115235a769aaacf6b5c0d22a63d54759fcfd6bd790f5f5fffe"
+    },
+    {
+      "asset": "cosmetics/gear/boots.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 280563,
+      "sha256": "be7286f7d943776748d296ea8e6d3629ad508a27dfe9e5729792979c096ccdd0"
+    },
+    {
+      "asset": "cosmetics/gear/goggles.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 178050,
+      "sha256": "e9f8a10e64d8dcb201f60296e7c5c8fefe97f389f67f2e201e968a342961b27c"
+    },
+    {
+      "asset": "cosmetics/gear/scarf.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 288002,
+      "sha256": "a7846a49f776e9a618350f681bde5ef674c217dd5cdb00651d5ae6a57b2b7b13"
+    },
+    {
+      "asset": "cosmetics/trails/candy_trail.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 218554,
+      "sha256": "8e440ca58c6f5635197d15a9e71a4b57b804f3057b29d383bb9886e3421fd7c2"
+    },
+    {
+      "asset": "cosmetics/trails/snow_trail.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 208678,
+      "sha256": "5dd6af832faf4f47161c1f9f0fbfae667ce65fe264341d497bb5dbc54d9c64c4"
+    },
+    {
+      "asset": "items/bomb.png",
+      "size": [
+        384,
+        384
+      ],
+      "bytes": 186004,
+      "sha256": "2b046c122a7f72998a280dde5dc8a69da82d975547abb6e936e65503b0a61ace"
+    },
+    {
+      "asset": "items/boss.png",
+      "size": [
+        384,
+        384
+      ],
+      "bytes": 237898,
+      "sha256": "a072a1f17ea51c79dfffa4d8b30f628d52dba9e8e51540b9fd12c4a59b3c6105"
+    },
+    {
+      "asset": "items/cocoa.png",
+      "size": [
+        384,
+        384
+      ],
+      "bytes": 211325,
+      "sha256": "eec115c7fd9f33aae641fc3285892835904ffe0f2bbd6b1a6c2dd850ecc3de5b"
+    },
+    {
+      "asset": "items/fort.png",
+      "size": [
+        384,
+        384
+      ],
+      "bytes": 246614,
+      "sha256": "fc4f44358813a5532ae316f2377dbea083caa85680b353f5a1e78376a9b66c68"
+    },
+    {
+      "asset": "items/golden.png",
+      "size": [
+        384,
+        384
+      ],
+      "bytes": 246570,
+      "sha256": "fc4fbbe346adebeb4db0d41ae35f5950553ccc605b05754054afed4700917ef0"
+    },
+    {
+      "asset": "items/mittens.png",
+      "size": [
+        384,
+        384
+      ],
+      "bytes": 245746,
+      "sha256": "f3d08bf81f1c0dbae6def50f8d8d587be757fd4398cb614a0544a8fe6d1591e1"
+    },
+    {
+      "asset": "items/siege.png",
+      "size": [
+        384,
+        384
+      ],
+      "bytes": 283172,
+      "sha256": "405a72be2d135b4a9292f993ff797d7dbc0667819a088cc76d2045cd5ae71444"
+    },
+    {
+      "asset": "items/snowball.png",
+      "size": [
+        384,
+        384
+      ],
+      "bytes": 217831,
+      "sha256": "17aae7a9ce897136a0cc9342b6091f491e4f90c582f9d31096de0291acfbebb8"
+    },
+    {
+      "asset": "mysteries/case_board.webp",
+      "size": [
+        960,
+        540
+      ],
+      "bytes": 172590,
+      "sha256": "707af42a28168386de7ee29ec0fba3f49ad517f52b1ba06847d1b9fe7ae90174"
+    },
+    {
+      "asset": "mysteries/classified_dossier.webp",
+      "size": [
+        959,
+        540
+      ],
+      "bytes": 215672,
+      "sha256": "7fd9068779cd1ccbf7f72ac3cf21ea5b7aaa6bb48cbe53f0404239096da6cc7f"
+    },
+    {
+      "asset": "mysteries/day_1.webp",
+      "size": [
+        720,
+        430
+      ],
+      "bytes": 108904,
+      "sha256": "9f901cacf699885e64370a16a21eca61094771726ce2b63df08238291f3b2266"
+    },
+    {
+      "asset": "mysteries/day_2.webp",
+      "size": [
+        720,
+        430
+      ],
+      "bytes": 110502,
+      "sha256": "d60657a0e731b401e6eba693c3b014e817faaa06d61916c54fb692ae054fe956"
+    },
+    {
+      "asset": "mysteries/day_3.webp",
+      "size": [
+        720,
+        430
+      ],
+      "bytes": 121538,
+      "sha256": "39a94c8fb14b3fc890abbb57ad60280618dbafb07525420d694e16ef56919a52"
+    },
+    {
+      "asset": "mysteries/day_4.webp",
+      "size": [
+        720,
+        430
+      ],
+      "bytes": 108148,
+      "sha256": "df6a0098c02f6ccc797277905c9a82359cae8fc686d5f3796a2ed198aca42021"
+    },
+    {
+      "asset": "mysteries/day_5.webp",
+      "size": [
+        720,
+        430
+      ],
+      "bytes": 84146,
+      "sha256": "50f60a411a37d5aa23f3b4e5df98ed2037efc6c0d25541a74c5a7e42d87cf94b"
+    },
+    {
+      "asset": "mysteries/day_6.webp",
+      "size": [
+        720,
+        430
+      ],
+      "bytes": 87738,
+      "sha256": "f4907cd26943b995e92201ad1d9eebc9cd0d10625abb009383d35d78cad13d52"
+    },
+    {
+      "asset": "mysteries/day_7.webp",
+      "size": [
+        720,
+        430
+      ],
+      "bytes": 79234,
+      "sha256": "c7642ff9ef2b5f6f61cb8cace1a9e47f11c3df6138207b8cb6e5e471890797ae"
+    },
+    {
+      "asset": "mysteries/evidence_objects.webp",
+      "size": [
+        959,
+        540
+      ],
+      "bytes": 212736,
+      "sha256": "a25b87b53c9e3b374f13b21d054ca21f7bc8669e657ed925351ca9da7c4f4e33"
+    },
+    {
+      "asset": "mysteries/secret_encounter.webp",
+      "size": [
+        960,
+        540
+      ],
+      "bytes": 147796,
+      "sha256": "2c916b8819e191be151d58616ea3a6c976e69b61a203eb2e4c5297ed56638c18"
+    },
+    {
+      "asset": "portraits/frost_spectre_f.webp",
+      "size": [
+        530,
+        549
+      ],
+      "bytes": 63318,
+      "sha256": "8e06fa48a8c4281d09fa19467ae79d9a7a3da2af5a333a546896e89a049d2329"
+    },
+    {
+      "asset": "portraits/frost_spectre_m.webp",
+      "size": [
+        530,
+        549
+      ],
+      "bytes": 60204,
+      "sha256": "d74067593b01eaf71855447371fae42d5a8a6732be8643f335bb51a6355043d6"
+    },
+    {
+      "asset": "portraits/noir_detective_f.webp",
+      "size": [
+        530,
+        549
+      ],
+      "bytes": 58556,
+      "sha256": "1e3404a364d2611e8557d63f25adbf9ddeeaa0e80c9b5a5e28df58e8af6e621d"
+    },
+    {
+      "asset": "portraits/noir_detective_m.webp",
+      "size": [
+        530,
+        549
+      ],
+      "bytes": 56264,
+      "sha256": "7902f1fe58b78c2187620595508d243957939837a8bcbec97b256029b2371949"
+    },
+    {
+      "asset": "portraits/recruit_f.webp",
+      "size": [
+        530,
+        549
+      ],
+      "bytes": 51708,
+      "sha256": "23670695d7ebaad876b6126a32551241f26ae18344831b9b07480b20fc18dcc3"
+    },
+    {
+      "asset": "portraits/recruit_m.webp",
+      "size": [
+        530,
+        549
+      ],
+      "bytes": 54030,
+      "sha256": "cfece416b1503fa9fd1a3e7523ac78a699ed859ae268e73134b52326cc50db21"
+    },
+    {
+      "asset": "portraits/winter_enforcer_f.webp",
+      "size": [
+        530,
+        549
+      ],
+      "bytes": 66004,
+      "sha256": "8346d5339697fa55ddfdb974d2eb4615e2d3af6d0940001f13a5773d2d99cbe0"
+    },
+    {
+      "asset": "portraits/winter_enforcer_m.webp",
+      "size": [
+        530,
+        549
+      ],
+      "bytes": 62888,
+      "sha256": "83314a753966e93eef353a97fa342d2cb6102d2027990d39bd5de6dfe42606fa"
+    },
+    {
+      "asset": "trophies/awards/city_champion.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 181451,
+      "sha256": "201803076affbcb7e641812e1c6e34e263d13e7cfe6911a3a86c766d1f34508b"
+    },
+    {
+      "asset": "trophies/awards/individual_champion.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 205125,
+      "sha256": "a077913d591d85c3e4ab7bcad5219b2404dcbaa5311a006a4855ee7a10b8ef64"
+    },
+    {
+      "asset": "trophies/backgrounds/trophy_cabinet.png",
+      "size": [
+        1200,
+        675
+      ],
+      "bytes": 1221098,
+      "sha256": "b72cef434504a8a3a8389047938cf3411b55830e32845aae7029544a07143d12"
+    },
+    {
+      "asset": "trophies/effects/legendary_unlock.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 66030,
+      "sha256": "ca4a89a3d3f2ae3ea70a5799f6521221b83d0d4e7fa12bf9b3c67c287bb1440c"
+    },
+    {
+      "asset": "trophies/effects/rare_unlock.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 69008,
+      "sha256": "6e06274f1e8ccb1ce8dc7a94b23e991bff76e4d27c80bac867d84b58407254f8"
+    },
+    {
+      "asset": "trophies/medals/boss_regular.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 271269,
+      "sha256": "c58355e3f8f0faf01d9851673e36ed89b61a7779456b1001edbc9b3497bd6571"
+    },
+    {
+      "asset": "trophies/medals/cocoa_club.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 294604,
+      "sha256": "bfc888a7f7a2836369b1bde82acde9fd1a209e683458a6cea549906869a3dbc4"
+    },
+    {
+      "asset": "trophies/medals/collector.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 272005,
+      "sha256": "de8f6b04b128cd087be1409cdb2f314980b9f70f3f0c59ff80eb6d82f8c030ed"
+    },
+    {
+      "asset": "trophies/medals/critical_ace.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 355301,
+      "sha256": "9e6d0f42c9fd85ffec5a25e8ba08aaba5144c66179daae3825fee81c6d396c2a"
+    },
+    {
+      "asset": "trophies/medals/deadeye.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 309695,
+      "sha256": "51ad732b07318846508d94b719cc8505c0750178c73d78861219bdb91ad61e18"
+    },
+    {
+      "asset": "trophies/medals/don_destroyer.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 345158,
+      "sha256": "70304195eb958e9e3dc2951cc617593e0d3e4641bcde21485923eb2076a06a61"
+    },
+    {
+      "asset": "trophies/medals/first_flurry.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 305685,
+      "sha256": "722e0dc4550ed7df505d4183adcc8c4bddeb787d1afc79b4b55fdb7a1a3bb5ee"
+    },
+    {
+      "asset": "trophies/medals/first_style.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 288616,
+      "sha256": "93f7de7a7c98273069e5e3925529ee3e55abe3ab986d7ea60490e617e4134e8d"
+    },
+    {
+      "asset": "trophies/medals/fort_breaker.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 300147,
+      "sha256": "42393f0d5ed2003bcb0f925583eba0dff1730d810d95c4246dc7cb4d513728e8"
+    },
+    {
+      "asset": "trophies/medals/full_outfit.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 330532,
+      "sha256": "892ba49d5d5ac945ea9d1038ec3d625ef70cf7c8e9f20b006e8c9660a490fb52"
+    },
+    {
+      "asset": "trophies/medals/gift_collector.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 269900,
+      "sha256": "4f8b8c27adc2fca5f5883552634c9bc0e463283b89ed65452e87d44372d00a9b"
+    },
+    {
+      "asset": "trophies/medals/golden_legend.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 347771,
+      "sha256": "e938e3fbb5a2e57575fef71918dcadf96e1ccdb72fcbb1fe6cddde0d85fad0cb"
+    },
+    {
+      "asset": "trophies/medals/knockout_artist.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 315225,
+      "sha256": "7875a667e44cee424d7a86c26922768fcdf0e1be87e484fdb778d2002559dfca"
+    },
+    {
+      "asset": "trophies/medals/quest_master.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 272715,
+      "sha256": "e8f3331453e26259bf3263553acd5879a2c89a3c8e3c137c03be91a956079fdd"
+    },
+    {
+      "asset": "trophies/medals/rival_hunter.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 339990,
+      "sha256": "77ae8e8b766fed619f2b3e4e1ddf94d88e33edd50a13b5fd9164903a27ef2ee5"
+    },
+    {
+      "asset": "trophies/medals/seven_days.png",
+      "size": [
+        420,
+        420
+      ],
+      "bytes": 315744,
+      "sha256": "821a42934d1ab3c8b6fe3ee146e09d6f350c22ace83b97ecd86baa4b798e887b"
+    },
+    {
+      "asset": "wire/backgrounds/final_day_edition.png",
+      "size": [
+        1096,
+        675
+      ],
+      "bytes": 1452316,
+      "sha256": "138d31833aa0aaf2ab7d0f4eaeab28931ee06fe7e281cc64bde46fe23b1a5cd7"
+    },
+    {
+      "asset": "wire/backgrounds/front_page_template.png",
+      "size": [
+        1200,
+        675
+      ],
+      "bytes": 1989434,
+      "sha256": "626717e119227b34b2ac9d166b99f9eeea63eeb0ee3676c46715c8c6c3186226"
+    },
+    {
+      "asset": "wire/backgrounds/newsroom_editorial.png",
+      "size": [
+        1200,
+        533
+      ],
+      "bytes": 1171522,
+      "sha256": "35db0af9b412adbf42a5ac3e88010152cf4cbdd2bb6d41d05d14ee81d2e3bb27"
+    },
+    {
+      "asset": "wire/banners/breaking_news.png",
+      "size": [
+        1000,
+        174
+      ],
+      "bytes": 429452,
+      "sha256": "3b044595a0c6e2b73bae418d66f751595cbab9309baff0a7b18316a07a134dbe"
+    },
+    {
+      "asset": "wire/banners/city_dispatch.png",
+      "size": [
+        1000,
+        329
+      ],
+      "bytes": 664204,
+      "sha256": "8a49d1db246c258f8b5d072977bad0eb8900dbbf8d050698f798e665d8917787"
+    },
+    {
+      "asset": "wire/banners/city_rivalry.png",
+      "size": [
+        1000,
+        193
+      ],
+      "bytes": 440809,
+      "sha256": "2ce07198402c5751848b30b723a2ccba0d9d223d0b8187c4755c3216eba24eac"
+    },
+    {
+      "asset": "wire/banners/snowfall_wire_masthead.png",
+      "size": [
+        1000,
+        181
+      ],
+      "bytes": 449219,
+      "sha256": "f66adb22d63209fad65fceb4c30d77b7d7bcca2f07f00e547d9de1923c6a4aab"
+    },
+    {
+      "asset": "wire/banners/special_edition.png",
+      "size": [
+        1000,
+        278
+      ],
+      "bytes": 506027,
+      "sha256": "1e652b67697ab33ffddbf3ba10cc90a4d5a580bded63c0603f883b523ac12e7d"
+    },
+    {
+      "asset": "wire/overlays/classified_notice.png",
+      "size": [
+        1000,
+        398
+      ],
+      "bytes": 729476,
+      "sha256": "72e3f3520a4086d6d929d0c3e116895c3c0e80aeb283db56f4537dc262877c76"
+    },
+    {
+      "asset": "wire/overlays/featured_player_frame.png",
+      "size": [
+        318,
+        480
+      ],
+      "bytes": 183588,
+      "sha256": "919e94e4738d4f329e62f924aba6ad0a318cba616b2eb96257e13fe9704e6863"
+    }
+  ]
+}

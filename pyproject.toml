@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "operation-snowfall"
-version = "0.2.8"
+version = "2.9.0a"
 description = "Operation Snowfall event with in-app test days, launch controls and prizes"
 requires-python = ">=3.12"
 dependencies = ["discord.py>=2.6,<3", "Pillow>=11,<13", "python-dotenv>=1,<2"]
@@ -16,7 +16,34 @@ dev = ["pytest>=8,<10", "ruff>=0.9,<1", "setuptools>=68"]
 snowfall = "snowfall.app:main"
 
 [tool.setuptools.package-data]
-"snowfall.graphics" = ["art/cities/*.webp", "art/items/*.png", "art/boss/*.png"]
+"snowfall.graphics" = [
+    "art/boss/*.png",
+    "art/cities/*.webp",
+    "art/items/*.png",
+    "art/v290/_manifest.json",
+    "art/v290/arcade/*.webp",
+    "art/v290/boss/*.webp",
+    "art/v290/cities/banners/*.png",
+    "art/v290/cities/crests/*.png",
+    "art/v290/cities/map/*.png",
+    "art/v290/cities/outcomes/*.png",
+    "art/v290/combat/*.png",
+    "art/v290/cosmetics/backgrounds/*.webp",
+    "art/v290/cosmetics/banners/*.png",
+    "art/v290/cosmetics/frames/*.png",
+    "art/v290/cosmetics/gear/*.png",
+    "art/v290/cosmetics/trails/*.png",
+    "art/v290/items/*.png",
+    "art/v290/mysteries/*.webp",
+    "art/v290/portraits/*.webp",
+    "art/v290/trophies/awards/*.png",
+    "art/v290/trophies/backgrounds/*.png",
+    "art/v290/trophies/effects/*.png",
+    "art/v290/trophies/medals/*.png",
+    "art/v290/wire/backgrounds/*.png",
+    "art/v290/wire/banners/*.png",
+    "art/v290/wire/overlays/*.png",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
