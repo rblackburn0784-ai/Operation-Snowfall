@@ -20,3 +20,7 @@ data/
 *.sqlite3-journal
 # Test bot config and credentials (never committed)
 config.test.toml
+
+# Railway v2.9.1 installation local backups and extracted bundles
+.snowfall_v291_backups/
+Operation_Snowfall_v2.9.1_Railway_Foundation/

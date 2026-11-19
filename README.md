@@ -1,3 +1,11 @@
+# ❄️ Operation Snowfall v2.9.1 — Railway Hosting Foundation
+
+v2.9.1 adds a safe Railway Discord-worker deployment entrypoint with persistent SQLite storage, environment-based configuration, startup backups and deployment tests. Gameplay, graphics and prize rules are unchanged. The web frontend and Underworld integration come later.
+
+[Railway deployment guide](docs/RAILWAY_SETUP_v2.9.1.md) · [Release notes](docs/RELEASE_v2.9.1.md)
+
+---
+
 # 🗞️ v0.2.8 — Snowfall Wire 2.0
 
 The seven-day **Snowfall Wire** is now a fully browsable illustrated
