@@ -4,13 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "operation-snowfall"
-version = "2.9.1"
+version = "2.9.2"
 description = "Operation Snowfall event with in-app test days, launch controls and prizes"
 requires-python = ">=3.12"
 dependencies = ["discord.py>=2.6,<3", "Pillow>=11,<13", "python-dotenv>=1,<2"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<10", "ruff>=0.9,<1", "setuptools>=68"]
+postgres = ["psycopg[binary]>=3.2,<4"]
 
 [project.scripts]
 snowfall = "snowfall.app:main"

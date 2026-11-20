@@ -221,7 +221,7 @@ class WireEngine:
                       AND p.discord_user_id=l.player_id
                     WHERE l.season_key=? AND l.day=?
                       AND p.review_state NOT IN ('flagged','disqualified')
-                    GROUP BY l.player_id HAVING SUM(l.points)>0
+                    GROUP BY l.player_id,p.id HAVING SUM(l.points)>0
                     ORDER BY points DESC,p.mr_username_norm ASC LIMIT 1""",
                     (season,day)).fetchone()
             hits=con.execute("""SELECT COUNT(*) attempts,COALESCE(SUM(c.hit),0) hits,

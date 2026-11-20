@@ -112,18 +112,25 @@ def restore_sqlite(backup: Path | str, destination: Path | str, *, confirmation:
 
 
 def check_health(store: Store, season_key: str, backup_dir: Path | None = None) -> dict:
+    pg = getattr(store, "backend", "sqlite") == "postgres"
     with store.connect() as con:
-        integrity = con.execute("PRAGMA quick_check").fetchone()[0]
-        version = con.execute("PRAGMA user_version").fetchone()[0]
+        integrity = "postgres-connected" if pg else con.execute("PRAGMA quick_check").fetchone()[0]
+        version = (con.execute("SELECT version FROM snowfall_pg_meta WHERE singleton=1").fetchone()[0]
+                   if pg else con.execute("PRAGMA user_version").fetchone()[0])
         players = con.execute("SELECT COUNT(*) FROM players WHERE season_key=?", (season_key,)).fetchone()[0]
         ledger = con.execute("SELECT COUNT(*) FROM score_ledger WHERE season_key=?", (season_key,)).fetchone()[0]
     recent = None
     if backup_dir and Path(backup_dir).is_dir():
         backups = sorted(Path(backup_dir).glob("snowfall-*.sqlite3"))
         recent = str(backups[-1]) if backups else None
-    return {"sqlite_check": integrity, "schema_version": version,
-            "players": players, "ledger_entries": ledger,
-            "latest_backup": recent, "database": str(store.path)}
+    result = {"sqlite_check": integrity if not pg else None, "schema_version": version,
+              "players": players, "ledger_entries": ledger,
+              "latest_backup": recent if not pg else None,
+              "database": "PostgreSQL" if pg else str(store.path)}
+    if pg:
+        result["backend"] = "postgres"
+        result["postgres_check"] = integrity
+    return result
 
 
 def approve_launch(store: Store, season_key: str, host: int, reason: str, now: datetime) -> None:

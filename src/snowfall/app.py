@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 from snowfall.config import load_settings
 from snowfall.core.permissions import permitted_guild
-from snowfall.db.store import Store
+from snowfall.db.postgres import make_store
 from snowfall.commands.public import SnowGroup
 from snowfall.commands.admin import SnowAdminGroup
 from snowfall.commands.winter_fun import SnowFunGroup
@@ -76,12 +76,14 @@ class SnowfallBot(discord.Client):
     async def on_ready(self):
         log.info("[%s] Connected as %s in guild %s, season %s, database %s",
                  self.settings.mode.upper(), self.user, self.settings.guild_id,
-                 self.settings.season_key, self.settings.database_path)
+                 self.settings.season_key, "PostgreSQL" if getattr(self.store, "backend", "sqlite") == "postgres"
+        else self.settings.database_path)
         if not self.refresh_world.is_running():
             self.refresh_world.start()
         if not self.refresh_leaderboard.is_running():
             self.refresh_leaderboard.start()
-        if not self.backup_loop.is_running():
+        if (getattr(self.store, "backend", "sqlite") == "sqlite"
+                and not self.backup_loop.is_running()):
             self.backup_loop.start()
 
     @tasks.loop(minutes=1)
@@ -146,17 +148,19 @@ def main(argv: list[str] | None = None):
         return
     load_dotenv()
     settings = load_settings()
+    store = make_store(settings.database_path)
+    if getattr(store, "backend", "sqlite") == "postgres" and (args.restore or args.backup_now):
+        parser.error("SQLite backup/restore flags are unavailable for PostgreSQL; use managed PG backups")
     if args.restore:
         restored = restore_sqlite(args.restore, settings.database_path,
                                   confirmation=args.confirm_restore)
         print(f"Restored checked database: {restored}")
         return
-    store = Store(settings.database_path)
     if args.backup_now:
         # Must run BEFORE migrations to preserve the original schema as-is.
         print("Backup:", backup_sqlite(settings.database_path, settings.backup_dir))
         return
-    if store.path.is_file():
+    if getattr(store, "backend", "sqlite") == "sqlite" and store.path.is_file():
         import sqlite3
         from contextlib import closing
         from snowfall.db.store import DB_VERSION

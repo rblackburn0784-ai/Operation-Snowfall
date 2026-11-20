@@ -521,7 +521,7 @@ class CombatEngine:
                 FROM players p LEFT JOIN score_ledger l ON l.season_key=p.season_key
                 AND l.player_id=p.discord_user_id
                 WHERE p.season_key=? AND p.review_state!='disqualified'
-                GROUP BY p.season_key,p.discord_user_id
+                GROUP BY p.id,p.season_key,p.discord_user_id
                 ORDER BY score DESC, unique_rivals DESC, boss_damage DESC, score_reached_at ASC,
                          p.mr_username_norm ASC LIMIT ?""",
                 (season_key, max(1, min(100, limit))),

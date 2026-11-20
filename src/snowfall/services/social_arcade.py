@@ -515,7 +515,7 @@ class SocialArcadeEngine:
                 WHERE r.season_key=? AND r.mode=? AND r.status='finished'
                   AND p.review_state NOT IN ('flagged','disqualified')
                   {clause}
-                GROUP BY r.discord_user_id
+                GROUP BY r.discord_user_id,p.id
                 ORDER BY best DESC, games DESC, p.mr_username_norm ASC
                 LIMIT ?""", (*params, min(25,max(1,limit)))).fetchall()
             return tuple(SocialEntry(row["name"], row["city"], int(row["best"]),

@@ -232,7 +232,7 @@ class CommunityEngine:
                     ON p.season_key=l.season_key AND p.discord_user_id=l.player_id
                     WHERE l.season_key=? AND l.day=? AND p.city=?
                         AND p.review_state NOT IN ('flagged','disqualified')
-                    GROUP BY l.player_id HAVING SUM(l.points)>0
+                    GROUP BY l.player_id,p.id HAVING SUM(l.points)>0
                     ORDER BY score DESC,p.mr_username_norm ASC LIMIT 5""",
                     (season, day, city)).fetchall()
                 top = tuple((r[0], int(r[1])) for r in rows)
@@ -273,7 +273,7 @@ class CommunityEngine:
                 FROM score_ledger l JOIN players p ON p.season_key=l.season_key
                     AND p.discord_user_id=l.player_id
                 WHERE l.season_key=? AND l.day=? AND p.review_state NOT IN ('flagged','disqualified')
-                GROUP BY l.player_id HAVING SUM(l.points)>0
+                GROUP BY l.player_id,p.id HAVING SUM(l.points)>0
                 ORDER BY score DESC, p.mr_username_norm ASC LIMIT 1""",
                 (season, day)).fetchone()
             cities = con.execute("""SELECT city,score_x100 FROM city_day_snapshots

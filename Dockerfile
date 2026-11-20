@@ -4,6 +4,6 @@ ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY src/ ./src/
-RUN python -m pip install --no-cache-dir .
+RUN python -m pip install --no-cache-dir ".[postgres]"
 # Attach a Railway volume at /data. The entry point refuses ephemeral storage.
 CMD ["python", "-m", "snowfall.railway"]

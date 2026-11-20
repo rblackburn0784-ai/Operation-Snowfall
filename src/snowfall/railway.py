@@ -87,6 +87,11 @@ def configuration(env: Mapping[str, str]) -> tuple[str, Path, Path, str]:
     """
     if not env.get("DISCORD_TOKEN", "").strip():
         raise RailwayConfigurationError("Missing required environment variable: DISCORD_TOKEN")
+    backend = env.get("SNOWFALL_DB_BACKEND", "sqlite").strip().lower()
+    if backend not in ("sqlite", "postgres"):
+        raise RailwayConfigurationError("SNOWFALL_DB_BACKEND must be sqlite or postgres")
+    if backend == "postgres" and not env.get("SNOWFALL_DATABASE_URL", "").strip():
+        raise RailwayConfigurationError("PostgreSQL cutover needs SNOWFALL_DATABASE_URL")
     guild = _positive_id(_required(env, "SNOWFALL_GUILD_ID"), "SNOWFALL_GUILD_ID")
     admins = _ids(env, "SNOWFALL_ADMIN_USER_IDS", required=True)
     staff = _ids(env, "SNOWFALL_STAFF_ROLE_IDS")
@@ -204,7 +209,10 @@ def main(argv: list[str] | None = None) -> int:
                   f"database={'existing' if db.exists() else 'new'}; token=present (hidden)")
             return 0
         with one_instance(db.parent), tempfile.TemporaryDirectory(prefix="snowfall-railway-") as temp:
-            backup_before_start(db, backup_dir)
+            if os.environ.get("SNOWFALL_DB_BACKEND", "sqlite").lower() != "postgres":
+                backup_before_start(db, backup_dir)
+            else:
+                LOG.info("PostgreSQL selected; configure Railway database backups separately")
             config_file = Path(temp) / "config.toml"
             config_file.write_text(config_text, encoding="utf-8")
             config_file.chmod(0o600)
