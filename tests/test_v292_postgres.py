@@ -1,7 +1,7 @@
 """v2.9.2: backend selection, SQL translation and migration safety contracts."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import os
 from types import SimpleNamespace
 
@@ -113,6 +113,8 @@ def test_real_postgres_offline_migration_and_gameplay(tmp_path):
     start = datetime(2026, 12, 20, 19, tzinfo=timezone.utc)
     store.ensure_season('pg-test-2026', start)
     store.register('pg-test-2026', 101, 'TesterOne', 'Chicago', start)
+    store.register('pg-test-2026', 102, 'TesterTwo', 'Detroit', start)
+    store.register('pg-test-2026', 103, 'TesterThree', 'New York', start)
     with store.connect() as con:
         con.execute("INSERT INTO score_ledger (season_key,day,player_id,city,category,points,source_key,created_at_utc) "
                     "VALUES(?,?,?,?,?,?,?,?)", ('pg-test-2026',1,101,'Chicago','manual',9,'one','2026-12-20T19:00:00+00:00'))
@@ -126,7 +128,7 @@ def test_real_postgres_offline_migration_and_gameplay(tmp_path):
     pg_store.initialize()
     assert pg_store.schema_version() == DB_VERSION
     assert pg_store.season('pg-test-2026').planned_start == start
-    assert len(pg_store.registrations('pg-test-2026')) == 1
+    assert len(pg_store.registrations('pg-test-2026')) == 3
     assert pg_store.ensure_season('pg-test-2026', start).planned_start == start
     # PostgreSQL has no SQLite rowid pseudo-column. Both raid history and
     # final-result replay must use deterministic persisted timestamps and IDs.
@@ -139,18 +141,21 @@ def test_real_postgres_offline_migration_and_gameplay(tmp_path):
 
     pg_store.transition('pg-test-2026', 900, 'start', start, 'PostgreSQL staging QA')
     WorldEngine(pg_store, FixedBossRoll()).tick('pg-test-2026', start)
-    with pg_store.connect() as con:
-        con.execute('UPDATE world_days SET boss_hp=12,boss_initial_hp=12 '
-                    'WHERE season_key=? AND day=1', ('pg-test-2026',))
-    final_boss = WorldEngine(pg_store, FixedBossRoll()).attack(
-        'pg-test-2026', 101, 'boss', 'pg-qa-final', start,
-    )
+    final_boss = None
+    for n in range(13):
+        uid = 101 + n % 3
+        final_boss = WorldEngine(pg_store, FixedBossRoll()).attack(
+            'pg-test-2026', uid, 'boss', f'pg-qa-boss-{n}',
+            start + timedelta(seconds=31 * n),
+        )
+    assert final_boss is not None and final_boss.final_blow
     report = RaidEngine(pg_store).report('pg-test-2026', 1)
-    assert final_boss.final_blow and report.defeated and report.remaining_hp == 0
-    assert report.shared_damage == 12 and report.contributors == 1
-    assert RaidEngine(pg_store).final_result('pg-test-2026', 1).interaction_id == 'pg-qa-final'
+    assert report.defeated and report.remaining_hp == 0
+    assert report.shared_damage == report.max_hp and report.contributors == 3
+    assert RaidEngine(pg_store).final_result('pg-test-2026', 1).interaction_id == 'pg-qa-boss-12'
     assert WorldEngine(pg_store).attack(
-        'pg-test-2026', 101, 'boss', 'pg-qa-final', start,
+        'pg-test-2026', 101, 'boss', 'pg-qa-boss-12',
+        start + timedelta(hours=1),
     ).repeated
     # One inserted Wire story must expose SQLite-compatible lastrowid.
     with pg_store.connect() as con:
@@ -179,11 +184,11 @@ def test_real_postgres_offline_migration_and_gameplay(tmp_path):
     # The existing registration conflict must be raised by the same service.
     from snowfall.db.store import RegistrationError
     with pytest.raises(RegistrationError, match='already been claimed'):
-        pg_store.register('pg-test-2026', 102, 'TesterOne', 'Detroit', start)
+        pg_store.register('pg-test-2026', 104, 'TesterOne', 'Detroit', start)
     with pg_store.connect() as con:
         assert con.execute("SELECT SUM(points) FROM score_ledger WHERE season_key=? AND category='manual'",
                            ('pg-test-2026',)).fetchone()[0] == 9
-        assert con.execute('SELECT COUNT(*) FROM players').fetchone()[0] == 1
+        assert con.execute('SELECT COUNT(*) FROM players').fetchone()[0] == 3
     # Existing immutability guarantees must hold at the PostgreSQL level.
     with pytest.raises(Exception):
         with pg_store.connect() as con:
