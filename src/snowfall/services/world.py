@@ -411,11 +411,11 @@ class WorldEngine:
                             season_key, user_id,
                         ))
             if kind == 'boss' and not echo:
-                con.execute('UPDATE world_days SET boss_hp=?, boss_defeated_at=CASE WHEN ? THEN ? '
+                con.execute('UPDATE world_days SET boss_hp=?, boss_defeated_at=CASE WHEN ? <> 0 THEN ? '
                             'ELSE boss_defeated_at END WHERE season_key=? AND day=?',
                             (hp_after, int(final_blow), _timestamp(game_now), season_key, day))
             if kind == 'siege' and not echo:
-                con.execute('UPDATE world_sieges SET hp=?,cleared_at_utc=CASE WHEN ? THEN ? '
+                con.execute('UPDATE world_sieges SET hp=?,cleared_at_utc=CASE WHEN ? <> 0 THEN ? '
                             'ELSE cleared_at_utc END WHERE season_key=? AND day=? AND city=?',
                             (hp_after, int(final_blow), _timestamp(game_now), season_key, day, player['city']))
             if score:
