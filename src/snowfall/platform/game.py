@@ -100,6 +100,22 @@ class SharedGame:
     def raid(self, *, day: int) -> dict:
         return _wire(asdict(RaidEngine(self.store).report(self.season, day)))
 
+    def world(self, player_id: int, *, now=None) -> dict:
+        return _wire(asdict(WorldEngine(self.store).status(
+            self.season, player_id, now or _time())))
+
+    def cities(self, *, now=None) -> list[dict]:
+        return _wire([asdict(item) for item in
+                      WorldEngine(self.store).standings(self.season, now or _time())])
+
+    def quests(self, player_id: int, *, now=None) -> list[dict]:
+        return _wire([asdict(q) for q in
+                      EconomyEngine(self.store).quests(self.season, player_id, now or _time())])
+
+    def claim_quest(self, player_id: int, quest: str, *, now=None) -> dict:
+        return _wire(asdict(EconomyEngine(self.store).claim_quest(
+            self.season, player_id, quest, now or _time())))
+
     def inventory(self, player_id: int, *, now=None) -> dict:
         return asdict(EconomyEngine(self.store).inventory(
             self.season, player_id, now or _time(),

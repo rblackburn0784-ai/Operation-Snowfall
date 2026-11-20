@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101b25">
+  <meta name="description" content="Operation Snowfall — the seven-day winter city showdown. Isolated staging preview.">
+  <title>Operation Snowfall | The Winter Underworld</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  <div class="snow dust-a" aria-hidden="true"></div>
+  <div class="snow dust-b" aria-hidden="true"></div>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Operation Snowfall home">
+      <span class="brand-mark">❄</span><span class="brand-lines"><strong>OPERATION<br>SNOWFALL</strong><small>THE WINTER UNDERWORLD</small></span>
+    </a>
+    <nav class="topnav" aria-label="Main sections">
+      <button class="nav-item active" data-nav="home">Headquarters</button>
+      <button class="nav-item" data-nav="combat">Snowball Alley</button>
+      <button class="nav-item" data-nav="boss">The Snow Don</button>
+      <button class="nav-item" data-nav="shop">Winter Market</button>
+      <button class="nav-item" data-nav="cities">City Wars</button>
+    </nav>
+    <button id="authToggle" class="button button-outline button-small">Sign in</button>
+  </header>
+  <main>
+    <div class="staging-flag"><span class="pulse-dot"></span> STAGING PLAYGROUND <span class="sep">/</span> FICTIONAL PLAYERS ONLY <span class="sep">/</span> NO PRIZES OR LIVE PROGRESS</div>
+    <section class="hero">
+      <div class="hero-content">
+        <p class="eyebrow">A Christmas event from the wrong side of town</p>
+        <h1>THE COLD<br><em>NEVER</em> BOTHERED<br>THE <span>MOB.</span></h1>
+        <p class="lede">Six cities. Seven days. One very angry Snow Don. Grab your ammunition, pick your city and make a name for yourself.</p>
+        <div class="hero-actions">
+          <button class="button button-gold" id="heroPlay">Enter the event <span aria-hidden="true">↗</span></button>
+          <button class="button button-ghost" data-nav="boss">Meet the Snow Don</button>
+        </div>
+        <div class="hero-stats">
+          <div><strong>06</strong><small>CITIES AT WAR</small></div>
+          <div><strong>07</strong><small>DAYS OF MAYHEM</small></div>
+          <div><strong id="phaseValue">—</strong><small>GAME STATUS</small></div>
+        </div>
+      </div>
+      <div class="hero-art" aria-label="A noir-inspired snow-covered winter city illustration">
+        <div class="moon"></div><div class="city-skyline"></div>
+        <div class="lamp lamp-left"></div><div class="lamp lamp-right"></div>
+        <div class="snow-don-art"><div class="hat"></div><div class="head"><div class="face">••<span>◢</span></div></div><div class="body"><div class="tie"></div></div><div class="arm"></div></div>
+        <div class="art-caption"><span class="art-rule"></span> THE SNOW DON IS WATCHING <span class="art-rule"></span></div>
+      </div>
+    </section>
+
+    <div class="page-grid">
+      <div class="main-column">
+        <section id="page-home" class="panel active" aria-labelledby="homeTitle">
+          <div class="section-heading"><div><p class="eyebrow">YOUR CORNER OF THE CITY</p><h2 id="homeTitle">Winter Headquarters</h2></div><button class="tiny-link" id="refreshHome">↻ Refresh</button></div>
+          <div id="loggedOutNotice" class="welcome-card">
+            <div class="welcome-icon">✦</div>
+            <div><h3>Your story starts with a snowball.</h3><p>Sign in using the staging guest access code to try the real game engine with fictional players. Progress here is isolated from the Discord event.</p></div>
+            <button class="button button-gold" id="loginCTA">Get started</button>
+          </div>
+          <div id="registration" class="welcome-card hidden">
+            <div class="welcome-icon">✍</div>
+            <div class="registration-inner">
+              <h3>Register your winter alter ego</h3><p>Choose your MafiaReturns-style nickname and a home city. One player per staging account.</p>
+              <form id="registerForm" class="inline-form">
+                <label>Character name<input id="characterName" maxlength="28" minlength="2" required placeholder="e.g. TheSnowDude" autocomplete="off"></label>
+                <label>Home city<select id="cityChoice" required><option>Chicago</option><option>New York</option><option>Detroit</option><option>Philadelphia</option><option>Las Vegas</option><option>Los Angeles</option></select></label>
+                <button type="submit" class="button button-gold">Join the snow war</button>
+              </form>
+            </div>
+          </div>
+          <div id="playerDashboard" class="hidden">
+            <div class="player-hello"><div><p class="eyebrow">OFFICIAL PLAYER RECORD</p><h3 id="welcomeName">—</h3><p id="welcomeCity" class="muted">Your city</p></div><span class="seal">SNOWBALL<br>OPERATIVE</span></div>
+            <div class="stat-cards">
+              <div class="stat"><span>❄ SNOWBALLS</span><strong id="ammoValue">—</strong><small id="ammoSub">Regenerates over time</small></div>
+              <div class="stat"><span>◈ WARMTH</span><strong id="warmthValue">—</strong><small>Stay out of the cold</small></div>
+              <div class="stat"><span>✦ SNOWFLAKES</span><strong id="flakeValue">—</strong><small>Spend in the winter market</small></div>
+              <div class="stat"><span>★ TOTAL POINTS</span><strong id="scoreValue">—</strong><small>Official shared score</small></div>
+            </div>
+            <div class="quick-actions"><button class="button button-gold" data-nav="combat">Throw a snowball ↗</button><button class="button button-outline" data-nav="boss">Attack Snow Don ↗</button><button class="button button-outline" data-nav="shop">Browse market ↗</button></div>
+          </div>
+          <div class="section-heading compact"><div><p class="eyebrow">THE DAILY BRIEFING</p><h2>Word on the street</h2></div></div>
+          <div class="briefing">
+            <article><span class="brief-num">01 / FIELD REPORT</span><h3>The snow war is on.</h3><p>Every successful move counts toward your official game ledger. The Discord and web engines use the same rules.</p></article>
+            <article><span class="brief-num">02 / IMPORTANT</span><h3>No real prizes in staging.</h3><p>This is the isolated test ground. Every player and enemy here is fictional. Nothing affects the live game.</p></article>
+          </div>
+        </section>
+
+        <section id="page-combat" class="panel" aria-labelledby="combatTitle">
+          <div class="section-heading"><div><p class="eyebrow">THE STREETS ARE GETTING SLIPPERY</p><h2 id="combatTitle">Snowball Alley</h2></div><span class="pill">PvP / REAL GAME RULES</span></div>
+          <p class="section-desc">Find a rival from another city. No friendly fire, no cheap double scores and no bypassing cooldowns.</p>
+          <div class="action-card">
+            <div class="action-emblem">❄</div>
+            <div class="action-main"><h3>Suit up. Take aim.</h3><p>Mark yourself ready so rivals can challenge you, then select a target and throwing style.</p>
+              <div class="controls-grid">
+                <label>Rival<select id="targetSelect"><option value="">Sign in to discover rivals</option></select></label>
+                <label>Throwing style<select id="throwStyle"><option value="quick">Quick Shot</option><option value="standard" selected>Standard Throw</option><option value="power">Power Shot</option><option value="golden">Golden Snowball</option></select></label>
+              </div>
+              <div class="actions-inline"><button class="button button-gold" id="throwButton">❄ Throw snowball</button><button class="button button-outline" id="readyButton">Mark me ready</button><button class="button button-ghost" id="findTargets">Find rivals ↻</button></div>
+            </div>
+          </div>
+          <p class="help">Target list in staging is refreshed with fictional opponents. Duplicate requests use unique action IDs.</p>
+        </section>
+
+        <section id="page-boss" class="panel" aria-labelledby="bossTitle">
+          <div class="section-heading"><div><p class="eyebrow">PUBLIC ENEMY NUMBER SNOW</p><h2 id="bossTitle">The Snow Don</h2></div><span class="pill">COOPERATIVE RAID</span></div>
+          <div class="boss-scene"><div class="boss-icon">☃</div><div><p class="eyebrow">SNOW DON / CURRENT STATUS</p><h3 id="bossHeadline">The boss awaits.</h3><div class="progress-track"><div id="bossHpBar" class="progress-fill"></div></div><div class="boss-kpis"><span id="bossHpText">— / — HP</span><span id="bossPhase">The city is waiting</span></div></div></div>
+          <div class="action-card"><div class="action-emblem">🎯</div><div class="action-main"><h3>Put the heat on him.</h3><p>Attack the shared boss or defend your city's siege. Daily limits, ammo costs and rewards are enforced in PostgreSQL.</p><div class="actions-inline"><button class="button button-gold" id="bossButton">Attack the Snow Don</button><button class="button button-outline" id="siegeButton">Fight city siege</button><button class="button button-ghost" id="refreshBoss">Refresh ↻</button></div></div></div>
+          <div id="raidSummary" class="mini-stats"></div>
+        </section>
+
+        <section id="page-shop" class="panel" aria-labelledby="shopTitle">
+          <div class="section-heading"><div><p class="eyebrow">FINE GOODS FOR QUESTIONABLE PEOPLE</p><h2 id="shopTitle">Winter Market</h2></div><span class="pill">COSMETICS & CRAFTING</span></div>
+          <p class="section-desc">Spend Snowflakes on real inventory, cosmetic frames, banners and equipment. No additional paid rewards.</p>
+          <div class="market-toolbar"><div>✦ Your balance <strong id="shopBalance">—</strong> Snowflakes</div><button class="tiny-link" id="refreshShop">↻ Refresh market</button></div>
+          <div id="catalog" class="catalog-grid"><p class="muted">Fetching inventory…</p></div>
+          <div class="action-card craft-card"><div class="action-emblem">⚒</div><div class="action-main"><h3>The workshop</h3><p>Craft useful items directly through the official economy.</p><div class="controls-grid"><label>Item<select id="craftChoice"><option value="cocoa">Hot Chocolate</option><option value="fort">Fort Kit</option><option value="mittens">Mittens</option><option value="bomb">Blizzard Bomb</option></select></label></div><button class="button button-gold" id="craftButton">Craft item</button></div></div>
+        </section>
+
+        <section id="page-cities" class="panel" aria-labelledby="citiesTitle">
+          <div class="section-heading"><div><p class="eyebrow">COAST TO COAST</p><h2 id="citiesTitle">City Wars</h2></div><span class="pill">HONORARY TERRITORY</span></div>
+          <p class="section-desc">Chicago, New York, Detroit, Philadelphia, Las Vegas and Los Angeles battle for bragging rights only.</p>
+          <div id="cityStandings" class="city-stack"></div>
+          <div class="section-heading compact"><div><p class="eyebrow">THE TOP OPERATIVES</p><h2>Official leaderboard</h2></div></div>
+          <div id="leaderboard" class="scoreboard"></div>
+        </section>
+      </div>
+
+      <aside class="sidebar">
+        <div class="side-card radio"><p class="eyebrow">THE SNOWFALL WIRE</p><h3>Special bulletin</h3><p>All roads lead to the same scoreboard. The website doesn't keep a second set of scores.</p><span>📻  WINTER RADIO · LIVE FEED</span></div>
+        <div class="side-card status"><p class="eyebrow">SEASON STATUS</p><h3 id="sideStatus">Connecting…</h3><p id="sideStatusDetail">Checking the game backend</p><div class="side-divider"></div><div class="side-row"><span>Player identity</span><strong id="identityStatus">Guest</strong></div><div class="side-row"><span>Database</span><strong>PostgreSQL</strong></div><div class="side-row"><span>Service</span><strong>STAGING</strong></div></div>
+        <div class="side-card"><p class="eyebrow">THE RULES OF THE GAME</p><h3>Cold hands. Clean records.</h3><p>Unique actions, score caps, anti-spam checks and duplicate reward protection apply to every platform.</p></div>
+      </aside>
+    </div>
+  </main>
+
+  <footer><div class="footer-logo">❄ OPERATION SNOWFALL</div><p>STAGING EXPERIENCE · FICTITIOUS GAMEPLAY · NO LIVE UNDERWORLD ACCOUNT ACCESS</p><span>© Winter Operations Bureau</span></footer>
+
+  <div id="authDialog" class="dialog-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <div class="dialog"><button class="dialog-close" id="closeAuth" aria-label="Close sign-in">×</button>
+      <p class="eyebrow">WELCOME TO THE STREETS</p><h2 id="authTitle">Enter the snowfall.</h2><p class="muted">This is the separate staging game. Choose a fictional account slot to test progress across browser sessions.</p>
+      <form id="demoForm"><label>Staging access code<input id="demoCode" type="password" autocomplete="off" minlength="28" required placeholder="Private QA code"></label><label>Test player<select id="demoSlot"><option value="1">Test Player One</option><option value="2">Test Player Two</option><option value="3">Test Player Three</option></select></label><button type="submit" class="button button-gold full">Sign in to staging</button></form>
+      <div class="auth-separator">OR CONNECT AN IDENTITY</div>
+      <button id="discordLogin" class="button button-outline full">Continue with Discord</button>
+      <details class="underworld-auth"><summary>Underworld signed assertion (integration testing)</summary><form id="underworldForm"><textarea id="underworldAssertion" rows="3" placeholder="Paste a trusted backend-signed assertion only"></textarea><button class="button button-outline full" type="submit">Verify assertion</button></form></details>
+      <p id="authHelp" class="subtle">No real Underworld passwords are accepted or stored here.</p>
+    </div>
+  </div>
+  <div id="toast" role="status" aria-live="polite" class="toast hidden"></div>
+</body>
+</html>

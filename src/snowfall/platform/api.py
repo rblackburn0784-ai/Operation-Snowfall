@@ -305,6 +305,30 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         return jsonable_encoder(shared.siege(
             principal, _idempotency(principal, "siege", idempotency_key)))
 
+    @app.get("/v1/game/world")
+    def world(principal: int = Depends(player)):
+        return jsonable_encoder(shared.world(principal))
+
+    @app.get("/v1/game/cities")
+    def cities():
+        return jsonable_encoder({"cities": shared.cities()})
+
+    @app.get("/v1/game/catalog")
+    def catalog():
+        from snowfall.services.winter_fun import COSMETICS
+        return {"items": [{"key": item.key, "name": item.name,
+                           "category": item.category, "cost": item.cost,
+                           "detail": item.detail, "rarity": item.rarity}
+                          for item in COSMETICS.values()]}
+
+    @app.get("/v1/game/quests")
+    def quests(principal: int = Depends(player)):
+        return jsonable_encoder({"quests": shared.quests(principal)})
+
+    @app.post("/v1/game/quests/claim")
+    def claim_quest(body: ItemBody, principal: int = Depends(writer)):
+        return jsonable_encoder(shared.claim_quest(principal, body.item))
+
     @app.get("/v1/game/raid")
     def raid(day: int = Query(ge=1, le=7)):
         return jsonable_encoder(shared.raid(day=day))

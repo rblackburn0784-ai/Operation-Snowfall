@@ -5,5 +5,5 @@ WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY src/ ./src/
 RUN python -m pip install --no-cache-dir ".[postgres,web]"
-# Do not enable API by default. Set SNOWFALL_API_ENABLED=1 after staging setup.
-CMD ["python", "-m", "snowfall.platform.api"]
+# Staging-only web runtime. It refuses an incorrect Railway project/environment or missing approval.
+CMD ["python", "-m", "snowfall.platform.staging_web"]
