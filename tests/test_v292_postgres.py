@@ -181,7 +181,7 @@ def test_real_postgres_offline_migration_and_gameplay(tmp_path):
     with pytest.raises(RegistrationError, match='already been claimed'):
         pg_store.register('pg-test-2026', 102, 'TesterOne', 'Detroit', start)
     with pg_store.connect() as con:
-        assert con.execute('SELECT SUM(points) FROM score_ledger WHERE season_key=?',
+        assert con.execute("SELECT SUM(points) FROM score_ledger WHERE season_key=? AND category='manual'",
                            ('pg-test-2026',)).fetchone()[0] == 9
         assert con.execute('SELECT COUNT(*) FROM players').fetchone()[0] == 1
     # Existing immutability guarantees must hold at the PostgreSQL level.
