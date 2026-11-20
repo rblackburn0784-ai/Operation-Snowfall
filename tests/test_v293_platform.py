@@ -148,7 +148,7 @@ def fake_settings():
 def test_web_login_cookie_csrf_and_shared_game_actions():
     ids, game = FakeIdentity(), FakeGame()
     app = create_app(fake_settings(), identity=ids, game=game)
-    with TestClient(app) as client:
+    with TestClient(app, base_url='https://snowfall.example') as client:
         assert client.get("/v1/health").json()["backend"] == "postgres"
         assert client.get("/v1/game/leaderboard").status_code == 200
         assert client.get("/v1/game/me").status_code == 401
@@ -186,7 +186,7 @@ def test_discord_oauth_verified_identity_not_user_submitted_id():
     try:
         app = create_app(fake_settings(), identity=ids, game=FakeGame(),
                          oauth_http=async_client)
-        with TestClient(app, follow_redirects=False) as client:
+        with TestClient(app, base_url='https://snowfall.example', follow_redirects=False) as client:
             start = client.post("/v1/auth/discord/start", json={"mode": "login"})
             assert start.status_code == 200
             parsed = urlsplit(start.json()["authorize_url"])
