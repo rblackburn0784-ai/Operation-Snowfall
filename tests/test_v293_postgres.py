@@ -88,9 +88,9 @@ def test_real_postgres_platform_principals_sessions_and_shared_scores(tmp_path):
         assert identities.session(session) is None
         # All channels now access exactly the same game ledger by principal ID.
         new_profile = game.register(new_id, "UnderworldTester", "New York", now=start)
-        assert new_profile["player_id"] == new_id
+        assert new_profile["player_id"] == str(new_id)
         assert game.me(new_id, now=start)["registered"]
-        assert game.leaderboard()[0]["player_id"] == 101
+        assert game.leaderboard()[0]["player_id"] == "101"
         with pytest.raises(IdentityConflict):
             identities.link_discord(new_id, "101")
         # Identity tables do not alter the imported game tables.

@@ -77,14 +77,14 @@ class FakeGame:
         self.calls = []
 
     def leaderboard(self, limit=25):
-        return [{"player_id": 101, "score": 9}]
+        return [{"player_id": "101", "score": 9}]
 
     def me(self, player_id):
-        return {"player_id": player_id, "registered": True, "score": 9}
+        return {"player_id": str(player_id), "registered": True, "score": 9}
 
     def register(self, player_id, name, city):
         self.calls.append(("register", player_id, name, city))
-        return {"player_id": player_id, "mr_username": name, "city": city}
+        return {"player_id": str(player_id), "mr_username": name, "city": city}
 
     def throw(self, player_id, target_id, style, interaction_id):
         self.calls.append(("throw", player_id, target_id, style, interaction_id))
@@ -157,16 +157,16 @@ def test_web_login_cookie_csrf_and_shared_game_actions():
         assert "httponly" in result.headers["set-cookie"].lower()
         assert "secure" in result.headers["set-cookie"].lower()
         assert client.get("/v1/auth/session").json()["csrf"] == "valid-csrf"
-        assert client.get("/v1/game/me").json()["player_id"] == 6000000000000000001
+        assert client.get("/v1/game/me").json()["player_id"] == "6000000000000000001"
         assert client.post("/v1/game/register", json={"mr_username": "Tester", "city": "Chicago"}).status_code == 403
         headers = {"X-Snowfall-CSRF": "valid-csrf"}
         assert client.post("/v1/game/register", json={"mr_username": "Tester", "city": "Chicago"},
                            headers=headers).status_code == 200
         assert client.post("/v1/game/throw",
-                           json={"target_player_id": 99, "style": "quick"},
+                           json={"target_player_id": "99", "style": "quick"},
                            headers=headers).status_code == 400
         response = client.post("/v1/game/throw",
-            json={"target_player_id": 99, "style": "quick"},
+            json={"target_player_id": "99", "style": "quick"},
             headers={**headers, "Idempotency-Key": "unique-action-123"})
         assert response.status_code == 200
         assert game.calls[-1][-1].startswith("web:")
@@ -197,7 +197,7 @@ def test_discord_oauth_verified_identity_not_user_submitted_id():
                                   params={"code": "valid-code", "state": query["state"][0]})
             assert response.status_code == 303
             assert "httponly" in response.headers["set-cookie"].lower()
-            assert client.get("/v1/game/me").json()["player_id"] == 555123456789
+            assert client.get("/v1/game/me").json()["player_id"] == "555123456789"
     finally:
         import asyncio
         asyncio.run(async_client.aclose())
@@ -210,7 +210,7 @@ def test_engine_facade_shares_existing_gameplay_ids(tmp_path):
     store.ensure_season("qa", now)
     facade = SharedGame(store, "qa")
     joined = facade.register(101, "TesterOne", "Chicago", now=now)
-    assert joined["player_id"] == 101
+    assert joined["player_id"] == "101"
     assert facade.me(101, now=now)["registered"]
     store.register("qa", 102, "TesterTwo", "Detroit", now)
     store.transition("qa", 900, "start", now, "QA")
@@ -218,11 +218,11 @@ def test_engine_facade_shares_existing_gameplay_ids(tmp_path):
     CombatEngine(store).ready("qa", 101, now)
     CombatEngine(store).ready("qa", 102, now)
     assert facade.me(101, now=now)["resources"]["snowballs"] == 8
-    assert facade.targets(101, now=now)[0]["player_id"] == 102
+    assert facade.targets(101, now=now)[0]["player_id"] == "102"
     event = facade.throw(101, 102, "quick", "qa-event", now=now)
-    assert event["attacker_id"] == 101
+    assert event["attacker_id"] == "101"
     assert facade.me(101, now=now)["score"] == event["points_awarded"]
-    assert facade.leaderboard()[0]["player_id"] == 101
+    assert facade.leaderboard()[0]["player_id"] == "101"
 
 
 def test_idempotency_key_is_scoped_to_verified_player_and_operation():

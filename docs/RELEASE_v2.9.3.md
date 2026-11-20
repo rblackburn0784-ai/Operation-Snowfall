@@ -54,6 +54,8 @@ Separate optional application, `python -m snowfall.platform.api`. Endpoints:
 
 The API never accepts arbitrary `player_id` as its acting identity.
 Authenticated player identity is extracted from the server-side session.
+All player IDs exposed to browsers use **decimal strings**, never JavaScript
+floating-point numbers, to preserve the high-range BIGINT values exactly.
 A `target_player_id` is an opponent identifier, **not an acting user**.
 `Idempotency-Key` is scoped to authenticated player and operation.
 Existing game transaction, cooldown, score-cap, unique source and anti-fraud

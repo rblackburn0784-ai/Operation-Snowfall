@@ -98,7 +98,7 @@ class RegisterBody(BaseModel):
 
 
 class ThrowBody(BaseModel):
-    target_player_id: int = Field(gt=0)
+    target_player_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
     style: Literal["quick", "standard", "power", "golden"]
 
 
@@ -203,7 +203,7 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         )
         token, csrf = identities.new_session(principal)
         cookie(response, token)
-        return {"authenticated": True, "player_id": principal, "csrf": csrf,
+        return {"authenticated": True, "player_id": str(principal), "csrf": csrf,
                 "character_name": verified.character_name}
 
     @app.get("/v1/auth/session")
@@ -212,7 +212,7 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         current = identities.session(token)
         if not current:
             raise HTTPException(401, "Authentication required")
-        return {"player_id": current.player_id, "csrf": current.csrf,
+        return {"player_id": str(current.player_id), "csrf": current.csrf,
                 "links": identities.links(current.player_id)}
 
     @app.post("/v1/auth/logout")
@@ -291,7 +291,7 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
     def throw(body: ThrowBody, idempotency_key: str | None = Header(default=None),
               principal: int = Depends(writer)):
         iid = _idempotency(principal, "throw", idempotency_key)
-        return jsonable_encoder(shared.throw(principal, body.target_player_id, body.style, iid))
+        return jsonable_encoder(shared.throw(principal, int(body.target_player_id), body.style, iid))
 
     @app.post("/v1/game/boss")
     def boss(idempotency_key: str | None = Header(default=None),
