@@ -31,7 +31,8 @@ v2.9.4a delivers:
   - Discord Snow Don attack updates the website's boss HP and resources.
   - Browser crafting updates the Discord inventory without a sync job.
   - Discord crafting updates the website inventory and snowflakes.
-  - Browser PvP immediately appears in the Discord progress snapshot.
+  - Browser PvP is rejected while the Discord attack's shared cooldown
+    is still active (no multi-platform cooldown bypass).
   - Replaying the same action cannot double-spend items or score.
   - Logging out and back in through Underworld preserves linked progress.
   - Unlinked and conflicting Discord accounts cannot hijack the character.

@@ -193,15 +193,16 @@ def test_browser_discord_link_and_two_way_real_postgres_progress(tmp_path):
                 assert gateway.craft(DISCORD_USER, "fort", 294002)["repeated"]
                 assert gateway.progress(DISCORD_USER) == after_discord_craft
 
-                # Browser PvP uses the same target IDs and official resource
-                # rules; results are immediately visible in Discord.
+                # Browser PvP shares the Discord Snow Don cooldown. Attempting
+                # to circumvent the timer through another platform must fail.
                 targets = client.get("/v1/game/targets").json()["targets"]
                 assert targets
                 shoot = client.post("/v1/game/throw", json={
                     "target_player_id": targets[0]["player_id"],
                     "style": "quick",
                 }, headers={**csrf, "Idempotency-Key": "qa-cross-channel-throw"})
-                assert shoot.status_code == 200, shoot.text
+                assert shoot.status_code == 409, shoot.text
+                assert "cooldown" in shoot.json()["detail"].lower()
                 assert gateway.progress(DISCORD_USER) == (
                     client.get("/v1/game/progress").json())
 
