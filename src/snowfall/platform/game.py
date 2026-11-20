@@ -28,7 +28,7 @@ class SharedGame:
 
     def register(self, player_id: int, mr_name: str, city: str, *, now=None) -> dict:
         player = self.store.register(self.season, player_id, mr_name, city, now or _time())
-        return {"player_id": player.user_id, "mr_username": player.mr_username,
+        return {"player_id": player.discord_user_id, "mr_username": player.mr_username,
                 "city": player.city, "review_state": player.review_state}
 
     def me(self, player_id: int, *, now=None) -> dict:

@@ -212,7 +212,7 @@ class IdentityRepository:
 
     def new_session(self, player_id: int) -> tuple[str, str]:
         token = secrets.token_urlsafe(36)
-        csrf = secrets.token_urlsafe(32)
+        csrf = digest('snowfall-csrf:' + token)
         expires = datetime.now(timezone.utc) + timedelta(hours=12)
         with self._connect() as conn:
             conn.execute("""INSERT INTO snowfall_identity_sessions
@@ -227,7 +227,7 @@ class IdentityRepository:
             row = conn.execute("""SELECT player_id FROM snowfall_identity_sessions
                                   WHERE token_hash=%s AND expires_at>now()""",
                                (digest(token),)).fetchone()
-        return Session(row[0]) if row else None
+        return Session(row[0], digest('snowfall-csrf:' + token)) if row else None
 
     def csrf_ok(self, token: str, csrf: str) -> bool:
         if not token or not csrf or len(csrf) > 200:

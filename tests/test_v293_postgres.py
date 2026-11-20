@@ -13,7 +13,7 @@ from urllib.parse import urlsplit, urlunsplit
 import pytest
 
 from snowfall.db.store import Store
-from snowfall.db.migrate_postgres import migrate, verify
+from snowfall.db.migrate_postgres import MigrationError, migrate, verify
 from snowfall.db.postgres import PostgresStore
 from snowfall.platform.identity import IdentityConflict, IdentityError, IdentityRepository
 from snowfall.platform.game import SharedGame
@@ -95,7 +95,7 @@ def test_real_postgres_platform_principals_sessions_and_shared_scores(tmp_path):
         with pytest.raises(IdentityConflict):
             identities.link_discord(new_id, "101")
         # Identity tables do not alter the imported game tables.
-        assert verify(source, test_dsn)["matching"] is False if False else True
+        with pytest.raises(MigrationError, match='differs'):\n            verify(source, test_dsn)
     finally:
         with psycopg.connect(admin_dsn, autocommit=True) as admin:
             admin.execute("""SELECT pg_terminate_backend(pid) FROM pg_stat_activity
