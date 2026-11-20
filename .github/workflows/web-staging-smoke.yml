@@ -1,0 +1,44 @@
+name: v2.9.4 external staging HTTP smoke
+
+on:
+  push:
+    branches: [feature/v2.9.4-identity-underworld-bridge]
+  workflow_dispatch:
+
+jobs:
+  verify-public-staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Verify Snowfall web QA and protected Underworld QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          snow="https://snowfall-web-qa-staging.up.railway.app"
+          under="https://underworld-login-qa-staging.up.railway.app"
+          for attempt in {1..18}; do
+            if curl -fsS --connect-timeout 8 --max-time 12 "$snow/v1/health" > /tmp/snow-health.json &&
+               curl -fsS --connect-timeout 8 --max-time 12 "$under/api/version" > /tmp/under-health.json; then
+              break
+            fi
+            sleep 6
+          done
+          grep -q '"version":"2.9.4"' /tmp/snow-health.json
+          grep -q '"version":"0.3.5"' /tmp/under-health.json
+          curl -fsS "$snow/" | grep -q "Operation Snowfall"
+          curl -fsS "$snow/static/app.js" | grep -q "linkDiscord"
+          curl -fsS "$snow/v1/web/config" | grep -q '"underworld_assertions":true'
+          unauth=$(curl -sS -o /dev/null -w "%{http_code}" "$snow/v1/auth/session")
+          [ "$unauth" = "401" ]
+          guarded=$(curl -sS -o /dev/null -w "%{http_code}" "$under/")
+          [ "$guarded" = "401" ]
+          protected=$(curl -sS -o /dev/null -w "%{http_code}" -X POST "$under/api/snowfall/handoff")
+          [ "$protected" = "401" ]
+          wrong_origin=$(curl -sS -o /dev/null -w "%{http_code}" -X POST \
+            "$snow/v1/auth/underworld/handoff" \
+            -H "Origin: https://untrusted.example" \
+            --data-urlencode "assertion=not-a-valid-assertion")
+          [ "$wrong_origin" = "403" ]
+          echo "PASS: Snowfall v2.9.4 HTTPS and static UI"
+          echo "PASS: Underworld QA version and Basic login gate"
+          echo "PASS: unauthenticated and untrusted handoffs rejected"
