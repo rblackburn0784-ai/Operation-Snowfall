@@ -91,7 +91,7 @@ class DummyIdentity:
         return self.session_token, "fake-csrf"
 
     def session(self, token):
-        return Session(self.player_id, "fake-csrf") if token == self.session_token else None
+        return Session(self.player_id, "fake-csrf") if token and token == self.session_token else None
 
     def csrf_ok(self, token, csrf):
         return token == self.session_token and csrf == "fake-csrf"
