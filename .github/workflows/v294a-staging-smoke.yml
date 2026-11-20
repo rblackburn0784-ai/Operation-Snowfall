@@ -1,0 +1,42 @@
+name: v2.9.4a staging cross-platform smoke
+on:
+  push:
+    branches: [feature/v2.9.4a-discord-linking-progress]
+  workflow_dispatch:
+
+jobs:
+  staging-web-identity-and-progress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Verify deployed staging API, UI and authentication boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          snow="https://snowfall-web-qa-staging.up.railway.app"
+          under="https://underworld-login-qa-staging.up.railway.app"
+          for attempt in {1..18}; do
+            if curl --fail --silent --show-error --max-time 10 "$snow/v1/health" > /tmp/snowhealth.json &&
+               grep -q '"version":"2.9.4a"' /tmp/snowhealth.json &&
+               curl --fail --silent --show-error --max-time 10 "$under/api/version" > /tmp/underhealth.json; then
+              break
+            fi
+            sleep 5
+          done
+          grep -q '"version":"2.9.4a"' /tmp/snowhealth.json
+          curl --fail --silent --show-error "$snow/" > /tmp/snowui.html
+          curl --fail --silent --show-error "$snow/static/app.js" > /tmp/snowui.js
+          curl --fail --silent --show-error "$snow/v1/web/config" > /tmp/snowconfig.json
+          grep -q "CONNECTED IDENTITIES" /tmp/snowui.html
+          grep -q 'id="progressSummary"' /tmp/snowui.html
+          grep -q "refreshShared" /tmp/snowui.js
+          grep -q 'v1/game/progress' /tmp/snowui.js
+          grep -q '"version":"2.9.4a"' /tmp/snowconfig.json
+          [ "$(curl --silent --show-error -o /dev/null -w '%{http_code}' "$snow/v1/game/progress")" = "401" ]
+          [ "$(curl --silent --show-error -o /dev/null -w '%{http_code}' "$snow/v1/auth/session")" = "401" ]
+          [ "$(curl --silent --show-error -o /dev/null -w '%{http_code}' "$under/")" = "303" ]
+          [ "$(curl --silent --show-error -o /dev/null -w '%{http_code}' -X POST "$under/api/snowfall/handoff")" = "401" ]
+          [ "$(curl --silent --show-error -o /dev/null -w '%{http_code}' -X POST "$snow/v1/auth/underworld/handoff" -H 'Origin: https://untrusted.example' --data-urlencode 'assertion=not-valid')" = "403" ]
+          echo "PASS: v2.9.4a public staging health and connected identities UI"
+          echo "PASS: unauthenticated progress hidden and Underworld QA gate retained"
+          echo "PASS: no live Discord OAuth client secret required for smoke test"
