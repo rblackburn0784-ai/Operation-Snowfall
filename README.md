@@ -1,3 +1,7 @@
+# v2.9.2a — PostgreSQL Compatibility Fix
+
+Psycopg non-returning statements now work with Snowfall's sqlite-style row adapter. See [release notes](docs/RELEASE_v2.9.2a.md). PostgreSQL remains opt-in; the live Railway bot is unaffected until explicitly redeployed and cut over.
+
 # ❄️ Operation Snowfall v2.9.1 — Railway Hosting Foundation
 
 v2.9.1 adds a safe Railway Discord-worker deployment entrypoint with persistent SQLite storage, environment-based configuration, startup backups and deployment tests. Gameplay, graphics and prize rules are unchanged. The web frontend and Underworld integration come later.

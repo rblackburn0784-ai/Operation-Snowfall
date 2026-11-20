@@ -66,7 +66,14 @@ def _sqlite_value(value):
 
 
 def compatible_row_factory(cursor):
-    cols = tuple(field.name for field in cursor.description)
+    """Return sqlite-like rows, including for commands with no result columns.
+
+    Psycopg invokes the factory after INSERT/UPDATE/DELETE and ON CONFLICT
+    DO NOTHING even though their cursor.description is None. The callable
+    is not normally used for those commands, but must still be constructible.
+    """
+    description = cursor.description
+    cols = tuple(field.name for field in description) if description else ()
     return lambda values: CompatibleRow(cols, values)
 
 

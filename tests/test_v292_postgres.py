@@ -3,11 +3,12 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import os
+from types import SimpleNamespace
 
 import pytest
 
 from snowfall.db.postgres import (
-    CompatibleRow, PostgresStore, make_store, translate_sql,
+    CompatibleRow, PostgresStore, compatible_row_factory, make_store, translate_sql,
 )
 from snowfall.db.migrate_postgres import (
     MigrationError, convert_table_ddl, migrate, verify,
@@ -60,6 +61,25 @@ def test_sqlite_compatible_row():
     assert row.keys() == ['name', 'score']
     assert dict(row) == {'name': 'Player', 'score': 42}
     assert tuple(row) == ('Player', 42)
+
+
+def test_row_factory_supports_dml_with_no_result_columns():
+    """Psycopg constructs row factories for command-only statements too.
+
+    This covers the exact failure in the v2.9.2 PostgreSQL CI job:
+    INSERT ... ON CONFLICT DO NOTHING leaves cursor.description as None.
+    """
+    no_result = SimpleNamespace(description=None)
+    factory = compatible_row_factory(no_result)
+    record = factory(())
+    assert tuple(record) == () and record.keys() == []
+    assert record.items() == {}.items()
+
+    with_result = SimpleNamespace(description=(SimpleNamespace(name='name'),
+                                               SimpleNamespace(name='score')))
+    record = compatible_row_factory(with_result)(('Snow Dude', 42))
+    assert record[0] == record['name'] == 'Snow Dude'
+    assert record[1] == record['score'] == 42
 
 
 def test_schema_translation_supports_identity_and_big_discord_ids():
