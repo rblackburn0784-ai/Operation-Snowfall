@@ -122,8 +122,8 @@ class FakeIdentity:
         return [{"provider": "underworld", "subject": "character-1"}]
 
     def new_oauth_state(self, mode, token, verifier):
-        self.states["unique-state"] = (mode, token, verifier)
-        return "unique-state"
+        self.states["unique-state-value-123456789"] = (mode, token, verifier)
+        return "unique-state-value-123456789"
 
     def consume_oauth_state(self, state, token):
         mode, original, verifier = self.states.pop(state)
