@@ -23,6 +23,7 @@ from pydantic import BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
 
 from snowfall.db.postgres import PostgresStore
+from snowfall.platform.assertions import AssertionError as UnderworldAssertionError
 from snowfall.platform.assertions import parse_underworld_assertion
 from snowfall.platform.game import SharedGame
 from snowfall.platform.identity import IdentityConflict, IdentityError, IdentityRepository
@@ -166,6 +167,12 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
     async def identity_conflict(request, exc):
         from fastapi.responses import JSONResponse
         return JSONResponse({"detail": str(exc)}, status_code=409)
+
+    @app.exception_handler(UnderworldAssertionError)
+    async def underworld_assertion_invalid(request, exc):
+        from fastapi.responses import JSONResponse
+        return JSONResponse({"detail": "Invalid or expired Underworld assertion"},
+                            status_code=401)
 
     @app.exception_handler(IdentityError)
     async def identity_invalid(request, exc):
