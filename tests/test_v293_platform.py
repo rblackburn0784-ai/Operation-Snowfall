@@ -1,7 +1,7 @@
 """v2.9.3 API contract and platform-neutral gameplay without external credentials."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 import time
 from urllib.parse import parse_qs, urlsplit
 
@@ -15,7 +15,7 @@ from snowfall.platform.assertions import (
     AssertionError as BadAssertion, parse_underworld_assertion, sign_underworld_assertion,
 )
 from snowfall.platform.game import SharedGame
-from snowfall.platform.identity import IdentityConflict, Session
+from snowfall.platform.identity import Session
 
 
 SECRET = "testing-only-assertion-secret-with-40-bytes"

@@ -95,7 +95,8 @@ def test_real_postgres_platform_principals_sessions_and_shared_scores(tmp_path):
         with pytest.raises(IdentityConflict):
             identities.link_discord(new_id, "101")
         # Identity tables do not alter the imported game tables.
-        with pytest.raises(MigrationError, match='differs'):\n            verify(source, test_dsn)
+        with pytest.raises(MigrationError, match='differs'):
+            verify(source, test_dsn)
     finally:
         with psycopg.connect(admin_dsn, autocommit=True) as admin:
             admin.execute("""SELECT pg_terminate_backend(pid) FROM pg_stat_activity
