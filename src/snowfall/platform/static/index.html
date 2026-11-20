@@ -78,7 +78,19 @@
               <div class="stat"><span>✦ SNOWFLAKES</span><strong id="flakeValue">—</strong><small>Spend in the winter market</small></div>
               <div class="stat"><span>★ TOTAL POINTS</span><strong id="scoreValue">—</strong><small>Official shared score</small></div>
             </div>
-            <div class="quick-actions"><button class="button button-gold" data-nav="combat">Throw a snowball ↗</button><button class="button button-outline" data-nav="boss">Attack Snow Don ↗</button><button class="button button-outline" data-nav="shop">Browse market ↗</button><button id="linkDiscord" class="button button-outline hidden" type="button">Link Discord account</button></div>
+            <div class="quick-actions"><button class="button button-gold" data-nav="combat">Throw a snowball ↗</button><button class="button button-outline" data-nav="boss">Attack Snow Don ↗</button><button class="button button-outline" data-nav="shop">Browse market ↗</button></div>
+          </div>
+          <div id="linkedIdentity" class="side-card hidden" style="margin-top:1.2rem">
+            <p class="eyebrow">YOUR CONNECTED IDENTITIES</p>
+            <h3>One character. Two platforms.</h3>
+            <p id="providerStatus" role="status">Checking linked accounts…</p>
+            <p>Character ID: <code id="canonicalPlayerId">—</code></p>
+            <p id="progressSummary">Your verified shared progress will appear here.</p>
+            <div class="quick-actions">
+              <button id="linkDiscord" class="button button-outline" type="button">Link Discord account</button>
+              <button id="refreshShared" class="button button-outline" type="button">Verify progress ↻</button>
+            </div>
+            <p class="subtle" style="margin-top:.8rem">This staging database is independent of the live Discord Christmas event. Only linked QA accounts can share its progress.</p>
           </div>
           <div class="section-heading compact"><div><p class="eyebrow">THE DAILY BRIEFING</p><h2>Word on the street</h2></div></div>
           <div class="briefing">

@@ -55,6 +55,8 @@ SCHEMA = (
               OR (provider='discord' AND account_subject IS NULL)))""",
     """CREATE INDEX IF NOT EXISTS idx_snowfall_identity_links_player
        ON snowfall_identity_links(player_id)""",
+    """CREATE UNIQUE INDEX IF NOT EXISTS uq_snowfall_identity_one_discord
+       ON snowfall_identity_links(player_id) WHERE provider='discord'""",
     """CREATE TABLE IF NOT EXISTS snowfall_identity_nonces (
        nonce_hash TEXT PRIMARY KEY, expires_at TIMESTAMPTZ NOT NULL)""",
     """CREATE TABLE IF NOT EXISTS snowfall_identity_sessions (
@@ -203,6 +205,15 @@ class IdentityRepository:
                     if previous[0] != player_id:
                         raise IdentityConflict("Discord account already belongs to another player")
                     return
+                # A principal can have at most one Discord login. Linking a
+                # different verified Discord ID must never grant a second
+                # account access to the same character and stored inventory.
+                cur.execute("""SELECT subject FROM snowfall_identity_links
+                               WHERE provider='discord' AND player_id=%s""",
+                            (player_id,))
+                occupied = cur.fetchone()
+                if occupied is not None:
+                    raise IdentityConflict("This Snowfall character already has a Discord account linked")
                 if int(user_id) != player_id:
                     cur.execute("SELECT 1 FROM players WHERE discord_user_id=%s LIMIT 1",
                                 (int(user_id),))

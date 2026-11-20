@@ -62,6 +62,16 @@ class DiscordBridgeGateway:
     def inventory(self, discord_id: int):
         return self.game.inventory(self.principal(discord_id))
 
+    def progress(self, discord_id: int):
+        return self.game.progress(self.principal(discord_id))
+
+    def craft(self, discord_id: int, item: str, interaction_id: int):
+        """Crafting uses the official shared economy transaction and ID."""
+        if item not in ("cocoa", "fort", "mittens", "bomb"):
+            raise ValueError("Use cocoa, fort, mittens or bomb")
+        return self.game.craft(self.principal(discord_id), item,
+                               "discord-bridge:" + str(interaction_id))
+
     def leaderboard(self):
         return self.game.leaderboard(limit=10)
 
@@ -167,6 +177,41 @@ class SnowBridgeGroup(app_commands.Group):
             await interaction.followup.send("Siege damage: " +
                 str(r["damage"]) + ".", ephemeral=True)
 
+    @app_commands.command(name="progress", description="Compare your official web and Discord progress")
+    async def progress(self, interaction: discord.Interaction):
+        result = await self._action(interaction, self.gateway.progress)
+        if result is None:
+            return
+        if not result["registered"]:
+            await interaction.followup.send(
+                "Link your account and register your Snowfall character first.",
+                ephemeral=True)
+            return
+        name = discord.utils.escape_markdown(result["mr_username"])
+        await interaction.followup.send(
+            "❄️ **Shared progress — " + name + "**\n" +
+            "Canonical player: `" + result["player_id"] + "`\n" +
+            "Score: **" + str(result["score"]) + "** · " +
+            "Snowballs: **" + str(result["snowballs"]) + "** · " +
+            "Snowflakes: **" + str(result["snowflakes"]) + "**\n" +
+            "Snow Don: **" + str(result["boss_hp"]) + "/" +
+            str(result["boss_max_hp"]) + " HP**\n" +
+            "These figures use the same database as " + WEB_URL,
+            ephemeral=True)
+
+    @app_commands.command(name="craft", description="Craft equipment in the shared winter economy")
+    @app_commands.choices(item=[
+        app_commands.Choice(name=name, value=name)
+        for name in ("cocoa", "fort", "mittens", "bomb")
+    ])
+    async def craft(self, interaction: discord.Interaction, item: str):
+        result = await self._action(interaction, self.gateway.craft, item, interaction.id)
+        if result is not None:
+            await interaction.followup.send(
+                "⚒️ " + str(result["text"]) +
+                (" (replayed)" if result["repeated"] else ""),
+                ephemeral=True)
+
     @app_commands.command(name="inventory", description="Inspect shared game equipment")
     async def inventory(self, interaction: discord.Interaction):
         r = await self._action(interaction, self.gateway.inventory)
@@ -231,8 +276,12 @@ def main():
     store = PostgresStore(dsn)
     store.initialize()
     store.season("web-qa-2026")
+    # Both QA entry points must apply identical starter-resource and
+    # fictional-target behaviour, not accidentally diverge by platform.
+    from snowfall.platform.staging import StagingGame
+    shared = StagingGame(SharedGame(store, "web-qa-2026"))
     DiscordBridgeBot(DiscordBridgeGateway(
-        identity, SharedGame(store, "web-qa-2026")), guild_id).run(
+        identity, shared), guild_id).run(
             token, log_handler=None)
 
 

@@ -147,7 +147,7 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         shared.store.season(cfg.season_key)
         yield
 
-    app = FastAPI(title="Operation Snowfall Shared API", version="2.9.4",
+    app = FastAPI(title="Operation Snowfall Shared API", version="2.9.4a",
                   lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
     if cfg.cors_origins:
         app.add_middleware(CORSMiddleware, allow_origins=list(cfg.cors_origins),
@@ -206,7 +206,7 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
 
     @app.get("/v1/health")
     def health():
-        return {"status": "ok", "version": "2.9.4", "backend": "postgres",
+        return {"status": "ok", "version": "2.9.4a", "backend": "postgres",
                 "season": cfg.season_key}
 
     @app.post("/v1/auth/underworld")
@@ -307,8 +307,15 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
             raise HTTPException(502, "Discord identity exchange failed") from exc
         if mode == "link":
-            identities.link_discord(principal, user_id)
-            return RedirectResponse(cfg.public_base_url + "/?linked=discord", status_code=303)
+            try:
+                identities.link_discord(principal, user_id)
+            except IdentityConflict:
+                # No silent transfer of existing profiles. Avoid returning a
+                # JSON error page from an OAuth browser redirect.
+                return RedirectResponse(cfg.public_base_url + "/?discord=conflict",
+                                        status_code=303)
+            return RedirectResponse(cfg.public_base_url + "/?linked=discord",
+                                    status_code=303)
         resolved = identities.resolve_discord(user_id)
         token, _ = identities.new_session(resolved)
         response = RedirectResponse(cfg.public_base_url + "/?login=ok", status_code=303)
@@ -322,6 +329,11 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
     @app.get("/v1/game/me")
     def me(principal: int = Depends(player)):
         return jsonable_encoder(shared.me(principal))
+
+    @app.get("/v1/game/progress")
+    def progress(principal: int = Depends(player)):
+        """Same authoritative snapshot consumed by /snowbridge progress."""
+        return jsonable_encoder(shared.progress(principal))
 
     @app.post("/v1/game/register")
     def register(body: RegisterBody, principal: int = Depends(writer)):

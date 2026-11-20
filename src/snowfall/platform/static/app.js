@@ -1,6 +1,6 @@
 /* Operation Snowfall v2.9.3a — same-origin, zero-dependency web client. */
 "use strict";
-const S={session:null,me:null,world:null,raid:null,shop:null,items:[],board:[],cities:[],targets:[],config:null,busy:false};
+const S={session:null,me:null,world:null,raid:null,shop:null,items:[],board:[],cities:[],targets:[],config:null,progress:null,busy:false};
 const el=id=>document.getElementById(id);
 const txt=(id,v)=>{if(el(id))el(id).textContent=v==null?"—":String(v)};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -42,8 +42,21 @@ function showMe(){
  el("loggedOutNotice").classList.toggle("hidden",signed);
  el("registration").classList.toggle("hidden",!signed||!!S.me?.registered);
  el("playerDashboard").classList.toggle("hidden",!signed||!S.me?.registered);
- el("linkDiscord").classList.toggle("hidden",!signed||!S.config?.discord_oauth);
- if(!S.me?.registered)return;
+ el("linkedIdentity").classList.toggle("hidden",!signed);
+ const links=S.session?.links||[];
+ const hasDiscord=links.some(x=>x.provider==="discord");
+ const hasUnderworld=links.some(x=>x.provider==="underworld");
+ txt("canonicalPlayerId",S.session?.player_id);
+ txt("providerStatus",(hasUnderworld?"Underworld connected":"Underworld not linked")+
+     " · "+(hasDiscord?"Discord connected":"Discord not linked"));
+ el("linkDiscord").disabled=hasDiscord||!S.config?.discord_oauth;
+ el("linkDiscord").textContent=hasDiscord?"✓ Discord linked":S.config?.discord_oauth?
+      "Link Discord account":"Discord linking not configured";
+ if(!S.me?.registered){
+   txt("progressSummary","Register this character to compare your official game progress.");
+   return;
+ }
+ renderProgress();
  txt("welcomeName",S.me.mr_username);txt("welcomeCity",S.me.city+" · Day "+(S.me.day||"—"));
  txt("ammoValue",S.me.resources?.snowballs);txt("warmthValue",S.me.resources?.warmth);
  txt("flakeValue",S.me.resources?.snowflakes);txt("scoreValue",fmt(S.me.score));
@@ -51,6 +64,13 @@ function showMe(){
  txt("ammoSub",S.me.resources?.next_snowball_at?"Regenerating snowballs":"Ready for action");
  txt("phaseValue",S.me.phase.toUpperCase());txt("sideStatus",S.me.phase.toUpperCase());
  txt("sideStatusDetail","Day "+(S.me.day||"—")+" of 7 · "+S.me.city);
+}
+function renderProgress(){
+ const p=S.progress;
+ if(!p?.registered){txt("progressSummary","Loading official shared progress…");return}
+ txt("progressSummary","Official score: "+fmt(p.score)+" · "+fmt(p.snowballs)+
+     " snowballs · "+fmt(p.snowflakes)+" snowflakes · Snow Don "+
+     fmt(p.boss_hp)+"/"+fmt(p.boss_max_hp)+" HP.");
 }
 function showBoss(){
  let max=Number(S.world?.boss_max_hp??S.raid?.max_hp??0), hp=Number(S.world?.boss_hp??S.raid?.remaining_hp??0);
@@ -89,14 +109,15 @@ async function loadPublic(){
  showBoard();showCities();showBoss();showShop();
 }
 async function loadPrivate(){
- if(!S.session){S.me=null;S.world=null;S.shop=null;S.targets=[];showMe();return}
+ if(!S.session){S.me=null;S.world=null;S.shop=null;S.targets=[];S.progress=null;showMe();return}
  try{S.me=await get("/v1/game/me")}
- catch(e){if(e.status===401){S.session=null;S.me=null;showMe();return}throw e}
+ catch(e){if(e.status===401){S.session=null;S.me=null;S.progress=null;showMe();return}throw e}
  if(S.me.registered){
-  const results=await Promise.allSettled([get("/v1/game/world"),get("/v1/game/wardrobe"),get("/v1/game/targets")]);
+  const results=await Promise.allSettled([get("/v1/game/world"),get("/v1/game/wardrobe"),get("/v1/game/targets"),get("/v1/game/progress")]);
   if(results[0].status==="fulfilled")S.world=results[0].value;
   if(results[1].status==="fulfilled")S.shop=results[1].value;
   if(results[2].status==="fulfilled")S.targets=results[2].value.targets||[];
+  if(results[3].status==="fulfilled")S.progress=results[3].value;
  }
  showMe();showTargets();showBoss();showShop();
 }
@@ -128,6 +149,15 @@ function bind(){
   e.preventDefault();
   try{S.session=await post("/v1/auth/underworld",{assertion:el("underworldAssertion").value},false);el("underworldAssertion").value="";closeAuth();await refresh();notice("Underworld assertion verified.","success")}
   catch(x){notice(x.message,"error")}
+ };
+ el("refreshShared").onclick=async()=>{
+  if(!S.session)return authModal();
+  try{
+   S.session=await get("/v1/auth/session");
+   S.progress=await get("/v1/game/progress");
+   showMe();
+   notice("Progress verified against the authoritative PostgreSQL game.","success");
+  }catch(e){notice(e.message,"error")}
  };
  el("linkDiscord").onclick=async()=>{
   if(!S.session)return authModal();
@@ -179,7 +209,11 @@ async function init(){
   txt("sideStatus",(health.status||"unknown").toUpperCase());txt("sideStatusDetail","Isolated staging · "+cfg.season);
   await resume();
   if(location.search.includes("login=ok"))notice("Discord login successful.","success");
-  if(location.search.includes("linked=discord"))notice("Discord account linked.","success");
+  if(location.search.includes("linked=discord"))notice("Discord account linked to this character.","success");
+  if(location.search.includes("discord=conflict"))
+    notice("That Discord account already belongs to another character or has separate progress. Nothing was merged.","error");
+  if(location.search.includes("linked=discord")||location.search.includes("discord=conflict"))
+    history.replaceState(null,"",location.pathname);
  }catch(e){txt("sideStatus","OFFLINE");txt("sideStatusDetail",e.message);notice("Staging service unavailable: "+e.message,"error")}
 }
 document.addEventListener("DOMContentLoaded",init);

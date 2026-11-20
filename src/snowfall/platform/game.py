@@ -63,6 +63,35 @@ class SharedGame:
         })
         return response
 
+    def progress(self, player_id: int, *, now=None) -> dict:
+        """Cross-platform comparison: one canonical game's persistent values.
+
+        This intentionally queries the same engines as the browser and
+        Discord adapters; there is no separate sync table or mirrored score.
+        Regeneration may change live resource values between requests.
+        """
+        now = now or _time()
+        profile = self.me(player_id, now=now)
+        if not profile["registered"]:
+            return {"player_id": str(player_id), "season": self.season,
+                    "registered": False}
+        items = self.inventory(player_id, now=now)
+        world = self.world(player_id, now=now)
+        return {
+            "player_id": str(player_id),
+            "season": self.season,
+            "registered": True,
+            "mr_username": profile["mr_username"],
+            "city": profile["city"],
+            "score": profile["score"],
+            "snowballs": profile["resources"]["snowballs"],
+            "snowflakes": items["snowflakes"],
+            "warmth": items["warmth"],
+            "inventory": items["quantities"],
+            "boss_hp": world["boss_hp"],
+            "boss_max_hp": world["boss_max_hp"],
+        }
+
     def leaderboard(self, *, limit=25) -> list[dict]:
         return [{"mr_username": name, "city": city, "player_id": str(player_id),
                  "score": score} for name, city, player_id, score in
