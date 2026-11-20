@@ -25,9 +25,12 @@ jobs:
           done
           grep -q '"version":"2.9.4"' /tmp/snow-health.json
           grep -q '"version":"0.3.5"' /tmp/under-health.json
-          curl -fsS "$snow/" | grep -q "Operation Snowfall"
-          curl -fsS "$snow/static/app.js" | grep -q "linkDiscord"
-          curl -fsS "$snow/v1/web/config" | grep -q '"underworld_assertions":true'
+          curl -fsS "$snow/" > /tmp/snow-index.html
+          curl -fsS "$snow/static/app.js" > /tmp/snow-app.js
+          curl -fsS "$snow/v1/web/config" > /tmp/snow-config.json
+          grep -q "Operation Snowfall" /tmp/snow-index.html
+          grep -q "linkDiscord" /tmp/snow-app.js
+          grep -q '"underworld_assertions":true' /tmp/snow-config.json
           unauth=$(curl -sS -o /dev/null -w "%{http_code}" "$snow/v1/auth/session")
           [ "$unauth" = "401" ]
           guarded=$(curl -sS -o /dev/null -w "%{http_code}" "$under/")
