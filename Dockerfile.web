@@ -1,0 +1,9 @@
+# Optional standalone Snowfall API; deploy separately from the Discord worker.
+FROM python:3.12-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+WORKDIR /app
+COPY pyproject.toml README.md ./
+COPY src/ ./src/
+RUN python -m pip install --no-cache-dir ".[postgres,web]"
+# Do not enable API by default. Set SNOWFALL_API_ENABLED=1 after staging setup.
+CMD ["python", "-m", "snowfall.platform.api"]

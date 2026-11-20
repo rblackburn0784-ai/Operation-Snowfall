@@ -1,2 +1,2 @@
-"""Operation Snowfall — dedicated Discord Christmas combat game."""
-__version__ = "0.2.0"
+"""Operation Snowfall — shared game engine, Discord and optional web adapters."""
+__version__ = "2.9.3"
