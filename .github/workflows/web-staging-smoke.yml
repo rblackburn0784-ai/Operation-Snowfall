@@ -33,8 +33,13 @@ jobs:
           grep -q '"underworld_assertions":true' /tmp/snow-config.json
           unauth=$(curl -sS -o /dev/null -w "%{http_code}" "$snow/v1/auth/session")
           [ "$unauth" = "401" ]
-          guarded=$(curl -sS -o /dev/null -w "%{http_code}" "$under/")
-          [ "$guarded" = "401" ]
+          guarded=$(curl -sS -D /tmp/under-headers.txt -o /dev/null -w "%{http_code}" "$under/")
+          [ "$guarded" = "303" ]
+          grep -qi '^location: /__qa_access' /tmp/under-headers.txt
+          ! grep -qi '^www-authenticate:' /tmp/under-headers.txt
+          curl -fsS "$under/__qa_access" > /tmp/under-login.html
+          grep -q "Staging access code" /tmp/under-login.html
+          grep -q 'name="access_code"' /tmp/under-login.html
           protected=$(curl -sS -o /dev/null -w "%{http_code}" -X POST "$under/api/snowfall/handoff")
           [ "$protected" = "401" ]
           wrong_origin=$(curl -sS -o /dev/null -w "%{http_code}" -X POST \
@@ -43,5 +48,5 @@ jobs:
             --data-urlencode "assertion=not-a-valid-assertion")
           [ "$wrong_origin" = "403" ]
           echo "PASS: Snowfall v2.9.4 HTTPS and static UI"
-          echo "PASS: Underworld QA version and Basic login gate"
+          echo "PASS: Underworld QA protected mobile-friendly HTML access page"
           echo "PASS: unauthenticated and untrusted handoffs rejected"
