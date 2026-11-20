@@ -52,6 +52,9 @@ def test_real_postgres_platform_principals_sessions_and_shared_scores(tmp_path):
         identities.check()
         # External verified Discord login must reuse legacy game ID and score.
         assert identities.resolve_discord("101") == 101
+        assert identities.principal_for_discord("101") == 101
+        with pytest.raises(IdentityError):
+            identities.principal_for_discord("404")
         game = SharedGame(PostgresStore(test_dsn, practice_root=tmp_path), "shared-test")
         assert game.me(101, now=start)["score"] == 9
         # Underworld account has exactly one character, no second identity.
@@ -70,6 +73,7 @@ def test_real_postgres_platform_principals_sessions_and_shared_scores(tmp_path):
             identities.link_discord(new_id, "101")  # Existing player has history.
         identities.link_discord(new_id, "202")
         assert identities.resolve_discord("202") == new_id
+        assert identities.principal_for_discord("202") == new_id
         assert identities.links(new_id) == [
             {"provider": "discord", "subject": "202"},
             {"provider": "underworld", "subject": "character-5"},

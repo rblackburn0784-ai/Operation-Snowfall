@@ -14,7 +14,7 @@ from pathlib import Path
 import re
 import secrets
 from typing import Literal
-from urllib.parse import urlencode, urlsplit
+from urllib.parse import parse_qs, urlencode, urlsplit
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response
 from fastapi.encoders import jsonable_encoder
@@ -43,6 +43,7 @@ class APISettings:
     discord_redirect_uri: str = ""
     cookie_secure: bool = True
     cors_origins: tuple[str, ...] = ()
+    underworld_origin: str = ""
 
     @classmethod
     def from_env(cls, env=None):
@@ -84,8 +85,16 @@ class APISettings:
         secret = env.get("SNOWFALL_UNDERWORLD_ASSERTION_SECRET", "")
         if secret and len(secret.encode()) < 32:
             raise ValueError("Underworld assertion secret must contain at least 32 bytes")
+        underworld_origin = env.get("SNOWFALL_UNDERWORLD_TRUSTED_ORIGIN", "").rstrip("/")
+        if underworld_origin:
+            parsed = urlsplit(underworld_origin)
+            if (parsed.scheme != "https" or not parsed.hostname or parsed.username
+                    or parsed.password or parsed.path or parsed.query or parsed.fragment):
+                raise ValueError("Underworld origin must be a strict HTTPS origin")
+        if bool(secret) != bool(underworld_origin):
+            raise ValueError("Underworld integration requires both secret and trusted origin")
         return cls(dsn, season, base, secret, client_id, client_secret, redirect,
-                   not insecure, origins)
+                   not insecure, origins, underworld_origin)
 
 
 class UnderworldLogin(BaseModel):
@@ -137,7 +146,7 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         shared.store.season(cfg.season_key)
         yield
 
-    app = FastAPI(title="Operation Snowfall Shared API", version="2.9.3",
+    app = FastAPI(title="Operation Snowfall Shared API", version="2.9.4",
                   lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
     if cfg.cors_origins:
         app.add_middleware(CORSMiddleware, allow_origins=list(cfg.cors_origins),
@@ -190,7 +199,7 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
 
     @app.get("/v1/health")
     def health():
-        return {"status": "ok", "version": "2.9.3", "backend": "postgres",
+        return {"status": "ok", "version": "2.9.4", "backend": "postgres",
                 "season": cfg.season_key}
 
     @app.post("/v1/auth/underworld")
@@ -205,6 +214,38 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         cookie(response, token)
         return {"authenticated": True, "player_id": str(principal), "csrf": csrf,
                 "character_name": verified.character_name}
+
+    @app.post("/v1/auth/underworld/handoff")
+    async def underworld_handoff(request: Request):
+        """Cross-site form POST: never put a bearer assertion in a URL."""
+        if not cfg.underworld_secret or not cfg.underworld_origin:
+            raise HTTPException(503, "Underworld login is not configured")
+        if request.headers.get("origin") != cfg.underworld_origin:
+            raise HTTPException(403, "Untrusted Underworld login origin")
+        if request.headers.get("content-type", "").split(";")[0].strip() != (
+                "application/x-www-form-urlencoded"):
+            raise HTTPException(415, "Handoff requires an encoded form")
+        content = await request.body()
+        if len(content) > 8192:
+            raise HTTPException(413, "Handoff is too large")
+        try:
+            fields = parse_qs(content.decode("ascii"), strict_parsing=True,
+                              max_num_fields=2)
+        except (UnicodeDecodeError, ValueError) as exc:
+            raise HTTPException(400, "Malformed handoff") from exc
+        if set(fields) != {"assertion"} or len(fields["assertion"]) != 1:
+            raise HTTPException(400, "One assertion is required")
+        assertion = fields["assertion"][0]
+        if len(assertion) > 4096 or len(assertion) < 30:
+            raise HTTPException(400, "Invalid assertion length")
+        verified = parse_underworld_assertion(assertion, cfg.underworld_secret)
+        principal = identities.resolve_underworld(
+            verified.account_id, verified.character_id, verified.nonce, verified.expires_at,
+        )
+        token, _ = identities.new_session(principal)
+        response = RedirectResponse(cfg.public_base_url + "/", status_code=303)
+        cookie(response, token)
+        return response
 
     @app.get("/v1/auth/session")
     def session(request: Request):

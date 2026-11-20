@@ -173,6 +173,18 @@ class IdentityRepository:
                                VALUES('discord',%s,%s)""", (user_id, discord_id))
                 return discord_id
 
+    def principal_for_discord(self, user_id: str) -> int:
+        """Read-only bridge lookup. A Discord user cannot claim an arbitrary ID."""
+        if not user_id.isdecimal() or not 0 < int(user_id) < PLAYER_START:
+            raise IdentityError("Invalid verified Discord ID")
+        with self._connect() as conn:
+            row = conn.execute("""SELECT player_id FROM snowfall_identity_links
+                                  WHERE provider='discord' AND subject=%s""",
+                               (user_id,)).fetchone()
+        if row is None:
+            raise IdentityError("Link Discord on the Snowfall website before using /snowbridge")
+        return int(row[0])
+
     def link_discord(self, player_id: int, user_id: str) -> None:
         """No silent cross-account merging or takeover of legacy Discord scores."""
         if not user_id.isdecimal() or not 0 < int(user_id) < PLAYER_START:

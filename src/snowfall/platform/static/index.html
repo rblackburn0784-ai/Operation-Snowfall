@@ -78,7 +78,7 @@
               <div class="stat"><span>✦ SNOWFLAKES</span><strong id="flakeValue">—</strong><small>Spend in the winter market</small></div>
               <div class="stat"><span>★ TOTAL POINTS</span><strong id="scoreValue">—</strong><small>Official shared score</small></div>
             </div>
-            <div class="quick-actions"><button class="button button-gold" data-nav="combat">Throw a snowball ↗</button><button class="button button-outline" data-nav="boss">Attack Snow Don ↗</button><button class="button button-outline" data-nav="shop">Browse market ↗</button></div>
+            <div class="quick-actions"><button class="button button-gold" data-nav="combat">Throw a snowball ↗</button><button class="button button-outline" data-nav="boss">Attack Snow Don ↗</button><button class="button button-outline" data-nav="shop">Browse market ↗</button><button id="linkDiscord" class="button button-outline hidden" type="button">Link Discord account</button></div>
           </div>
           <div class="section-heading compact"><div><p class="eyebrow">THE DAILY BRIEFING</p><h2>Word on the street</h2></div></div>
           <div class="briefing">
@@ -143,7 +143,7 @@
       <form id="demoForm"><label>Staging access code<input id="demoCode" type="password" autocomplete="off" minlength="28" required placeholder="Private QA code"></label><label>Test player<select id="demoSlot"><option value="1">Test Player One</option><option value="2">Test Player Two</option><option value="3">Test Player Three</option></select></label><button type="submit" class="button button-gold full">Sign in to staging</button></form>
       <div class="auth-separator">OR CONNECT AN IDENTITY</div>
       <button id="discordLogin" class="button button-outline full">Continue with Discord</button>
-      <details class="underworld-auth"><summary>Underworld signed assertion (integration testing)</summary><form id="underworldForm"><textarea id="underworldAssertion" rows="3" placeholder="Paste a trusted backend-signed assertion only"></textarea><button class="button button-outline full" type="submit">Verify assertion</button></form></details>
+      <details class="underworld-auth"><summary>Use your existing Underworld character</summary><p>Sign in to Underworld and select the ❄ Snowfall button. The sites connect without sharing passwords. For development only, a signed test assertion can be submitted here.</p><form id="underworldForm"><textarea id="underworldAssertion" rows="3" placeholder="Paste a trusted backend-signed assertion only"></textarea><button class="button button-outline full" type="submit">Verify assertion</button></form></details>
       <p id="authHelp" class="subtle">No real Underworld passwords are accepted or stored here.</p>
     </div>
   </div>

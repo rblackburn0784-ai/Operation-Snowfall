@@ -42,6 +42,7 @@ function showMe(){
  el("loggedOutNotice").classList.toggle("hidden",signed);
  el("registration").classList.toggle("hidden",!signed||!!S.me?.registered);
  el("playerDashboard").classList.toggle("hidden",!signed||!S.me?.registered);
+ el("linkDiscord").classList.toggle("hidden",!signed||!S.config?.discord_oauth);
  if(!S.me?.registered)return;
  txt("welcomeName",S.me.mr_username);txt("welcomeCity",S.me.city+" · Day "+(S.me.day||"—"));
  txt("ammoValue",S.me.resources?.snowballs);txt("warmthValue",S.me.resources?.warmth);
@@ -127,6 +128,14 @@ function bind(){
   e.preventDefault();
   try{S.session=await post("/v1/auth/underworld",{assertion:el("underworldAssertion").value},false);el("underworldAssertion").value="";closeAuth();await refresh();notice("Underworld assertion verified.","success")}
   catch(x){notice(x.message,"error")}
+ };
+ el("linkDiscord").onclick=async()=>{
+  if(!S.session)return authModal();
+  try{
+   const r=await post("/v1/auth/discord/start",{mode:"link"},true);
+   if(!r.authorize_url?.startsWith("https://discord.com/"))throw Error("Unexpected OAuth destination");
+   location.assign(r.authorize_url);
+  }catch(e){notice(e.message,"error")}
  };
  el("discordLogin").onclick=async()=>{
   try{const r=await post("/v1/auth/discord/start",{mode:"login"},false);if(!r.authorize_url?.startsWith("https://discord.com/"))throw Error("Unexpected OAuth destination");location.assign(r.authorize_url)}
