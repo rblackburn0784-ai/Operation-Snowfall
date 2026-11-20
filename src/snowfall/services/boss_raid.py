@@ -105,7 +105,7 @@ class RaidEngine:
                      ON p.season_key=e.season_key
                     AND p.discord_user_id=e.attacker_id
                    WHERE e.season_key=? AND e.day=? AND e.kind='boss'
-                   ORDER BY e.rowid ASC""", (season, day)).fetchall()
+                   ORDER BY e.effective_at_utc ASC, e.happened_at_utc ASC, e.interaction_id ASC""", (season, day)).fetchall()
 
         # Mirror the actual saved shared HP. Damage totals are clamped by the
         # original boss attack transaction; echoes never enter shared totals.
@@ -169,7 +169,7 @@ class RaidEngine:
             row = con.execute("""SELECT interaction_id,kind,day,city,hit,damage,
                       points_awarded,theme_points,hp_after,max_hp,echo,final_blow
                 FROM pve_events WHERE season_key=? AND day=? AND kind='boss'
-                AND echo=0 AND final_blow=1 ORDER BY rowid ASC LIMIT 1""",
+                AND echo=0 AND final_blow=1 ORDER BY effective_at_utc ASC, happened_at_utc ASC, interaction_id ASC LIMIT 1""",
                 (season, day)).fetchone()
         if row is None:
             return None

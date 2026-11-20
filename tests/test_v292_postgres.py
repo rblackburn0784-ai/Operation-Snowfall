@@ -128,6 +128,30 @@ def test_real_postgres_offline_migration_and_gameplay(tmp_path):
     assert pg_store.season('pg-test-2026').planned_start == start
     assert len(pg_store.registrations('pg-test-2026')) == 1
     assert pg_store.ensure_season('pg-test-2026', start).planned_start == start
+    # PostgreSQL has no SQLite rowid pseudo-column. Both raid history and
+    # final-result replay must use deterministic persisted timestamps and IDs.
+    from snowfall.services.world import WorldEngine
+    from snowfall.services.boss_raid import RaidEngine
+
+    class FixedBossRoll:
+        def random(self):
+            return 0.0
+
+    pg_store.transition('pg-test-2026', 900, 'start', start, 'PostgreSQL staging QA')
+    WorldEngine(pg_store, FixedBossRoll()).tick('pg-test-2026', start)
+    with pg_store.connect() as con:
+        con.execute('UPDATE world_days SET boss_hp=12,boss_initial_hp=12 '
+                    'WHERE season_key=? AND day=1', ('pg-test-2026',))
+    final_boss = WorldEngine(pg_store, FixedBossRoll()).attack(
+        'pg-test-2026', 101, 'boss', 'pg-qa-final', start,
+    )
+    report = RaidEngine(pg_store).report('pg-test-2026', 1)
+    assert final_boss.final_blow and report.defeated and report.remaining_hp == 0
+    assert report.shared_damage == 12 and report.contributors == 1
+    assert RaidEngine(pg_store).final_result('pg-test-2026', 1).interaction_id == 'pg-qa-final'
+    assert WorldEngine(pg_store).attack(
+        'pg-test-2026', 101, 'boss', 'pg-qa-final', start,
+    ).repeated
     # One inserted Wire story must expose SQLite-compatible lastrowid.
     with pg_store.connect() as con:
         inserted = con.execute(
