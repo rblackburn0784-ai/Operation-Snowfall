@@ -62,6 +62,8 @@ def _source_snapshot(path: Path, season: str) -> None:
     store.transition(season, 999999, "start", started, "Isolated web QA fixture")
     for uid in QA_IDS:
         CombatEngine(store).ready(season, uid, started)
+    from snowfall.services.world import WorldEngine
+    WorldEngine(store).tick(season, started)
 
 
 def prepare_web_qa(env=None) -> str:
