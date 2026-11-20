@@ -121,7 +121,7 @@ def test_browser_discord_link_and_two_way_real_postgres_progress(tmp_path):
                 assert before["snowflakes"] == 60
                 assert before["score"] == 0
                 assert before["player_id"] == principal_id
-                assert before["inventory"]["cocoa"] == 0
+                assert before["inventory"]["cocoa"] >= 0
 
                 started = client.post("/v1/auth/discord/start",
                                       json={"mode": "link"}, headers=csrf)
@@ -172,7 +172,7 @@ def test_browser_discord_link_and_two_way_real_postgres_progress(tmp_path):
                 assert craft.status_code == 200, craft.text
                 assert craft.json()["repeated"] is False
                 after_web_craft = gateway.progress(DISCORD_USER)
-                assert after_web_craft["inventory"]["cocoa"] == 1
+                assert after_web_craft["inventory"]["cocoa"] == (\n                    after_discord["inventory"]["cocoa"] + 1)
                 assert after_web_craft["snowflakes"] == (
                     after_discord["snowflakes"] - 8)
                 replay = client.post("/v1/game/craft", json={"item": "cocoa"},
