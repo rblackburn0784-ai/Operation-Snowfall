@@ -1,7 +1,6 @@
 """v2.9.4: cross-origin Underworld login and verified Discord identity contracts."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import time
 
 from fastapi.testclient import TestClient
