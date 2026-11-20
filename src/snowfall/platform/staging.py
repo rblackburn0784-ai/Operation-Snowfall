@@ -150,7 +150,7 @@ class StagingGame:
                 VALUES(?) ON CONFLICT DO NOTHING RETURNING player_id""",
                 (player_id,)).fetchone()
             if marker:
-                con.execute("""UPDATE player_resources SET snowflakes=LEAST(100,snowflakes+60)
+                con.execute("""UPDATE player_resources SET snowflakes=MIN(100,snowflakes+60)
                     WHERE season_key=? AND discord_user_id=?""", (self.season, player_id))
         return result
 
