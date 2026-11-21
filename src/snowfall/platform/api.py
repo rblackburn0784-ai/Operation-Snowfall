@@ -181,7 +181,7 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         shared.store.season(cfg.season_key)
         yield
 
-    app = FastAPI(title="Operation Snowfall Shared API", version="2.9.5",
+    app = FastAPI(title="Operation Snowfall Shared API", version="2.9.5a",
                   lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
     if cfg.cors_origins:
         app.add_middleware(CORSMiddleware, allow_origins=list(cfg.cors_origins),
@@ -259,7 +259,7 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
 
     @app.get("/v1/health")
     def health():
-        return {"status": "ok", "version": "2.9.5", "backend": "postgres",
+        return {"status": "ok", "version": "2.9.5a", "backend": "postgres",
                 "season": cfg.season_key}
 
     @app.get("/v1/ready")

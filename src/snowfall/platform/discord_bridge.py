@@ -109,7 +109,10 @@ class SnowBridgeGroup(app_commands.Group):
         except ValueError as exc:
             await interaction.followup.send("⚠️ " + str(exc), ephemeral=True)
         except Exception:
-            await interaction.followup.send("Staging gameplay unavailable.", ephemeral=True)
+            await interaction.followup.send(
+                "⚠️ Shared game temporarily unavailable. Your action's outcome "
+                "may be uncertain. Check /snowbridge progress before trying again.",
+                ephemeral=True)
         return None
 
     @app_commands.command(name="link", description="How to link Discord and Underworld")

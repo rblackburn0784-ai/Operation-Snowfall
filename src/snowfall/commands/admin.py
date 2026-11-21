@@ -59,14 +59,18 @@ class SnowAdminGroup(app_commands.Group):
                         self.settings.staff_role_ids, roles):
             await interaction.response.send_message("This command is restricted to event staff.", ephemeral=True)
             return False
-        if self._shared_qa(interaction) and getattr(
-                getattr(interaction, "command", None), "name", "") in {
-                    "approve-launch", "export-prizes", "prize-status",
-                    "finalize", "publish-leaderboards", "announce-day",
-                }:
+        # QA exposes read-only diagnostics only. The old host UI includes
+        # test-day resets, event dates, player reviews and score adjustments,
+        # all of which must stay unavailable to the shared canonical season.
+        command = getattr(getattr(interaction, "command", None), "name", "")
+        if self._shared_qa(interaction) and command not in {
+            "status", "test-status", "launch-check",
+        }:
             await interaction.response.send_message(
-                "🧪 Official launch, prize and public broadcast commands are "
-                "disabled while the bot is connected to QA.", ephemeral=True)
+                "🧪 This host operation is disabled in shared QA. "
+                "Use /snowadmin launch-check or /snowadmin status for "
+                "read-only checks; no scores, event dates or prizes were changed.",
+                ephemeral=True)
             return False
         return True
 

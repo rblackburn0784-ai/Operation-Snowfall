@@ -31,13 +31,16 @@ def _host(settings, user_id: int) -> bool:
 
 
 def _mode(settings) -> str:
-    return "🧪 TEST DAY — NO PRIZES" if getattr(settings, "mode", "production") == "practice" else "❄️ LIVE EVENT"
+    if getattr(settings, "season_key", "") == "web-qa-2026":
+        return "🧪 SHARED QA — NO REAL PRIZES"
+    return ("🧪 TEST DAY — NO PRIZES" if getattr(settings, "mode", "production") == "practice"
+            else "❄️ LIVE EVENT")
 
 
 def _embed(title: str, description: str, settings, *, warning: bool = False) -> discord.Embed:
     colour = discord.Colour.orange() if warning else discord.Colour.from_rgb(106, 179, 219)
     card = discord.Embed(title=title, description=description, colour=colour)
-    card.set_footer(text=f"{_mode(settings)} • v0.2.8 • Private navigation")
+    card.set_footer(text=f"{_mode(settings)} • v2.9.5a • Private navigation")
     return card
 
 
@@ -66,6 +69,12 @@ class MenuView(discord.ui.View):
                                                     ephemeral=True)
             return False
         if not await require_linked_discord(interaction):
+            return False
+        if self.admin_context and getattr(
+                getattr(interaction.client, "store", None), "unified_discord", False):
+            await interaction.response.send_message(
+                "Shared QA host panels are disabled. Use /snowadmin launch-check "
+                "for read-only diagnostics.", ephemeral=True)
             return False
         if self.host_only and not _host(self.settings, interaction.user.id):
             await interaction.response.send_message("Only configured hosts can use this panel.", ephemeral=True)
