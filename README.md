@@ -1,3 +1,9 @@
+# v2.9.4c — Fix Discord-first Linking Conflicts (QA)
+
+A Discord-only Snowfall identity created by **Continue with Discord** can now be linked to its verified Underworld character *only when the Discord identity has no gameplay or other links*. Existing game progress is never merged or discarded. Existing browser sessions for the empty Discord-only identity are revoked, and the action is audited.
+
+[Release notes and QA steps](docs/RELEASE_v2.9.4c.md)
+
 # v2.9.4b — One Discord Bot, Shared Underworld Progress (QA)
 
 The existing Operation Snowfall Discord application can now run the original `/snow` menus against the verified cross-platform staging PostgreSQL game, while `/snowbridge` checks linked progress **in the same process and guild**. No second bot or token is needed. This is an opt-in QA feature branch: the live Railway bot remains on its original SQLite configuration until a controlled cutover. Real Discord linking requires enabling OAuth on the **existing** application.
