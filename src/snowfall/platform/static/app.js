@@ -1,6 +1,6 @@
-/* Operation Snowfall v2.9.3a — same-origin, zero-dependency web client. */
+/* Operation Snowfall v2.9.4d — verified Discord character replacement. */
 "use strict";
-const S={session:null,me:null,world:null,raid:null,shop:null,items:[],board:[],cities:[],targets:[],config:null,progress:null,busy:false};
+const S={session:null,me:null,world:null,raid:null,shop:null,items:[],board:[],cities:[],targets:[],config:null,progress:null,discard:null,busy:false};
 const el=id=>document.getElementById(id);
 const txt=(id,v)=>{if(el(id))el(id).textContent=v==null?"—":String(v)};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -43,6 +43,9 @@ function showMe(){
  el("registration").classList.toggle("hidden",!signed||!!S.me?.registered);
  el("playerDashboard").classList.toggle("hidden",!signed||!S.me?.registered);
  el("linkedIdentity").classList.toggle("hidden",!signed);
+ if(!signed||S.session?.links?.some(x=>x.provider==="discord")){
+   el("discordDiscardPanel").classList.add("hidden");S.discard=null;
+ }
  const links=S.session?.links||[];
  const hasDiscord=links.some(x=>x.provider==="discord");
  const hasUnderworld=links.some(x=>x.provider==="underworld");
@@ -121,6 +124,37 @@ async function loadPrivate(){
  }
  showMe();showTargets();showBoss();showShop();
 }
+function updateDiscardSubmit(){
+ el("discardConfirm").disabled=!S.discard||!el("discardAcknowledge").checked||
+     el("discardPhrase").value!=="DISCARD DISCORD CHARACTER"||S.busy;
+}
+function hideDiscardOffer(){
+ el("discordDiscardPanel").classList.add("hidden");S.discard=null;
+ el("discardPhrase").value="";el("discardAcknowledge").checked=false;
+ updateDiscardSubmit();
+}
+async function loadDiscardOffer(){
+ const offer=await get("/v1/auth/discord/discard/preview");
+ if(!S.session?.links?.some(x=>x.provider==="underworld"))throw Error("Sign in with Underworld to keep the correct character.");
+ S.discard=offer;
+ txt("discardKeepName",offer.keep.name);
+ txt("discardKeepDetails",(offer.keep.city?offer.keep.city+" · ":"")+
+    "Your Underworld player and all its progress are retained. Player ID: "+offer.keep.player_id);
+ txt("discardOldName",offer.discard.name);
+ txt("discardOldDetails",offer.discard.city+" · "+fmt(offer.discard.score)+" points · "+
+    fmt(offer.discard.snowflakes)+" Snowflakes · "+
+    fmt(offer.discard.snowballs)+" snowballs · "+fmt(offer.discard.warmth)+" warmth · "+
+    fmt(offer.discard.cosmetic_unlocks)+" cosmetics unlocked · "+
+    fmt(offer.discard.pvp_attacks)+" PvP attacks · "+fmt(offer.discard.boss_attacks)+" NPC attacks.");
+ const owned=Object.entries(offer.discard.inventory||{}).filter(([,qty])=>qty>0)
+     .map(([name,qty])=>name+" ×"+qty);
+ txt("discardInventory","Inventory that will not transfer: "+(owned.length?owned.join(", "):"no stored items"));
+ txt("discardWarning",offer.warning);
+ el("discardPhrase").value="";el("discardAcknowledge").checked=false;
+ el("discordDiscardPanel").classList.remove("hidden");
+ updateDiscardSubmit();
+ notice("Choose carefully: your separate Discord character will be retired only if you confirm.","error");
+}
 async function refresh(){await Promise.all([loadPublic(),loadPrivate()])}
 async function resume(){try{S.session=await get("/v1/auth/session")}catch{S.session=null}await refresh()}
 async function act(fn){
@@ -158,6 +192,31 @@ function bind(){
    showMe();
    notice("Progress verified against the authoritative PostgreSQL game.","success");
   }catch(e){notice(e.message,"error")}
+ };
+ el("discardAcknowledge").onchange=updateDiscardSubmit;
+ el("discardPhrase").oninput=updateDiscardSubmit;
+ el("discardForm").onsubmit=e=>{
+  e.preventDefault();
+  if(el("discardConfirm").disabled||!S.discard)return;
+  act(async()=>{
+   const result=await post("/v1/auth/discord/discard/confirm",{
+     acknowledged_loss:el("discardAcknowledge").checked,
+     confirmation:el("discardPhrase").value
+   },true);
+   hideDiscardOffer();
+   S.session=await get("/v1/auth/session");
+   notice("Discord login now opens your Underworld character. "+
+     "The separate Discord character was retired without transferring its progress.","success");
+   if(!result.linked)throw Error("Replacement was not verified");
+  });
+ };
+ el("discardCancel").onclick=()=>{
+  if(!S.session)return hideDiscardOffer();
+  act(async()=>{
+   await post("/v1/auth/discord/discard/cancel",{},true);
+   hideDiscardOffer();
+   notice("Cancelled. Both characters are unchanged.");
+  });
  };
  el("linkDiscord").onclick=async()=>{
   if(!S.session)return authModal();
@@ -210,6 +269,10 @@ async function init(){
   await resume();
   if(location.search.includes("login=ok"))notice("Discord login successful.","success");
   if(location.search.includes("linked=discord"))notice("Discord account linked to this character.","success");
+  if(location.search.includes("discord=discard-offer")){
+    try{await loadDiscardOffer()}
+    catch(e){notice("Cannot load Discord character confirmation: "+e.message,"error")}
+  }
   if(location.search.includes("discord=conflict")){
     const reason=new URLSearchParams(location.search).get("reason")||"manual-review";
     const explanations={
@@ -226,7 +289,7 @@ async function init(){
     if(details){details.textContent=explanation;details.classList.remove("hidden")}
     notice(explanation,"error");
   }
-  if(location.search.includes("linked=discord")||location.search.includes("discord=conflict"))
+  if(location.search.includes("linked=discord")||location.search.includes("discord=conflict")||location.search.includes("discord=discard-offer"))
     history.replaceState(null,"",location.pathname);
  }catch(e){txt("sideStatus","OFFLINE");txt("sideStatusDetail",e.message);notice("Staging service unavailable: "+e.message,"error")}
 }
