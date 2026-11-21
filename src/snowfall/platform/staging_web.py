@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from threading import Lock
 from urllib.parse import urlsplit
+import mimetypes
 import os
 import re
 import secrets
@@ -66,7 +67,9 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None) -> Fa
     @app.get("/v1/web/config")
     def config():
         return {
-            "version": "2.9.6", "staging": True,
+            "version": "2.9.6a", "staging": True,
+            "branding": {"banner": (ASSETS / "snowfall-site-banner.webp").is_file(),
+                         "icon": (ASSETS / "snowfall-site-icon.webp").is_file()},
             "season": cfg.season_key,
             "demo_enabled": True,
             "discord_oauth": bool(cfg.discord_client_id),
@@ -106,11 +109,17 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None) -> Fa
 
     # Reuse the artwork already bundled with the existing Discord bot. Mount
     # only the public art directory; no user data or game-write endpoint.
+    # Slim Linux images may omit the system WebP MIME mapping. Register it
+    # explicitly so both the original art and new branding decode in browsers.
+    mimetypes.add_type("image/webp", ".webp", strict=True)
     app.mount("/art", StaticFiles(directory=str(ART)), name="snowfall-art")
     app.mount("/static", StaticFiles(directory=str(ASSETS)), name="snowfall-static")
 
     @app.get("/favicon.ico", include_in_schema=False)
     def favicon():
+        icon = ASSETS / "snowfall-site-icon.webp"
+        if icon.is_file():
+            return FileResponse(icon, media_type="image/webp")
         return FileResponse(ASSETS / "favicon.svg", media_type="image/svg+xml")
 
     @app.get("/")
@@ -125,6 +134,10 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None) -> Fa
 def create_staging_app(env=None) -> FastAPI:
     env = dict(os.environ if env is None else env)
     require_staging(env)
+    # The bot activates this same art registry at startup. The web process
+    # otherwise would not reliably register the original female portrait keys.
+    from snowfall.graphics import snowverhaul
+    snowverhaul.activate()
     cfg = APISettings.from_env(env)
     qa_url = prepare_web_qa(env)
     cfg = replace(cfg, database_url=qa_url)
