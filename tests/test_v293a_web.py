@@ -226,7 +226,7 @@ def test_v297_missing_season_is_not_ready():
     cfg = APISettings("postgresql://unused/db", "missing", "https://qa.example")
     identities = DummyIdentity()
     game = DummyGame()
-    game.store = type("EmptyStore", (), {"season": lambda self, key: None})()
+    game.store = type("EmptyStore", (), {"season": lambda self, key: None, "initialize": lambda self: None})()
     with TestClient(create_app(cfg, identity=identities, game=game), base_url="https://qa.example") as client:
         assert client.get("/v1/health").status_code == 200
         response = client.get("/v1/ready")
