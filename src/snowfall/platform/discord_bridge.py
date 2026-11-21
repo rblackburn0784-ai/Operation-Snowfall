@@ -5,6 +5,7 @@ Never imported by the live /snow worker. Does not have a production token.
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import re
 
@@ -102,7 +103,11 @@ class SnowBridgeGroup(app_commands.Group):
         except ValueError as exc:
             await interaction.followup.send("⚠️ " + str(exc), ephemeral=True)
         except Exception:
-            await interaction.followup.send("Staging gameplay unavailable.", ephemeral=True)
+            logging.getLogger(__name__).exception(
+                "Canonical Discord gameplay unavailable; refusing action")
+            await interaction.followup.send(
+                "⚠️ Shared game temporarily unavailable. No new action was recorded. "
+                "Please check your progress before retrying.", ephemeral=True)
         return None
 
     @app_commands.command(name="link", description="How to link Discord and Underworld")
