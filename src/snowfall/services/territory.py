@@ -107,7 +107,7 @@ class TerritoryBoard:
     day: int | None
     current_day: int | None
     phase: str
-    viewer_city: str
+    viewer_city: str | None
     banners: tuple[CityBanner, ...]
     matches: tuple[WarMatch, ...]
     districts: tuple[TerritoryDistrict, ...]
@@ -202,6 +202,17 @@ class TerritoryEngine:
 
     def board(self, season: str, viewer: int, now: datetime,
               *, day: int | None = None) -> TerritoryBoard:
+        if viewer is None:
+            raise TerritoryError("Register first using /snow join.")
+        return self._board(season, viewer, now, day=day)
+
+    def public_board(self, season: str, now: datetime,
+                     *, day: int | None = None) -> TerritoryBoard:
+        """Read the same city aggregates without a player identity or personal missions."""
+        return self._board(season, None, now, day=day)
+
+    def _board(self, season: str, viewer: int | None, now: datetime,
+               *, day: int | None = None) -> TerritoryBoard:
         state = self.store.season(season)
         if state is None:
             raise TerritoryError("Season is not configured.")
@@ -214,12 +225,14 @@ class TerritoryEngine:
         selected = day if day is not None else current
         with self.store.connect() as con:
             con.execute("BEGIN")  # Consistent multi-table snapshot; no writes.
-            p = con.execute("""SELECT city,review_state FROM players
-                WHERE season_key=? AND discord_user_id=?""", (season, viewer)).fetchone()
-            if p is None:
-                raise TerritoryError("Register first using /snow join.")
-            if p["review_state"] == "disqualified":
-                raise TerritoryError("Disqualified players cannot enter City Wars.")
+            p = None
+            if viewer is not None:
+                p = con.execute("""SELECT city,review_state FROM players
+                    WHERE season_key=? AND discord_user_id=?""", (season, viewer)).fetchone()
+                if p is None:
+                    raise TerritoryError("Register first using /snow join.")
+                if p["review_state"] == "disqualified":
+                    raise TerritoryError("Disqualified players cannot enter City Wars.")
             registered = {r["city"]: int(r["n"]) for r in con.execute("""
                 SELECT city,COUNT(*) n FROM players WHERE season_key=?
                   AND review_state NOT IN ('flagged','disqualified') GROUP BY city
@@ -294,6 +307,10 @@ class TerritoryEngine:
                         TerritoryDistrict(f"duel:{slot}", duel_name, "duel",
                                           duel_owner, (a, b), selected),
                     ))
+            if p is None:
+                return TerritoryBoard(
+                    season, selected, current, phase, None,
+                    tuple(city_banners), tuple(matches), tuple(districts), ())
             viewer_city = p["city"]
             my_banner = banner_map[viewer_city]
             my_match = next((m for m in matches if viewer_city in (m.city_a, m.city_b)), None)
