@@ -20,7 +20,8 @@ def rules_text() -> str:
     return (
         "**❄️ Operation Snowfall — Community Christmas Event**\n"
         "Seven full days of snowball battles across six MafiaReturns city teams.\n"
-        "• **Entry:** Self-declare your MR username and city. No MR password or account linking.\n"
+        "• **Entry:** Self-declare your MR username and city. Never enter an MR password.\n"
+        "• **Linked QA:** Connect Underworld and Discord in Snowfall Web to share progress.\n"
         "• **Registration:** Opens 168 hours before scheduled kickoff; late entry is allowed.\n"
         "• **Prizes:** Only individual awards receive prizes. City titles are for bragging rights.\n"
         "• **Fair play:** One MR name per Discord account; impersonation reports go to staff.\n"
@@ -41,7 +42,9 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
     starts = int(season.planned_start.timestamp())
     ending = season.projected_end(now)
     embed = discord.Embed(
-        title=("🧪 Operation Snowfall — TEST ARENA" if settings.is_test else
+        title=("🧪 Operation Snowfall — Shared QA Arena"
+               if settings.season_key == "web-qa-2026" else
+               "🧪 Operation Snowfall — TEST ARENA" if settings.is_test else
                "❄️ Operation Snowfall — Event Headquarters"),
         description=(
             f"**Phase:** {stage.replace('_', ' ').title()}\n"
@@ -50,12 +53,17 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
             f"**Projected end:** {f'<t:{int(ending.timestamp())}:F>' if ending else 'After host starts'}\n"
             f"**Current day:** {season.day(now) or '—'} / 7\n"
             f"**Registered players:** {registered}\n"
-            "**Prizes:** Individual only. City standings = bragging rights."
+            ("**Prizes:** NO REAL PRIZES in shared QA."
+             if settings.season_key == "web-qa-2026" else
+             "**Prizes:** Individual only. City standings = bragging rights.")
         ),
         color=0x78B9EA,
     )
-    embed.set_footer(text="v0.2.8 • TEST — NO PRIZES" if settings.is_test else
-                     "v0.2.8 • Live event, individual prizes only")
+    embed.set_footer(
+        text="v2.9.5 • SHARED QA — NO REAL PRIZES"
+        if settings.season_key == "web-qa-2026" else
+        "v2.9.5 • TEST — NO PRIZES" if settings.is_test else
+        "v2.9.5 • Live event, individual prizes only")
     return embed
 
 
