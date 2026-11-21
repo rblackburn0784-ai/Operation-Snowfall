@@ -181,7 +181,7 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         shared.store.season(cfg.season_key)
         yield
 
-    app = FastAPI(title="Operation Snowfall Shared API", version="2.9.4e",
+    app = FastAPI(title="Operation Snowfall Shared API", version="2.9.5",
                   lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
     if cfg.cors_origins:
         app.add_middleware(CORSMiddleware, allow_origins=list(cfg.cors_origins),
@@ -252,7 +252,7 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         """
         try:
             identities.check()
-            with shared.game.store.connect() as conn:
+            with shared.store.connect() as conn:
                 row = conn.execute("SELECT 1").fetchone()
             if row is None or row[0] != 1:
                 raise RuntimeError("Staging game database did not respond")
