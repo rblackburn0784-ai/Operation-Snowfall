@@ -257,7 +257,7 @@ function restorePending(){
  }catch{}
 }
 function clearPending(key){S.pendingActions.delete(key);savePending()}
-function uncertainResponse(){const err=Error("Connection interrupted. Your action may have succeeded. Check shared progress, then retry the same action safely.");err.status=0;return err}
+function uncertainResponse(action=true){const err=Error(action?"Connection interrupted. Your action may have succeeded. Check shared progress, then retry the same action safely.":"Connection interrupted. Refresh to load the latest game data.");err.status=0;return err}
 async function request(path,method,body,mutation,unique){
  const headers={"Accept":"application/json"};
  if(body!==undefined)headers["Content-Type"]="application/json";
@@ -265,7 +265,10 @@ async function request(path,method,body,mutation,unique){
  if(S.session?.player_id&&path!=="/v1/auth/session"&&(mutation||path.startsWith("/v1/game/")||path.startsWith("/v1/verification/")))headers["X-Snowfall-Player"]=String(S.session.player_id);
  const key=unique?requestKey(path,body):null;
  if(key){
-  if(!S.pendingActions.has(key)){S.pendingActions.set(key,nextActionId());savePending()}
+  if(!S.pendingActions.has(key)){
+   if(S.pendingActions.size>=32)throw Error("Resolve earlier unconfirmed actions before starting another.");
+   S.pendingActions.set(key,nextActionId());savePending();
+  }
   headers["Idempotency-Key"]=S.pendingActions.get(key);
  }
  const abort=new AbortController();
@@ -277,9 +280,9 @@ async function request(path,method,body,mutation,unique){
    body:body===undefined?undefined:JSON.stringify(body),signal:abort.signal
   });
   try{data=await response.json();decoded=data!==null&&typeof data==="object"&&!Array.isArray(data)}catch{}
- }catch{throw uncertainResponse()}
+ }catch{throw uncertainResponse(!!mutation||!!unique)}
  finally{clearTimeout(clock)}
- if(response.ok&&!decoded)throw uncertainResponse();
+ if(response.ok&&!decoded)throw uncertainResponse(!!mutation||!!unique);
  if(!response.ok){
   // A proxy/timeout/auth failure does not establish whether a prior
   // attempt committed. Only explicit game validation rejections end it.
@@ -288,7 +291,7 @@ async function request(path,method,body,mutation,unique){
   let err=Error(typeof data.detail==="string"?data.detail:
       "Request failed ("+response.status+")");
   err.status=response.status;
-  if(response.status>=500)err.message+=". Status uncertain — check progress before retrying.";
+  if(response.status>=500||response.status===408||response.status===429)err.message+=". Status uncertain — check progress before retrying.";
   throw err;
  }
  if(key)clearPending(key);
@@ -412,7 +415,9 @@ function updatePlayControls(){
  disabled("bossButton",bossBlock);disabled("siegeButton",siegeBlock);disabled("readyButton",readyBlock);disabled("craftButton",craftBlock);
  el("findTargets").disabled=!!(S.busy||S.privatePending);el("playRefresh").disabled=!!(S.busy||S.privatePending);
  txt("combatStatus",throwBlock||(pendingThrow?"Previous throw unconfirmed — retry safely with the same action ID.":!S.targetsReady?"Rival list unavailable — refresh.":S.targets.length?"Choose your rival and take a shot.":"No eligible rivals right now."));
- txt("raidPlayStatus",bossBlock||"Ready to attack · 1 snowball per attempt.");
+ const bossPending=S.pendingActions.has(requestKey("/v1/game/boss",{}));
+ txt("raidPlayStatus",bossBlock||(bossPending?"Previous raid attempt unconfirmed — retry safely.":"Ready to attack · 1 snowball per attempt."));
+ if(bossPending)txt("bossButton","Retry previous raid");else txt("bossButton",S.raid?.state==="defeated"?"Attack frozen echo":"Attack the Snow Don");
  const rules=S.config?.play_rules||{},w=S.world;
  txt("raidQuota",registered&&w&&typeof w.boss_attempts==="number"&&typeof rules.boss_limit==="number"?Math.max(0,rules.boss_limit-w.boss_attempts)+" boss attempts left today":"Daily boss attack limits apply.");
  const siegePending=S.pendingActions.has(requestKey("/v1/game/siege",{}));
@@ -1153,6 +1158,7 @@ function bind(){
  el("refreshShared").onclick=async()=>{
   if(!S.session)return authModal();
   try{
+   if(S.busy||S.privatePending)return;
    S.session=await get("/v1/auth/session");
    await loadPrivate();
    if(!S.progress?.registered)throw Error("Shared progress could not be verified. Refresh and try again.");

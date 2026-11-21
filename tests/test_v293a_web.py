@@ -198,3 +198,37 @@ def test_v296d_headquarters_is_private_and_bound_to_authenticated_player():
         assert result.headers["cache-control"] == "no-store"
         game.headquarters.assert_called_once_with(6000000000000000001)
         assert client.post("/v1/game/headquarters").status_code == 405
+
+
+def test_v297_expected_account_guard_and_security_headers():
+    env = staging_env()
+    identities = DummyIdentity()
+    cfg = APISettings("postgresql://unused/db", "web-qa-2026", "https://qa.example")
+    app = attach_web_ui(create_app(cfg, identity=identities, game=DummyGame()),
+                        identities, cfg, env=env)
+    with TestClient(app, base_url="https://qa.example") as client:
+        response = client.get("/")
+        assert "frame-ancestors 'none'" in response.headers["content-security-policy"]
+        assert "script-src 'self'" in response.headers["content-security-policy"]
+        assert response.headers["strict-transport-security"] == "max-age=31536000"
+        assert client.get("/v1/health").json()["version"] == client.get("/v1/web/config").json()["version"] == "2.9.7"
+        token, csrf = identities.new_session(6000000000000000001)
+        client.cookies.set("snowfall_session", token)
+        wrong = {"X-Snowfall-Player": "6000000000000000002", "X-Snowfall-CSRF": csrf}
+        assert client.get("/v1/game/me", headers=wrong).status_code == 409
+        assert client.post("/v1/auth/logout", headers=wrong).status_code == 409
+        assert client.get("/v1/auth/session").status_code == 200
+        assert client.get("/v1/game/me", headers={"X-Snowfall-Player": "6000000000000000001"}).status_code == 200
+        assert client.post("/v1/auth/logout", headers={"X-Snowfall-CSRF": csrf}).status_code == 200
+
+
+def test_v297_missing_season_is_not_ready():
+    cfg = APISettings("postgresql://unused/db", "missing", "https://qa.example")
+    identities = DummyIdentity()
+    game = DummyGame()
+    game.store = type("EmptyStore", (), {"season": lambda self, key: None})()
+    with TestClient(create_app(cfg, identity=identities, game=game), base_url="https://qa.example") as client:
+        assert client.get("/v1/health").status_code == 200
+        response = client.get("/v1/ready")
+        assert response.status_code == 503
+        assert response.json() == {"detail": "Game database not ready"}
