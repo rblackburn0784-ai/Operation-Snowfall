@@ -150,3 +150,28 @@ def test_navigation_buttons_do_not_receive_attack_specific_defer():
         assert await view.interaction_check(interaction)
         assert not interaction.response.events
     asyncio.run(run())
+
+
+def test_revoked_account_after_early_defer_gets_private_followup_not_game_action():
+    from snowfall.platform.identity import IdentityError
+
+    class RevokedIdentity:
+        def principal_for_discord(self, subject):
+            raise IdentityError("revoked")
+
+    async def run():
+        view = WorldView(settings(), SimpleNamespace(), 123456789123456789)
+        interaction, edits = setup(view, "Attack Snow Don")
+        messages = []
+
+        async def followup_send(message, *, ephemeral=False, **_kwargs):
+            messages.append((message, ephemeral))
+
+        interaction.followup = SimpleNamespace(send=followup_send)
+        interaction.client.unified_identity = RevokedIdentity()
+        assert not await view.interaction_check(interaction)
+        assert interaction.response.events == ["defer"]
+        assert not edits
+        assert len(messages) == 1 and messages[0][1] is True
+        assert "Link your Discord" in messages[0][0]
+    asyncio.run(run())
