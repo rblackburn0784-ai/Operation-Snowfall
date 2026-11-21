@@ -240,8 +240,27 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
 
     @app.get("/v1/health")
     def health():
-        return {"status": "ok", "version": "2.9.4c1", "backend": "postgres",
+        return {"status": "ok", "version": "2.9.5", "backend": "postgres",
                 "season": cfg.season_key}
+
+    @app.get("/v1/ready")
+    def ready():
+        """DB-dependent readiness, distinct from Railway's lightweight liveness.
+
+        Checks actual canonical identity/schema and a game transaction;
+        never returns database credentials or account details.
+        """
+        try:
+            identities.check()
+            with shared.game.store.connect() as conn:
+                row = conn.execute("SELECT 1").fetchone()
+            if row is None or row[0] != 1:
+                raise RuntimeError("Staging game database did not respond")
+        except Exception:
+            logging.getLogger(__name__).exception("Snowfall QA readiness check failed")
+            raise HTTPException(503, "Shared gameplay is temporarily unavailable") from None
+        return {"status": "ready", "season": cfg.season_key,
+                "backend": "postgres", "version": "2.9.5"}
 
     @app.post("/v1/auth/underworld")
     def underworld(body: UnderworldLogin, response: Response):
