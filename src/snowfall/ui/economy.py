@@ -56,7 +56,8 @@ class EconomyView(discord.ui.View):
                 interaction.user.id != self.owner_id):
             await interaction.response.send_message("This is another player's private menu.", ephemeral=True)
             return False
-        return True
+        from snowfall.platform.discord_security import check_linked_player
+        return await check_linked_player(interaction)
 
     async def show_inventory(self, interaction):
         await interaction.response.defer()
