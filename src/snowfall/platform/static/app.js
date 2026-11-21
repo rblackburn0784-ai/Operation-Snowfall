@@ -1,4 +1,4 @@
-/* Operation Snowfall v2.9.7a — consolidated release and safe recovery. */
+/* Operation Snowfall v2.9.7b — consolidated release and safe recovery. */
 "use strict";
 const S={session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
@@ -1080,7 +1080,6 @@ function showEvent(){
  else txt("heroPlay",S.me?.registered?"Play now ↗":"Enter the event ↗");
  updatePlayControls();
 }
-const WIRE_ART=Object.freeze({waiting:"front_page_template.png",live:"front_page_template.png",archive:"front_page_template.png",final:"final_day_edition.png"});
 function wireHeadlineMarkup(h){
  return "<article class='wire-story'><p class='wire-byline'>"+esc(h.category)+"</p><h4>"+esc(h.title)+"</h4><p>"+esc(h.detail)+"</p></article>";
 }
@@ -1091,8 +1090,6 @@ function showWire(){
  const select=el("wireDay");
  select.innerHTML='<option value="current">Latest edition</option>'+ (w?.available_days||[]).filter(d=>Number.isInteger(d)&&d>=1&&d<=7).map(d=>'<option value="'+d+'">Day '+d+'</option>').join("");
  select.value=S.wireDay;select.disabled=S.wirePending;
- const art=el("wireEditionArt"),src="/art/v290/wire/backgrounds/"+WIRE_ART[kind];
- if(art.getAttribute("src")!==src)art.src=src;
  txt("wireEdition",w?.day?"DAY "+w.day+" / 7 · "+(w.complete?"ARCHIVE": "LIVE DISPATCH"):"AWAITING KICKOFF");
  txt("wireTheme",w?.theme||"THE WINTER UNDERWORLD");
  txt("wireLead",lead?.title||"The streets are waiting");txt("wireLeadDetail",lead?.detail||"Verified dispatches appear once the event opens.");
