@@ -71,6 +71,14 @@ class MenuView(discord.ui.View):
             await interaction.response.send_message("This test day ended. Open `/snow menu` again.",
                                                     ephemeral=True)
             return False
+        from snowfall.platform.discord_security import check_linked_player, shared_qa
+        if shared_qa(interaction.client) and self.admin_context:
+            await interaction.response.send_message(
+                "Shared QA host controls are read-only. Use /snowadmin status.",
+                ephemeral=True)
+            return False
+        if not await check_linked_player(interaction):
+            return False
         manager = getattr(interaction.client, "practice", None)
         if manager is not None and not self.admin_context:
             session = manager.session
