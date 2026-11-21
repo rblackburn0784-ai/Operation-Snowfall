@@ -18,6 +18,7 @@ from snowfall.platform.api import APISettings, create_app
 from snowfall.platform.game import SharedGame
 from snowfall.platform.identity import IdentityRepository
 from snowfall.platform.launch_audit import ReadinessError, audit_qa_database
+from snowfall.platform.release import VERSION
 from snowfall.platform.staging import STAGING_PROJECT, StagingGame, _source_snapshot
 from snowfall.platform.unified_discord import QA_SEASON
 
@@ -85,7 +86,7 @@ def test_staging_qa_readiness_and_audit_gate(tmp_path, monkeypatch):
                         base_url="https://qa.local") as client:
             healthy = client.get("/v1/health")
             assert healthy.status_code == 200
-            assert healthy.json()["version"] == "2.9.5a"
+            assert healthy.json()["version"] == VERSION
             ready = client.get("/v1/ready")
             assert ready.status_code == 200, ready.text
             assert ready.json() == {

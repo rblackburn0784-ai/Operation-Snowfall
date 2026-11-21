@@ -31,7 +31,11 @@ test("equipping a different owned frame changes the image without purchasing aga
 });
 test("branding and collector controls are present and account tools remain accessible",()=>{
  for(const id of ["brandIcon","siteBanner","hqPortrait","hqFrame","hqBanner","hqGear","hqTrail","accountTools","crossPlatformPanel","linkDiscord","refreshShared"])assert.ok(html.includes('id="'+id+'"'),id);
- assert.ok(html.includes('width="2048" height="682"'));
+ const banner=html.match(/<img\b[^>]*\bid="siteBanner"[^>]*>/)?.[0];
+ assert.ok(banner);
+ assert.match(banner,/width="1000" height="394"/);
+ assert.match(js,/snowfall-title\.png/);
+ assert.match(js,/snowfall-site-banner\.webp/);
  assert.ok(html.includes('data-nav="shop">Edit appearance'));
 });
 
