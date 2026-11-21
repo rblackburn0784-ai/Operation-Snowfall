@@ -147,7 +147,7 @@ def test_canonical_web_and_real_discord_actions_verified_end_to_end(tmp_path):
             assert after_discord["discord_gameplay_verified"]
             assert after_discord["discord_action_count"] == 1
             assert after_discord["web_action_count"] == 1
-            assert after_discord["current"]["inventory"]["cocoa"] == 1
+            assert after_discord["current"]["inventory"]["cocoa"] == initial["inventory"]["cocoa"] + 1
             assert after_discord["current"]["inventory"]["fort"] == 1
             assert after_discord["current"]["snowflakes"] == initial["snowflakes"]-18
             assert after_discord["delta"]["snowflakes"] == -18
@@ -160,7 +160,7 @@ def test_canonical_web_and_real_discord_actions_verified_end_to_end(tmp_path):
             legacy = EconomyEngine(original_bot).inventory(
                 QA_SEASON, ACTOR, datetime.now(timezone.utc))
             assert legacy.snowflakes == after_discord["current"]["snowflakes"]
-            assert legacy.quantities["cocoa"] == 1
+            assert legacy.quantities["cocoa"] == initial["inventory"]["cocoa"] + 1
             assert legacy.quantities["fort"] == 1
 
             # Shared Snow Don: a Discord attack updates the website boss
