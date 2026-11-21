@@ -1,4 +1,4 @@
-/* Operation Snowfall v2.9.7 — consolidated release and safe recovery. */
+/* Operation Snowfall v2.9.7a — consolidated release and safe recovery. */
 "use strict";
 const S={session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
@@ -175,9 +175,13 @@ function showHq(){
 }
 function configureBranding(branding){
  const banner=el("siteBanner"),icon=el("brandIcon");
- if(branding?.banner){
+ const header=banner.closest(".topbar");
+ header?.classList.toggle("has-city-header",Boolean(branding?.city_header));
+ header?.classList.toggle("has-city-title",Boolean(branding?.title));
+ document.body.classList.toggle("has-city-wallpaper",Boolean(branding?.wallpaper));
+ if(branding?.title||branding?.banner){
   banner.onerror=()=>{banner.classList.add("hidden");el("bannerFallback").classList.remove("hidden")};
-  banner.src="/static/snowfall-site-banner.webp";
+  banner.src=branding?.title?"/static/snowfall-title.png?v=297a":"/static/snowfall-site-banner.webp";
   banner.classList.remove("hidden");el("bannerFallback").classList.add("hidden");
  }
  if(branding?.icon){

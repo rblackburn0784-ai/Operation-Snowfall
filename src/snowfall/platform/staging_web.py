@@ -74,7 +74,11 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None, game=
         return {
             "version": VERSION, "staging": True,
             "branding": {"banner": (ASSETS / "snowfall-site-banner.webp").is_file(),
-                         "icon": (ASSETS / "snowfall-site-icon.webp").is_file()},
+                         "icon": (ASSETS / "snowfall-site-icon.webp").is_file(),
+                         "title": (ASSETS / "snowfall-title.png").is_file(),
+                         "city_header": (ASSETS / "snowfall-header-city.webp").is_file(),
+                         "wallpaper": (ASSETS / "snowfall-city-wallpaper.webp").is_file()},
+            "web_artwork_version": "2.9.7a",
             "season": cfg.season_key,
             "demo_enabled": True,
             "underworld_url": cfg.underworld_origin,
