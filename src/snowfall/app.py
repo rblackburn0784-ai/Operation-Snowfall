@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 
 from snowfall.config import load_settings
 from snowfall.core.permissions import permitted_guild
-from snowfall.db.postgres import make_store
+from snowfall.db.postgres import PostgresStore, make_store
 from snowfall.commands.public import SnowGroup
 from snowfall.commands.admin import SnowAdminGroup
 from snowfall.commands.winter_fun import SnowFunGroup
