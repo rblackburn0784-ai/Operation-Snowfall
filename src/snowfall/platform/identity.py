@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 import secrets
 
-from snowfall.db.postgres import _psycopg
+from snowfall.db.postgres import LOCK_KEY as GAME_LOCK, _psycopg
 
 IDENTITY_VERSION = 1
 LOCK = 849173002
@@ -73,6 +73,13 @@ SCHEMA = (
        mode TEXT NOT NULL CHECK(mode IN ('login','link')),
        code_verifier TEXT NOT NULL,
        expires_at TIMESTAMPTZ NOT NULL)""",
+    """CREATE TABLE IF NOT EXISTS snowfall_identity_relink_audit (
+       id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+       discord_user_id TEXT NOT NULL,
+       previous_player_id BIGINT NOT NULL,
+       target_player_id BIGINT NOT NULL
+         REFERENCES snowfall_identity_principals(player_id),
+       created_at TIMESTAMPTZ NOT NULL DEFAULT now())""",
 )
 
 
@@ -188,9 +195,17 @@ class IdentityRepository:
         return int(row[0])
 
     def link_discord(self, player_id: int, user_id: str) -> None:
-        """No silent cross-account merging or takeover of legacy Discord scores."""
+        """OAuth-verified linking, including safe recovery from Discord-first login.
+
+        The ONLY auto-reconciliation permitted is an unregistered Discord-only
+        principal created by a previous OAuth login, whose ID equals the
+        verified Discord snowflake. This must never merge game histories.
+        Caller must have a live, CSRF-protected Underworld web session and
+        a freshly verified OAuth /users/@me response (see api.py).
+        """
         if not user_id.isdecimal() or not 0 < int(user_id) < PLAYER_START:
             raise IdentityError("Invalid Discord account ID")
+        discord_id = int(user_id)
         with self._connect() as conn:
             with conn.cursor() as cur:
                 self._lock(cur)
@@ -198,31 +213,104 @@ class IdentityRepository:
                             (player_id,))
                 if cur.fetchone() is None:
                     raise IdentityError("Unknown game principal")
-                cur.execute("""SELECT player_id FROM snowfall_identity_links
-                               WHERE provider='discord' AND subject=%s""", (user_id,))
-                previous = cur.fetchone()
-                if previous:
-                    if previous[0] != player_id:
-                        raise IdentityConflict("Discord account already belongs to another player")
-                    return
-                # A principal can have at most one Discord login. Linking a
-                # different verified Discord ID must never grant a second
-                # account access to the same character and stored inventory.
+                # Destination may be a registered Underworld character, but
+                # a Discord-only account must not claim another Discord ID.
+                cur.execute("""SELECT 1 FROM snowfall_identity_links
+                               WHERE provider='underworld' AND player_id=%s LIMIT 1""",
+                            (player_id,))
+                if cur.fetchone() is None:
+                    raise IdentityConflict("Sign in through Underworld before linking Discord")
                 cur.execute("""SELECT subject FROM snowfall_identity_links
                                WHERE provider='discord' AND player_id=%s""",
                             (player_id,))
                 occupied = cur.fetchone()
-                if occupied is not None:
-                    raise IdentityConflict("This Snowfall character already has a Discord account linked")
-                if int(user_id) != player_id:
+                if occupied is not None and occupied[0] != user_id:
+                    raise IdentityConflict(
+                        "This Snowfall character already has a Discord account linked")
+
+                cur.execute("""SELECT player_id FROM snowfall_identity_links
+                               WHERE provider='discord' AND subject=%s""", (user_id,))
+                previous = cur.fetchone()
+                if previous:
+                    old_player_id = int(previous[0])
+                    if old_player_id == player_id:
+                        return
+
+                    # Never rebind a Discord account that belongs to a
+                    # different Underworld character or a legacy game profile.
+                    if old_player_id != discord_id:
+                        raise IdentityConflict(
+                            "Discord belongs to another player with linked progress")
+                    cur.execute("""SELECT provider FROM snowfall_identity_links
+                                   WHERE player_id=%s""", (old_player_id,))
+                    if [r[0] for r in cur.fetchall()] != ["discord"]:
+                        raise IdentityConflict(
+                            "Discord account has another linked identity")
+
+                    # Take the *same global game write lock* as the existing
+                    # PostgreSQL engines. This closes the registration race
+                    # between checking for progress and moving the link.
+                    cur.execute("SELECT pg_advisory_xact_lock(%s)", (GAME_LOCK,))
                     cur.execute("SELECT 1 FROM players WHERE discord_user_id=%s LIMIT 1",
-                                (int(user_id),))
+                                (old_player_id,))
+                    if cur.fetchone() is not None:
+                        raise IdentityConflict(
+                            "Discord has existing gameplay; manual review required")
+
+                    # Be conservative with any orphaned rewards or event logs
+                    # even if a legacy bug left no row in players. Inspect
+                    # only trusted public game tables and ownership columns.
+                    from psycopg import sql
+                    cur.execute("""SELECT table_name,column_name FROM information_schema.columns
+                                   WHERE table_schema='public'
+                                     AND table_name NOT LIKE 'snowfall_identity_%'
+                                     AND column_name = ANY(%s)
+                                   ORDER BY table_name,column_name""",
+                                (["discord_user_id", "player_id", "user_id",
+                                  "attacker_id", "target_id", "defender_id",
+                                  "actor_id", "subject_id", "winner_id",
+                                  "owner_id", "opponent_id"],))
+                    for table, column in cur.fetchall():
+                        cur.execute(sql.SQL(
+                            "SELECT 1 FROM {} WHERE {}=%s LIMIT 1").format(
+                            sql.Identifier(table), sql.Identifier(column)),
+                            (old_player_id,))
+                        if cur.fetchone() is not None:
+                            raise IdentityConflict(
+                                "Discord has existing activity; manual review required")
+
+                    # Revoke sessions attached to the obsolete empty principal.
+                    # An old Discord-first browser tab must not keep access to
+                    # a now-orphaned game profile after linking to Underworld.
+                    cur.execute("""DELETE FROM snowfall_identity_sessions
+                                   WHERE player_id=%s""", (old_player_id,))
+                    cur.execute("""UPDATE snowfall_identity_links SET player_id=%s
+                                   WHERE provider='discord' AND subject=%s
+                                     AND player_id=%s""",
+                                (player_id, user_id, old_player_id))
+                    if cur.rowcount != 1:
+                        raise IdentityConflict("Discord account changed while linking")
+                    cur.execute("""INSERT INTO snowfall_identity_relink_audit
+                                   (discord_user_id,previous_player_id,target_player_id)
+                                   VALUES(%s,%s,%s)""",
+                                (user_id, old_player_id, player_id))
+                    cur.execute("DELETE FROM snowfall_identity_principals WHERE player_id=%s",
+                                (old_player_id,))
+                    return
+
+                # Even if the subject link is absent, never reserve an existing
+                # standalone Discord game profile without a manual review.
+                if discord_id != player_id:
+                    cur.execute("SELECT 1 FROM players WHERE discord_user_id=%s LIMIT 1",
+                                (discord_id,))
                     if cur.fetchone():
-                        raise IdentityConflict("Discord account already has game progress; manual reconciliation required")
+                        raise IdentityConflict(
+                            "Discord account already has game progress; manual reconciliation required")
                     cur.execute("SELECT 1 FROM snowfall_identity_principals WHERE player_id=%s",
-                                (int(user_id),))
+                                (discord_id,))
                     if cur.fetchone():
-                        raise IdentityConflict("Discord ID already reserved by another principal")
+                        raise IdentityConflict(
+                            "Discord ID already reserved by another principal")
                 cur.execute("""INSERT INTO snowfall_identity_links(provider,subject,player_id)
                                VALUES('discord',%s,%s)""", (user_id, player_id))
 
