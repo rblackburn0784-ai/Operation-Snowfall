@@ -1,8 +1,6 @@
 """v2.9.4b: one existing Discord client, isolated database and link-safe mapping."""
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from snowfall.platform.unified_discord import (
