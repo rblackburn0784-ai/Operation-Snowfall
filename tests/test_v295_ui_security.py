@@ -163,7 +163,7 @@ def test_legacy_host_navigation_cannot_bypass_admin_lock():
 def test_shared_qa_labels_never_promise_real_prizes():
     from snowfall.ui.navigation import _mode
     from snowfall.ui.dashboard import dashboard_embed
-        settings = _settings()
+    settings = _settings()
     assert "NO REAL PRIZES" in _mode(settings)
     # The dashboard renderer separately recognises the isolated QA season
     # even though the Railway environment is named "production".
