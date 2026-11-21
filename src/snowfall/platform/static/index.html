@@ -65,6 +65,7 @@
       <div class="event-finale-copy"><p class="eyebrow" id="finaleKicker">THE WINTER UNDERWORLD</p><h2 id="eventFinaleTitle"></h2><p id="finaleText"></p><div class="finale-actions"><button class="button button-gold" data-nav="wire">Read the Wire</button><button class="button button-outline" data-nav="cities">View standings</button></div></div>
     </section>
     <div class="play-status hidden" id="playStatus" aria-label="Your current resources"><strong id="playPlayer">Your character</strong><span>❄ <b id="playAmmo">—</b> snowballs</span><span>◈ <b id="playWarmth">—</b> warmth</span><span>✦ <b id="playFlakes">—</b> flakes</span><span>★ <b id="playPoints">—</b> pts</span><button id="playRefresh" class="tiny-link">↻ Refresh</button></div>
+    <div id="playFeedback" class="play-feedback hidden" role="status"><span id="playFeedbackText"></span><button id="playFeedbackClose" class="tiny-link" aria-label="Dismiss message">✕</button></div>
     <div class="page-grid">
       <div class="main-column">
         <section id="page-home" class="panel active" aria-labelledby="homeTitle">
@@ -80,7 +81,7 @@
             <div class="registration-inner">
               <h3>Choose your character and city</h3><p>One quick setup, then you can play. Your city determines your rivals.</p>
               <form id="registerForm" class="inline-form">
-                <label>Character name<input id="characterName" maxlength="28" minlength="2" required placeholder="e.g. TheSnowDude" autocomplete="off"></label>
+                <label>Character name<input id="characterName" maxlength="32" minlength="2" required placeholder="e.g. TheSnowDude" autocomplete="off"></label>
                 <label>Home city<select id="cityChoice" required><option value="" selected disabled>Choose your city</option><option>Chicago</option><option>New York</option><option>Detroit</option><option>Philadelphia</option><option>Las Vegas</option><option>Los Angeles</option></select></label>
                 <button type="submit" class="button button-gold">Create character &amp; play</button>
               </form>
@@ -277,7 +278,7 @@
 
         <section id="page-shop" class="panel" aria-labelledby="shopTitle">
           <div class="section-heading"><div><p class="eyebrow">FINE GOODS FOR QUESTIONABLE PEOPLE</p><h2 id="shopTitle">Winter Market</h2></div><span class="pill">COSMETICS & CRAFTING</span></div>
-          <p class="section-desc">Spend Snowflakes on real inventory, cosmetic frames, banners and equipment. No additional paid rewards.</p>
+          <p class="section-desc">Browse cosmetics, try on outfits for free, or craft items using Snowflakes.</p>
           <div class="market-hero"><img src="/art/v290/cosmetics/backgrounds/shop.webp" alt="The illustrated winter market from the Snowfall Discord event" loading="lazy"><div><p class="eyebrow">FROSTED FINERY</p><h3>Dress like you own the winter streets.</h3><p>Your purchased cosmetics are shared with the Discord game.</p></div></div>
           <div class="market-toolbar market-wallet"><div><p class="eyebrow">YOUR WINTER WALLET</p><span>✦ <strong id="shopBalance">—</strong> Snowflakes</span><p id="marketOwned" class="subtle">Sign in to load your wardrobe</p></div><button class="button button-outline button-small" id="refreshShop">↻ Refresh market</button></div>
           <div class="market-jumps"><button class="button button-gold" data-jump="marketCatalogue">Browse items</button><button class="button button-outline" data-jump="marketFitting">Try on</button><button class="button button-outline" data-jump="marketWorkshop">Workshop</button></div>

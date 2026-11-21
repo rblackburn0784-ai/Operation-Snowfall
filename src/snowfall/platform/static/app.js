@@ -2,7 +2,7 @@
 "use strict";
 const S={session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
-const txt=(id,v)=>{if(el(id))el(id).textContent=v==null?"—":String(v)};
+const txt=(id,v)=>{const node=el(id),value=v==null?"—":String(v);if(node&&node.textContent!==value)node.textContent=value};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=v=>Number(v??0).toLocaleString("en-GB");
 const CITY_SLUG=Object.freeze({
@@ -274,7 +274,7 @@ function syncPlayIdentity(){
  const id=S.session?String(S.session.player_id):null;
  if(id===S.playIdentity)return;
  S.playIdentity=id;S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
- el("targetSelect").value="";el("combatOutcome").classList.add("hidden");
+ el("targetSelect").value="";el("combatOutcome").classList.add("hidden");el("playFeedback").classList.add("hidden");
 }
 function timeLeft(value,now){const t=Date.parse(value);return Number.isFinite(t)?Math.max(0,Math.ceil((t-now)/1000)):0}
 function shortTime(seconds){const n=Math.max(0,Math.ceil(seconds||0));if(n<60)return n+"s";const m=Math.ceil(n/60);return m<60?m+" min":Math.floor(m/60)+"h "+(m%60)+"m"}
@@ -283,7 +283,7 @@ function playBlock({session,me,hq,world,raid,progress,config,kind,style="standar
  if(!session)return "Sign in to play.";
  if(!hasPlayIdentity(session,config))return "Continue through Underworld first.";
  if(!me?.registered)return "Create your character at HQ.";
- if(["flagged","disqualified"].includes(me.review_state))return "Your character requires host review.";
+ if(me.review_state==="disqualified")return "Your character is disqualified from the event.";
  if(pending)return ""; // an exact idempotent replay may already have succeeded
  if(!fresh)return "Refresh your character before playing.";
  if(me.phase!=="live")return me.phase==="paused"?"Event paused.":["closed","finalized"].includes(me.phase)?"Event finished.":"Gameplay opens at kickoff.";
@@ -333,13 +333,16 @@ function updatePlayControls(){
   txt("playPoints",S.me.score);
  }
  const body={target_player_id:el("targetSelect").value,style:el("throwStyle").value};
- const throwBlock=currentPlayBlock("throw",body),bossBlock=currentPlayBlock("boss"),siegeBlock=currentPlayBlock("siege"),readyBlock=currentPlayBlock("ready"),craftBlock=currentPlayBlock("craft",{item:el("craftChoice").value});
+ const pendingThrow=!!S.lastThrow&&S.pendingActions.has(requestKey("/v1/game/throw",S.lastThrow.body));
+ const throwBlock=pendingThrow&&JSON.stringify(body)!==JSON.stringify(S.lastThrow.body)?"Refresh to restore your previous unconfirmed throw.":currentPlayBlock("throw",body),bossBlock=currentPlayBlock("boss"),siegeBlock=currentPlayBlock("siege"),readyBlock=currentPlayBlock("ready"),craftBlock=currentPlayBlock("craft",{item:el("craftChoice").value});
  const restrict=registered&&linked;
  const disabled=(id,reason)=>{const n=el(id);n.disabled=!!(S.busy||S.privatePending||restrict&&reason);n.title=restrict&&reason?reason:""};
- disabled("throwButton",throwBlock||(!body.target_player_id?"Choose an eligible rival.":""));
+ disabled("throwButton",(!S.targetsReady&&!pendingThrow&&restrict?"Refresh the rival list first.":"")||throwBlock||(!body.target_player_id?"Choose an eligible rival.":""));
+ el("targetSelect").disabled=!!(S.busy||pendingThrow);el("throwStyle").disabled=!!(S.busy||pendingThrow);
+ txt("throwButton",pendingThrow?"Retry previous throw":"❄ Throw snowball");
  disabled("bossButton",bossBlock);disabled("siegeButton",siegeBlock);disabled("readyButton",readyBlock);disabled("craftButton",craftBlock);
  el("findTargets").disabled=!!(S.busy||S.privatePending);el("playRefresh").disabled=!!(S.busy||S.privatePending);
- txt("combatStatus",throwBlock||(!S.targetsReady?"Rival list unavailable — refresh.":S.targets.length?"Choose your rival and take a shot.":"No eligible rivals right now."));
+ txt("combatStatus",throwBlock||(pendingThrow?"Previous throw unconfirmed — retry safely with the same action ID.":!S.targetsReady?"Rival list unavailable — refresh.":S.targets.length?"Choose your rival and take a shot.":"No eligible rivals right now."));
  txt("raidPlayStatus",bossBlock||"Ready to attack · 1 snowball per attempt.");
  const rules=S.config?.play_rules||{},w=S.world;
  txt("raidQuota",registered&&w&&typeof w.boss_attempts==="number"&&typeof rules.boss_limit==="number"&&typeof w.siege_attempts==="number"&&typeof rules.siege_limit==="number"?"Boss: "+Math.max(0,rules.boss_limit-w.boss_attempts)+" attempts left · Siege: "+Math.max(0,rules.siege_limit-w.siege_attempts)+" attempts left":"Daily attack limits apply.");
@@ -355,6 +358,9 @@ function updatePlayControls(){
  const q=chooseQuickPlay({phase:S.me?.phase,bossBlocked:bossBlock,throwBlocked:throwBlock,targets:S.targets.length,ammo:r?.snowballs});
  txt("playCoach",q.hint);txt("playPrimary",q.label);el("playPrimary").dataset.destination=q.route;
  if(registered&&!linked){txt("playCoach","Continue through Underworld to play your linked character.");txt("playPrimary","Account settings");el("playPrimary").dataset.destination="account"}
+}
+function playFeedback(message,kind){
+ el("playFeedback").dataset.kind=kind;txt("playFeedbackText",message);el("playFeedback").classList.remove("hidden");
 }
 function showCombatOutcome(result,target){
  el("combatOutcome").classList.remove("hidden");
@@ -819,7 +825,7 @@ async function loadPublic(){
 }
 async function loadPrivate(){
  if(S.privatePending)return;
- S.privatePending=true;
+ S.privatePending=true;updatePlayControls();
  try{await readPrivate();S.privateFresh=!!S.session&&!!S.me}catch(e){S.privateFresh=false;throw e}finally{S.privatePending=false;updatePlayControls()}
 }
 async function readPrivate(){
@@ -882,7 +888,12 @@ async function act(fn){
  if(S.busy||S.privatePending)return;
  if(!S.session)return authModal();
  S.busy=true;document.querySelectorAll(".actions-inline button,.craft-card button").forEach(b=>b.disabled=true);updatePlayControls();
- try{await fn();await refresh()}catch(e){notice(e.message,"error")}
+ try{
+  el("playFeedback").classList.add("hidden");
+  await fn();
+  try{await refresh()}catch(e){S.privateFresh=false;playFeedback("Action recorded. Refresh to see updated resources.", "warning");notice("Action recorded; refresh failed.","error")}
+ }catch(e){playFeedback(e.message,"error");notice(e.message,"error");if(S.lastThrow&&S.pendingActions.has(requestKey("/v1/game/throw",S.lastThrow.body)))showTargets()}
+
  finally{S.busy=false;document.querySelectorAll(".actions-inline button,.craft-card button").forEach(b=>b.disabled=false);showBoss();showShop();updatePlayControls()}
 }
 function registered(){
@@ -982,7 +993,8 @@ function bind(){
  document.querySelectorAll("[data-jump]").forEach(b=>b.addEventListener("click",()=>el(b.dataset.jump)?.scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"})));
  window.addEventListener("popstate",()=>section(location.hash.startsWith("#play-")?location.hash.slice(6):"home",{record:false}));
  el("playPrimary").onclick=()=>{const dest=el("playPrimary").dataset.destination||"boss";if(dest==="account"){el("accountTools").open=true;el("accountTools").scrollIntoView({block:"start"})}else section(dest)};
- el("playRefresh").onclick=()=>{if(!S.busy&&!S.privatePending)void loadPrivate().catch(e=>notice(e.message,"error"))};
+ el("playRefresh").onclick=()=>{if(!S.busy&&!S.privatePending)void loadPrivate().catch(e=>{playFeedback(e.message,"error");notice(e.message,"error")})};
+ el("playFeedbackClose").onclick=()=>el("playFeedback").classList.add("hidden");
  el("targetSelect").onchange=()=>{S.chosenTarget=true;updatePlayControls()};
  el("throwStyle").onchange=updatePlayControls;
  el("menuToggle").onclick=()=>{
@@ -1091,6 +1103,7 @@ function bind(){
   let target=el("targetSelect").value;
   if(!target)return notice("Select a rival first.","error");
   const body={target_player_id:target,style:el("throwStyle").value};
+  if(S.lastThrow&&S.pendingActions.has(requestKey("/v1/game/throw",S.lastThrow.body))&&JSON.stringify(body)!==JSON.stringify(S.lastThrow.body))return notice("Retry the previous throw first.","error");
   const chosen=S.targets.find(t=>String(t.player_id)===target)||S.lastThrow?.target;
   S.lastThrow={body,target:chosen};
   act(async()=>{const r=await post("/v1/game/throw",body,true,true);showCombatOutcome(r,chosen);notice(r.hit?"Direct hit! +"+r.points_awarded+" points.":"Snowball missed.",r.hit?"success":"")});
@@ -1146,7 +1159,14 @@ async function init(){
   txt("sideStatus",(health.status||"unknown").toUpperCase());txt("sideStatusDetail","Isolated staging · "+cfg.season);
   await resume();S.connection="ready";showEvent();
   if(!location.search.includes("discord=")){if(location.hash.startsWith("#play-"))section(location.hash.slice(6),{record:false,focus:false});else if(S.me?.registered)section("home",{record:false,focus:false})}
-  const poll=()=>{if(document.hidden||S.busy)return;if(!S.bossPending)void refreshBossVisual();if(el("page-cities").classList.contains("active")&&!S.territoryPending&&S.territoryDay==="current")void Promise.all([refreshTerritory(),refreshCityStandings()]);if(!S.wirePending)void refreshWire()};
+  const poll=()=>{
+   if(document.hidden||S.busy||S.privatePending)return;
+   if(!S.bossPending)void refreshBossVisual();
+   if(el("page-cities").classList.contains("active")&&!S.territoryPending&&S.territoryDay==="current")void Promise.all([refreshTerritory(),refreshCityStandings()]);
+   if(!S.wirePending)void refreshWire();
+   if(S.session&&["home","combat","boss"].some(name=>el("page-"+name).classList.contains("active"))&&!document.activeElement?.matches("input,select,textarea")&&el("authDialog").classList.contains("hidden"))
+    void loadPrivate().catch(()=>{});
+  };
   setInterval(poll,30000);document.addEventListener("visibilitychange",poll);
   setInterval(()=>{if(!document.hidden){updateHqTimers();updatePlayControls()}},1000);
   if(location.search.includes("login=ok"))notice("Discord login successful.","success");
