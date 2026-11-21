@@ -22,7 +22,7 @@ from snowfall.services.world import WorldEngine
 from snowfall.ui.broadcast import BroadcastPublisher
 from snowfall.ops import backup_sqlite, restore_sqlite
 from snowfall.practice import PracticeManager, ScopedSettings, ScopedStore
-from snowfall.platform.identity import IdentityError, IdentityRepository
+from snowfall.platform.identity import IdentityRepository
 
 log = logging.getLogger(__name__)
 
@@ -33,23 +33,14 @@ class GuildCommandTree(app_commands.CommandTree):
             await interaction.response.send_message(
                 "Operation Snowfall only works in its dedicated event server.", ephemeral=True)
             return False
-        if self.client.unified_identity is not None:
-            command = getattr(interaction.command, "qualified_name", "")
-            # Preserve public help, the account-link instructions and host
-            # administration. Gameplay cannot create an unlinked second profile.
-            public = {"snow privacy", "snow rules", "snow guide", "snowbridge link"}
-            if command not in public and not command.startswith("snowadmin "):
-                try:
-                    await asyncio.to_thread(
-                        self.client.unified_identity.principal_for_discord,
-                        str(interaction.user.id))
-                except IdentityError:
-                    await interaction.response.send_message(
-                        "🔗 Link your Discord account to your Underworld character "
-                        "before playing. Use `/snowbridge link` for instructions.",
-                        ephemeral=True)
-                    return False
-        return True
+        command = getattr(interaction.command, "qualified_name", "")
+        # Staff safety is enforced by SnowAdminGroup; public rules and linking
+        # remain available before a character is linked.
+        public = {"snow privacy", "snow rules", "snow guide", "snowbridge link"}
+        if command in public or command.startswith("snowadmin "):
+            return True
+        from snowfall.platform.discord_security import check_linked_player
+        return await check_linked_player(interaction)
 
 
 class SnowfallBot(discord.Client):
@@ -103,18 +94,30 @@ class SnowfallBot(discord.Client):
         self.tree.add_command(cityhq, guild=guild)
         # All buttons must have fixed custom_ids and timeout=None so old messages work.
         self.add_view(Dashboard(self.settings, self.store))
-        try:
-            await self.tree.sync(guild=guild)
-        except discord.Forbidden:
-            log.error("Discord refused slash-command sync (403 Missing Access) for guild %s. "
-                      "Confirm config.toml guild_id is the exact event server ID, "
-                      "and that the token's application is installed in that guild "
-                      "with bot + applications.commands scopes.", self.settings.guild_id)
-            raise
+        for attempt in range(3):
+            try:
+                synced = await self.tree.sync(guild=guild)
+                log.info("Registered %s slash-command groups in guild %s", len(synced),
+                         self.settings.guild_id)
+                break
+            except discord.Forbidden:
+                log.error("Discord rejected slash-command sync in guild %s. "
+                          "Check bot installation and applications.commands scope.",
+                          self.settings.guild_id)
+                raise
+            except discord.HTTPException as exc:
+                if exc.status not in (429, 500, 502, 503, 504) or attempt == 2:
+                    raise
+                log.warning("Discord command sync temporarily unavailable (HTTP %s); retry %s/2",
+                            exc.status, attempt + 1)
+                await asyncio.sleep(2 ** attempt)
 
     async def on_ready(self):
+        status = ("SHARED QA — NO PRIZES"
+                  if getattr(self.store, "unified_discord", False)
+                  else self.settings.mode.upper())
         log.info("[%s] Connected as %s in guild %s, season %s, database %s",
-                 self.settings.mode.upper(), self.user, self.settings.guild_id,
+                 status, self.user, self.settings.guild_id,
                  self.settings.season_key, "PostgreSQL" if getattr(self.store, "backend", "sqlite") == "postgres"
         else self.settings.database_path)
         if not self.refresh_world.is_running():
@@ -178,7 +181,7 @@ class SnowfallBot(discord.Client):
 def main(argv: list[str] | None = None):
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    parser = argparse.ArgumentParser(description="Operation Snowfall v0.2.8")
+    parser = argparse.ArgumentParser(description="Operation Snowfall v2.9.5")
     parser.add_argument("--test", action="store_true", help="Obsolete: use /snowadmin test-start in the main bot")
     parser.add_argument("--backup-now", action="store_true", help="Create a verified backup then exit")
     parser.add_argument("--restore", metavar="BACKUP", help="Offline restore from a verified backup")

@@ -20,9 +20,11 @@ def rules_text() -> str:
     return (
         "**❄️ Operation Snowfall — Community Christmas Event**\n"
         "Seven full days of snowball battles across six MafiaReturns city teams.\n"
-        "• **Entry:** Self-declare your MR username and city. No MR password or account linking.\n"
+        "• **Entry:** Self-declare your MR username and city. Never enter an MR password.\n"
+        "• **Linked QA:** Connect Underworld and Discord in Snowfall Web to share progress.\n"
         "• **Registration:** Opens 168 hours before scheduled kickoff; late entry is allowed.\n"
-        "• **Prizes:** Only individual awards receive prizes. City titles are for bragging rights.\n"
+        "• **Prizes:** Real-event individual awards only; shared QA has NO REAL PRIZES. "
+        "City titles are honorary.\n"
         "• **Fair play:** One MR name per Discord account; impersonation reports go to staff.\n"
         "• **Privacy:** Declared names, Discord IDs and scores are stored; see `/snow privacy`.\n"
         "• **Combat:** `/snow ready` opts in to being targeted for 36 effective hours.\n"
@@ -41,7 +43,9 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
     starts = int(season.planned_start.timestamp())
     ending = season.projected_end(now)
     embed = discord.Embed(
-        title=("🧪 Operation Snowfall — TEST ARENA" if settings.is_test else
+        title=("🧪 Operation Snowfall — Shared QA Arena"
+               if settings.season_key == "web-qa-2026" else
+               "🧪 Operation Snowfall — TEST ARENA" if settings.is_test else
                "❄️ Operation Snowfall — Event Headquarters"),
         description=(
             f"**Phase:** {stage.replace('_', ' ').title()}\n"
@@ -49,13 +53,18 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
             f"**Scheduled kickoff:** <t:{starts}:F>\n"
             f"**Projected end:** {f'<t:{int(ending.timestamp())}:F>' if ending else 'After host starts'}\n"
             f"**Current day:** {season.day(now) or '—'} / 7\n"
-            f"**Registered players:** {registered}\n"
-            "**Prizes:** Individual only. City standings = bragging rights."
+            f"**Registered players:** {registered}\n" +
+            ("**Prizes:** NO REAL PRIZES in shared QA."
+             if settings.season_key == "web-qa-2026" else
+             "**Prizes:** Individual only. City standings = bragging rights.")
         ),
         color=0x78B9EA,
     )
-    embed.set_footer(text="v0.2.8 • TEST — NO PRIZES" if settings.is_test else
-                     "v0.2.8 • Live event, individual prizes only")
+    embed.set_footer(
+        text="v2.9.5 • SHARED QA — NO REAL PRIZES"
+        if settings.season_key == "web-qa-2026" else
+        "v2.9.5 • TEST — NO PRIZES" if settings.is_test else
+        "v2.9.5 • Live event, individual prizes only")
     return embed
 
 
@@ -74,6 +83,9 @@ class JoinModal(discord.ui.Modal, title="Operation Snowfall — Register"):
             return
         if not permitted_guild(interaction.guild_id, self.settings.guild_id):
             await interaction.response.send_message("Wrong event server.", ephemeral=True)
+            return
+        from snowfall.platform.discord_security import check_linked_player
+        if not await check_linked_player(interaction):
             return
         if self.declaration.value.strip().upper() != "I AGREE":
             await interaction.response.send_message("Type I AGREE to confirm your own MR identity.", ephemeral=True)
@@ -131,6 +143,9 @@ class CityPicker(discord.ui.View):
             if not permitted_guild(interaction.guild_id, settings.guild_id):
                 await interaction.response.send_message("Wrong event server.", ephemeral=True)
                 return
+            from snowfall.platform.discord_security import check_linked_player
+            if not await check_linked_player(interaction):
+                return
             if store.season(settings.season_key).phase(datetime.now(timezone.utc)) not in (
                     "registration", "ready", "live", "paused"):
                 await interaction.response.send_message("Registration is not open.", ephemeral=True)
@@ -168,20 +183,8 @@ class Dashboard(discord.ui.View):
         if not permitted_guild(interaction.guild_id, self.settings.guild_id):
             await interaction.response.send_message("Wrong event server.", ephemeral=True)
             return False
-        # Persistent public buttons bypass slash-command tree checks, so they
-        # must also verify account linking before any canonical game write.
-        identity = getattr(interaction.client, "unified_identity", None)
-        if identity is not None:
-            from snowfall.platform.identity import IdentityError
-            try:
-                await asyncio.to_thread(
-                    identity.principal_for_discord, str(interaction.user.id))
-            except IdentityError:
-                await interaction.response.send_message(
-                    "🔗 Link your Discord account through Snowfall first. "
-                    "Use `/snowbridge link` to get started.", ephemeral=True)
-                return False
-        return True
+        from snowfall.platform.discord_security import check_linked_player
+        return await check_linked_player(interaction)
 
     @discord.ui.button(label="Join", emoji="❄️", style=discord.ButtonStyle.primary,
                        custom_id="snowfall:v1:join")

@@ -175,6 +175,9 @@ class SubmitStory(discord.ui.Modal,title="Letter to The Snowfall Wire"):
             await interaction.response.send_message("Not your newspaper submission.",
                                                     ephemeral=True)
             return
+        from snowfall.platform.discord_security import check_linked_player
+        if not await check_linked_player(interaction):
+            return
         await interaction.response.defer(ephemeral=True)
         try:
             story=await asyncio.to_thread(WireEngine(self.store).submit,

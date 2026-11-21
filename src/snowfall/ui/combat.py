@@ -66,7 +66,8 @@ class CombatMenu(discord.ui.View):
         if interaction.guild_id != self.settings.guild_id or interaction.user.id != self.owner_id:
             await interaction.response.send_message("This is someone else's private snowball menu.", ephemeral=True)
             return False
-        return True
+        from snowfall.platform.discord_security import check_linked_player
+        return await check_linked_player(interaction)
 
     async def _targets(self, interaction: discord.Interaction):
         engine = CombatEngine(self.store)

@@ -30,13 +30,16 @@ def _host(settings, user_id: int) -> bool:
 
 
 def _mode(settings) -> str:
-    return "🧪 TEST DAY — NO PRIZES" if getattr(settings, "mode", "production") == "practice" else "❄️ LIVE EVENT"
+    if getattr(settings, "season_key", "") == "web-qa-2026":
+        return "🧪 SHARED QA — NO REAL PRIZES"
+    return ("🧪 TEST DAY — NO PRIZES" if getattr(settings, "mode", "production") == "practice"
+            else "❄️ LIVE EVENT")
 
 
 def _embed(title: str, description: str, settings, *, warning: bool = False) -> discord.Embed:
     colour = discord.Colour.orange() if warning else discord.Colour.from_rgb(106, 179, 219)
     card = discord.Embed(title=title, description=description, colour=colour)
-    card.set_footer(text=f"{_mode(settings)} • v0.2.8 • Private navigation")
+    card.set_footer(text=f"{_mode(settings)} • v2.9.5 • Private navigation")
     return card
 
 
@@ -70,6 +73,14 @@ class MenuView(discord.ui.View):
         if practice_expired(self.settings, self.store):
             await interaction.response.send_message("This test day ended. Open `/snow menu` again.",
                                                     ephemeral=True)
+            return False
+        from snowfall.platform.discord_security import check_linked_player, shared_qa
+        if shared_qa(interaction.client) and self.admin_context:
+            await interaction.response.send_message(
+                "Shared QA host controls are read-only. Use /snowadmin status.",
+                ephemeral=True)
+            return False
+        if not await check_linked_player(interaction):
             return False
         manager = getattr(interaction.client, "practice", None)
         if manager is not None and not self.admin_context:

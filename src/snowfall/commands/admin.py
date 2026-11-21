@@ -37,6 +37,18 @@ class SnowAdminGroup(app_commands.Group):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if self.practice is not None:
             self.practice.for_interaction(interaction.channel_id)
+        # Prevent original live host commands from altering QA score, event
+        # dates, player status, prize awards, or pinned production announcements.
+        from snowfall.platform.discord_security import shared_qa
+        command = getattr(interaction.command, "qualified_name", "")
+        if shared_qa(interaction.client) and command not in {
+            "snowadmin status", "snowadmin test-status"
+        }:
+            await interaction.response.send_message(
+                "Shared QA launch, scoring and prize controls are disabled. "
+                "Use /snowadmin status for read-only event diagnostics.",
+                ephemeral=True)
+            return False
         if not permitted_guild(interaction.guild_id, self.settings.guild_id):
             await interaction.response.send_message("Wrong event server.", ephemeral=True)
             return False

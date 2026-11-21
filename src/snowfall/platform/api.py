@@ -181,7 +181,7 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         shared.store.season(cfg.season_key)
         yield
 
-    app = FastAPI(title="Operation Snowfall Shared API", version="2.9.4e",
+    app = FastAPI(title="Operation Snowfall Shared API", version="2.9.5",
                   lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
     if cfg.cors_origins:
         app.add_middleware(CORSMiddleware, allow_origins=list(cfg.cors_origins),
@@ -240,8 +240,27 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
 
     @app.get("/v1/health")
     def health():
-        return {"status": "ok", "version": "2.9.4c1", "backend": "postgres",
+        return {"status": "ok", "version": "2.9.5", "backend": "postgres",
                 "season": cfg.season_key}
+
+    @app.get("/v1/ready")
+    def readiness():
+        """DB-dependent readiness, distinct from Railway's lightweight liveness.
+
+        Checks actual canonical identity/schema and a game transaction;
+        never returns database credentials or account details.
+        """
+        try:
+            identities.check()
+            with shared.store.connect() as conn:
+                row = conn.execute("SELECT 1").fetchone()
+            if row is None or row[0] != 1:
+                raise RuntimeError("Staging game database did not respond")
+        except Exception:
+            logging.getLogger(__name__).error("Snowfall QA readiness check failed")
+            raise HTTPException(503, "Shared gameplay is temporarily unavailable") from None
+        return {"status": "ready", "season": cfg.season_key,
+                "backend": "postgres", "version": "2.9.5"}
 
     @app.post("/v1/auth/underworld")
     def underworld(body: UnderworldLogin, response: Response):
