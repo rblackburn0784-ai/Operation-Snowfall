@@ -1,10 +1,54 @@
-/* Operation Snowfall v2.9.5 — reliable shared action retries and reconnects. */
+/* Operation Snowfall v2.9.6 — shared actions, original artwork and responsive QA website. */
 "use strict";
 const S={session:null,me:null,world:null,raid:null,shop:null,items:[],board:[],cities:[],targets:[],config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
 const txt=(id,v)=>{if(el(id))el(id).textContent=v==null?"—":String(v)};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=v=>Number(v??0).toLocaleString("en-GB");
+const CITY_SLUG=Object.freeze({
+ "Chicago":"chicago","Detroit":"detroit","Las Vegas":"las_vegas",
+ "Los Angeles":"los_angeles","New York":"new_york","Philadelphia":"philadelphia"
+});
+const COSMETIC_ART=Object.freeze({
+ "ice_frame":"/art/v290/cosmetics/frames/ice_frame.png",
+ "gold_frame":"/art/v290/cosmetics/frames/gold_frame.png",
+ "holly_frame":"/art/v290/cosmetics/frames/holly_frame.png",
+ "snow_trail":"/art/v290/cosmetics/trails/snow_trail.png",
+ "candy_trail":"/art/v290/cosmetics/trails/candy_trail.png",
+ "goggles":"/art/v290/cosmetics/gear/goggles.png",
+ "boots":"/art/v290/cosmetics/gear/boots.png",
+ "scarf":"/art/v290/cosmetics/gear/scarf.png",
+ "midnight_banner":"/art/v290/cosmetics/banners/midnight_banner.png",
+ "aurora_banner":"/art/v290/cosmetics/banners/aurora_banner.png",
+ "gilded_banner":"/art/v290/cosmetics/banners/gilded_banner.png",
+ "noir_detective":"/art/v290/portraits/noir_detective_m.webp",
+ "winter_enforcer":"/art/v290/portraits/winter_enforcer_m.webp",
+ "frost_spectre":"/art/v290/portraits/frost_spectre_m.webp"
+});
+function bossArtTier(hp,max){
+ if(!(Number(max)>0))return 100;
+ if(Number(hp)<=0)return 0;
+ return Math.min(100,Math.max(10,Math.ceil(100*Number(hp)/Number(max)/10)*10));
+}
+function safeStreetsUrl(value){
+ if(typeof value!=="string")return "";
+ try{
+  const url=new URL(value);
+  if(url.protocol==="https:" && url.host==="discord.com" && !url.search && !url.hash &&
+      /^\/channels\/\d{15,25}\/\d{15,25}$/.test(url.pathname))return url.href;
+ }catch{}
+ return "";
+}
+function configureStreets(value){
+ const url=safeStreetsUrl(value);
+ for(const id of ["streetsLink","streetsTopLink"]){
+  const link=el(id);if(!link)continue;
+  link.classList.toggle("hidden",!url);
+  if(url)link.href=url;else link.removeAttribute("href");
+ }
+ el("streetsUnavailable").classList.toggle("hidden",!!url);
+}
+
 let timer;
 function notice(message,kind){
  const node=el("toast");node.textContent=String(message);node.className="toast "+(kind||"");
@@ -59,7 +103,13 @@ const post=(path,body,mutate,unique)=>request(path,"POST",body,mutate,unique);
 function section(name){
  if(!["home","combat","boss","shop","cities"].includes(name))name="home";
  document.querySelectorAll(".panel").forEach(n=>n.classList.toggle("active",n.id==="page-"+name));
- document.querySelectorAll(".nav-item").forEach(n=>n.classList.toggle("active",n.dataset.nav===name));
+ document.querySelectorAll(".nav-item").forEach(n=>{
+  const active=n.dataset.nav===name;
+  n.classList.toggle("active",active);
+  n.setAttribute("aria-pressed",String(active));
+ });
+ el("primaryNav").classList.remove("open");
+ el("menuToggle").setAttribute("aria-expanded","false");
  if(name==="shop")showShop();
  if(name==="cities"){showCities();showBoard()}
  if(name==="boss")showBoss();
@@ -95,6 +145,15 @@ function showMe(){
  renderProgress();
  showVerification();
  txt("welcomeName",S.me.mr_username);txt("welcomeCity",S.me.city+" · Day "+(S.me.day||"—"));
+  txt("hqCityName",S.me.city+" winter headquarters");
+  const citySlug=CITY_SLUG[S.me.city];
+  const cityImage=el("hqCityArt");
+  if(citySlug)cityImage.src="/art/cities/"+citySlug+".webp";
+  cityImage.alt="Winter illustration of "+S.me.city;
+  const ammo=Number(S.me.resources?.snowballs||0);
+  txt("hqNextMove",ammo>0?
+      "You've got "+fmt(ammo)+" snowballs ready. Pick a rival or confront the Snow Don.":
+      "Ammunition is low. Explore the Winter Market or check back for regeneration.");
  txt("ammoValue",S.me.resources?.snowballs);txt("warmthValue",S.me.resources?.warmth);
  txt("flakeValue",S.me.resources?.snowflakes);txt("scoreValue",fmt(S.me.score));
  txt("shopBalance",fmt(S.me.resources?.snowflakes));
@@ -169,6 +228,12 @@ function showBoss(){
  txt("bossPhase",max?Math.round((1-hp/max)*100)+"% damage taken":"Raid not started");
  el("bossHpBar").style.width=max?Math.max(0,Math.min(100,100*hp/max))+"%":"0%";
  txt("raidSummary",S.raid?fmt(S.raid.shared_hits)+" hits · "+fmt(S.raid.contributors)+" contributors · "+fmt(S.raid.misses)+" misses":"Raid status will appear here.");
+  const tier=bossArtTier(hp,max),portrait=el("bossPortrait");
+  if(portrait.dataset.tier!==String(tier)){
+   portrait.src=tier===0?"/art/v290/boss/snow_don_0.webp":"/art/boss/snow_don_"+tier+".png";
+   portrait.dataset.tier=String(tier);
+  }
+  portrait.alt=tier===0?"Snow Don defeated":"Snow Don artwork at approximately "+tier+"% remaining health";
 }
 function showTargets(){
  let node=el("targetSelect"),current=node.value;
@@ -179,7 +244,11 @@ function showBoard(){
  el("leaderboard").innerHTML=S.board.length?S.board.map((r,i)=>"<div class='score-row'><span class='rank'>"+(i+1)+"</span><div><strong>"+esc(r.mr_username)+"</strong><small>"+esc(r.city)+"</small></div><strong>"+fmt(r.score)+" pts</strong></div>").join(""):"<div class='empty'>The scoreboard is waiting for its first winner.</div>";
 }
 function showCities(){
- el("cityStandings").innerHTML=S.cities.length?S.cities.map(r=>"<div class='city-row'><span class='rank'>✦</span><div><strong>"+esc(r.city)+"</strong><small>"+fmt(r.active_players)+" active · "+fmt(r.daily_wins)+" daily wins</small></div><strong>"+fmt(Math.round(r.score_x100/100))+" pts</strong></div>").join(""):"<div class='empty'>City standings are not available yet.</div>";
+ el("cityStandings").innerHTML=S.cities.length?S.cities.map(r=>{
+  const city=CITY_SLUG[r.city];
+  const crest=city?"<img class='city-crest' src='/art/v290/cities/crests/"+city+"_crest.png' alt='' loading='lazy'>":"<span class='rank'>✦</span>";
+  return "<div class='city-row'>"+crest+"<div><strong>"+esc(r.city)+"</strong><small>"+fmt(r.active_players)+" active · "+fmt(r.daily_wins)+" daily wins</small></div><strong>"+fmt(Math.round(r.score_x100/100))+" pts</strong></div>";
+ }).join(""):"<div class='empty'>City standings are not available yet.</div>";
 }
 function showShop(){
  txt("shopBalance",S.shop?.balance??S.me?.resources?.snowflakes);
@@ -187,7 +256,9 @@ function showShop(){
  el("catalog").innerHTML=S.items.length?S.items.map(i=>{
   let has=owned.has(i.key),on=wearing[i.category]===i.key;
   let button=has?"<button class='button button-outline' data-equip='"+esc(i.key)+"' "+(on?"disabled":"")+">"+(on?"Equipped":"Equip")+"</button>":"<button class='button button-gold' data-buy='"+esc(i.key)+"' "+(!S.me?.registered?"disabled":"")+">Purchase</button>";
-  return "<article class='catalog-card'><span class='tag'>"+esc(i.rarity)+" · "+esc(i.category)+"</span><h3>"+esc(i.name)+"</h3><p>"+esc(i.detail)+"</p><div class='catalog-row'><strong>✦ "+fmt(i.cost)+"</strong>"+button+"</div></article>";
+  const art=COSMETIC_ART[i.key];
+   const preview=art?"<img class='catalog-thumb' src='"+art+"' loading='lazy' alt='"+esc(i.name)+" artwork preview'>":"";
+   return "<article class='catalog-card'>"+preview+"<span class='tag'>"+esc(i.rarity)+" · "+esc(i.category)+"</span><h3>"+esc(i.name)+"</h3><p>"+esc(i.detail)+"</p><div class='catalog-row'><strong>✦ "+fmt(i.cost)+"</strong>"+button+"</div></article>";
  }).join(""):"<p class='empty'>The market is currently unavailable.</p>";
 }
 async function loadPublic(){
@@ -260,6 +331,11 @@ async function act(fn){
 function registered(){if(S.me?.registered)return true;section("home");notice("Register your player at Headquarters first.","error");return false}
 function bind(){
  document.querySelectorAll("[data-nav]").forEach(b=>b.addEventListener("click",()=>section(b.dataset.nav)));
+ el("menuToggle").onclick=()=>{
+  const open=el("primaryNav").classList.toggle("open");
+  el("menuToggle").setAttribute("aria-expanded",String(open));
+ };
+ document.querySelectorAll(".nav-item").forEach(b=>b.setAttribute("aria-pressed",String(b.classList.contains("active"))));
  el("heroPlay").onclick=()=>S.session?section("home"):authModal();
  el("loginCTA").onclick=authModal;el("closeAuth").onclick=closeAuth;
  el("authDialog").onclick=e=>{if(e.target===el("authDialog"))closeAuth()};
@@ -367,7 +443,7 @@ async function init(){
  bind();
  try{
   let [cfg,health]=await Promise.all([get("/v1/web/config"),get("/v1/health")]);
-  S.config=cfg;el("discordLogin").disabled=!cfg.discord_oauth;
+  S.config=cfg;configureStreets(cfg.streets_url);el("discordLogin").disabled=!cfg.discord_oauth;
   if(!cfg.discord_oauth)el("discordLogin").textContent="Discord login (not configured)";
   if(!cfg.underworld_assertions)el("underworldForm").querySelector("button").disabled=true;
   txt("sideStatus",(health.status||"unknown").toUpperCase());txt("sideStatusDetail","Isolated staging · "+cfg.season);
