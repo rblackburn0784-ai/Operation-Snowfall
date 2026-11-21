@@ -6,7 +6,7 @@ unplayable, excluded from active rankings, and retained as immutable records.
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 import asyncio
 import os
 from urllib.parse import parse_qs, urlsplit, urlunsplit
