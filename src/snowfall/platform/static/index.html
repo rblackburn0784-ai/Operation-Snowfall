@@ -7,8 +7,8 @@
   <meta name="description" content="Operation Snowfall — the seven-day winter city showdown. Isolated staging preview.">
   <title>Operation Snowfall | The Winter Underworld</title>
   <link rel="icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/static/app.css?v=296e">
-  <script defer src="/static/app.js?v=296e"></script>
+  <link rel="stylesheet" href="/static/app.css?v=296f">
+  <script defer src="/static/app.js?v=296f"></script>
 </head>
 <body>
   <a class="skip-link" href="#mainContent">Skip to game content</a>
@@ -193,7 +193,7 @@
             <p class="subtle" style="margin-top:.8rem">This staging database is independent of the live Discord Christmas event. Only linked QA accounts can share its progress.</p>
           </div>
           <div id="crossPlatformPanel" class="side-card hidden" style="margin-top:1.1rem">
-            <p class="eyebrow">v2.9.6e · CROSS-PLATFORM TEST LAB</p>
+            <p class="eyebrow">v2.9.6f · CROSS-PLATFORM TEST LAB</p>
             <h3>One character. One scoreboard. Verified gameplay.</h3>
             <p>Check that Discord and Snowfall Web read and update the same official Snowfall character. Testing never awards extra points.</p>
             <p id="verificationState" role="status"><strong>Not started</strong></p>
@@ -302,8 +302,26 @@
         <section id="page-cities" class="panel" aria-labelledby="citiesTitle">
           <div class="section-heading"><div><p class="eyebrow">COAST TO COAST</p><h2 id="citiesTitle">City Wars</h2></div><span class="pill">HONORARY TERRITORY</span></div>
           <p class="section-desc">Chicago, New York, Detroit, Philadelphia, Las Vegas and Los Angeles battle for bragging rights only.</p>
-          <figure class="territory-art"><img src="/art/v290/cities/map/six_city_territory_map.png" alt="Illustrated map of the six Snowfall rivalry cities" loading="lazy"><figcaption>Territory is honorary. There are no extra cash or paid prizes.</figcaption></figure>
-          <div id="cityStandings" class="city-stack"></div>
+          <div class="city-command-toolbar"><div><p class="eyebrow">THE SIX-CITY WAR ROOM</p><strong id="territoryDayLabel">Awaiting territory status</strong><p id="territoryFreshness" class="subtle" role="status">Connecting to the shared game…</p></div><div class="city-command-controls"><label>Territory day<select id="territoryDay"><option value="current">Current day</option></select></label><button class="button button-outline button-small" id="refreshTerritory">↻ Refresh</button></div></div>
+          <figure class="territory-art">
+            <div class="city-map-stage"><img src="/art/v290/cities/map/six_city_territory_map.png" alt="Original illustrated Snowfall territory map" loading="lazy"><svg id="cityMapOverlay" viewBox="0 0 960 540" aria-hidden="true" focusable="false"></svg></div>
+            <figcaption>Original game-world map · coloured landmarks mark held home districts; links connect daily rivals. Select a map landmark or city button below. Fictional territory, no extra points or prizes.</figcaption>
+          </figure>
+          <div class="city-map-key"><span>◉ Coloured: held home</span><span>○ Grey: neutral home</span><span>– – Rival pairing</span></div>
+          <div id="citySelectors" class="city-selectors" aria-label="Select city"></div>
+          <section class="city-war-room" id="cityWarRoom" aria-labelledby="cityWarTitle">
+            <div class="city-war-hero"><img id="citySkyline" alt="" loading="lazy"><div class="city-war-shade"></div><div class="city-war-heading"><img id="cityWarCrest" alt=""><div><p class="eyebrow">DISTRICT WAR ROOM</p><h3 id="cityWarTitle">Select a city</h3><p id="cityMotto"></p><span id="cityHomeLabel" class="subtle"></span></div></div></div>
+            <div class="city-war-main">
+              <div class="city-war-banner"><img id="cityWarBanner" alt="" loading="lazy"><img id="cityOutcomeArt" class="hidden" alt="" loading="lazy"><p id="cityOutcomeText" role="status">Awaiting territory status.</p></div>
+              <div class="city-war-details"><div class="city-war-kpis"><div><small>Districts held</small><strong id="cityHeld">—</strong></div><div><small>Rally marks</small><strong id="cityRally">—</strong></div><div><small>Active members / current roster</small><strong id="cityActivity">—</strong></div><div><small>Scored PvE hits</small><strong id="cityPve">—</strong></div></div>
+                <div class="city-objective"><p class="eyebrow">COOPERATIVE CITY MISSION</p><h4 id="cityMissionName">Awaiting kickoff</h4><div class="hq-meter"><span id="cityMissionMeter"></span></div><p id="cityMissionProgress">—</p><p id="cityQuorum" class="subtle"></p></div>
+                <p class="subtle" id="cityWarNote">Control is honorary and does not award additional points.</p>
+              </div>
+            </div>
+          </section>
+          <section class="city-match-section" aria-labelledby="matchTitle"><div class="hq-section-head"><div><p class="eyebrow">THREE DAILY HEAD-TO-HEADS</p><h3 id="matchTitle">Rivalry fixtures</h3></div></div><div id="cityMatches" class="city-match-grid"></div></section>
+          <section class="city-district-section" aria-labelledby="districtTitle"><div class="hq-section-head"><div><p class="eyebrow">HOME STRONGHOLDS &amp; FRONTIERS</p><h3 id="districtTitle">District control</h3></div><span id="districtCount" class="subtle">—</span></div><div id="cityDistricts" class="district-grid"></div></section>
+          <section class="city-season-section" aria-labelledby="citySeasonTitle"><div class="hq-section-head"><div><p class="eyebrow">THE OFFICIAL SEASON COMPETITION</p><h3 id="citySeasonTitle">City standings</h3></div></div><p class="subtle">Official city score is separate from honorary district control. Standings show season totals, not the selected day's territory.</p><div id="cityStandings" class="city-stack"></div><p id="cityStandingsStatus" class="subtle"></p></section>
           <div class="section-heading compact"><div><p class="eyebrow">THE TOP OPERATIVES</p><h2>Official leaderboard</h2></div></div>
           <div id="leaderboard" class="scoreboard"></div>
         </section>

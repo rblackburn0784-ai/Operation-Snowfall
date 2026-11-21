@@ -44,7 +44,7 @@ def test_v296_web_uses_existing_artwork_without_changing_gameplay():
         assert 'id="siteBanner"' not in page.text.split("</header>", 1)[1]
         assert 'id="streetsLink"' in page.text
         assert 'src="/art/v290/cities/map/six_city_territory_map.png"' in page.text
-        assert client.get("/v1/web/config").json()["version"] == "2.9.6e"
+        assert client.get("/v1/web/config").json()["version"] == "2.9.6f"
         assert client.get("/v1/web/config").json()["streets_url"] == ""
         for path, mime in (
             ("/art/v290/boss/phase_ice.webp", "image/webp"),
@@ -115,3 +115,25 @@ def test_v296c_public_boss_visual_route_is_read_only():
             assert response.headers["cache-control"] == "no-store"
             read.assert_called_once_with(game)
         assert client.post("/v1/web/boss").status_code == 405
+
+
+def test_v296f_public_city_aggregates_no_player_identity():
+    from unittest.mock import Mock, patch
+    from types import SimpleNamespace
+    game = SimpleNamespace(store=object(), season="qa")
+    board = SimpleNamespace(day=2, current_day=2, phase="live", banners=(),
+                            matches=(), districts=(), viewer_city="private", missions=())
+    with TestClient(web_app(game=game), base_url="https://qa.example") as client:
+        with patch("snowfall.services.territory.TerritoryEngine") as engine:
+            read = Mock(return_value=board)
+            engine.return_value.public_board = read
+            response = client.get("/v1/web/territory?day=2")
+            assert response.status_code == 200
+            assert response.headers["cache-control"] == "no-store"
+            assert response.json() == {"day": 2, "current_day": 2, "phase": "live",
+                                       "banners": [], "matches": [], "districts": [],
+                                       "honorary_only": True}
+            assert read.call_args.args[0] == "qa"
+            assert read.call_args.kwargs["day"] == 2
+        assert client.get("/v1/web/territory?day=8").status_code == 422
+        assert client.post("/v1/web/territory").status_code == 405

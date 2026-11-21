@@ -5,7 +5,7 @@ is permitted only in the explicitly identified staging Railway project.
 """
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import asdict, replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from threading import Lock
@@ -16,7 +16,7 @@ import re
 import secrets
 import time
 
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -67,7 +67,7 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None, game=
     @app.get("/v1/web/config")
     def config():
         return {
-            "version": "2.9.6e", "staging": True,
+            "version": "2.9.6f", "staging": True,
             "branding": {"banner": (ASSETS / "snowfall-site-banner.webp").is_file(),
                          "icon": (ASSETS / "snowfall-site-icon.webp").is_file()},
             "season": cfg.season_key,
@@ -84,6 +84,23 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None, game=
             raise HTTPException(503, "Boss visual status unavailable")
         response.headers["Cache-Control"] = "no-store"
         return current_boss(game)
+
+    @app.get("/v1/web/territory")
+    def territory_status(response: Response, day: int | None = Query(default=None, ge=1, le=7)):
+        from snowfall.services.territory import TerritoryEngine, TerritoryError
+        if game is None:
+            raise HTTPException(503, "City Wars unavailable")
+        try:
+            board = TerritoryEngine(game.store).public_board(
+                game.season, datetime.now(timezone.utc), day=day)
+        except TerritoryError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        response.headers["Cache-Control"] = "no-store"
+        return {"day": board.day, "current_day": board.current_day, "phase": board.phase,
+                "banners": [asdict(b) for b in board.banners],
+                "matches": [asdict(m) for m in board.matches],
+                "districts": [asdict(d) for d in board.districts],
+                "honorary_only": True}
 
     @app.post("/v1/auth/demo")
     def demo_login(body: DemoLogin, request: Request, response: Response):

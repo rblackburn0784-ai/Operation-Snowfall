@@ -307,3 +307,30 @@ def test_discord_selectors_and_navigation_are_one_message_read_only(store, monke
         assert len(event2.edits) == 1
         assert state_counts(store) == old
     asyncio.run(run())
+
+
+def test_public_territory_board_matches_discord_and_never_changes_gameplay(store):
+    launch(store)
+    four_real_hits(store)
+    before = state_counts(store)
+    eng = TerritoryEngine(store)
+    now = START + timedelta(minutes=5)
+    original = eng.board(KEY, 101, now)
+    public = eng.public_board(KEY, now)
+    assert public.viewer_city is None and public.missions == ()
+    assert public.banners == original.banners
+    assert public.matches == original.matches
+    assert public.districts == original.districts
+    assert len(public.held("Chicago")) == 3
+    assert state_counts(store) == before
+    with pytest.raises(TerritoryError, match="not available"):
+        eng.public_board(KEY, now, day=2)
+    with pytest.raises(TerritoryError, match="Register"):
+        eng.board(KEY, None, now)
+
+
+def test_public_prelaunch_map_remains_neutral(store):
+    board = TerritoryEngine(store).public_board(KEY, START - timedelta(hours=1))
+    assert board.day is None and board.current_day is None
+    assert len(board.banners) == len(board.districts) == 6
+    assert not board.matches and all(d.owner is None for d in board.districts)

@@ -1,6 +1,6 @@
-/* Operation Snowfall v2.9.6e — winter market, fitting room and shared visual state. */
+/* Operation Snowfall v2.9.6f — City Wars, original map and shared visual state. */
 "use strict";
-const S={session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],targets:[],config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
+const S={session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,targets:[],config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
 const txt=(id,v)=>{if(el(id))el(id).textContent=v==null?"—":String(v)};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -241,7 +241,7 @@ function section(name){
  el("primaryNav").classList.remove("open");
  el("menuToggle").setAttribute("aria-expanded","false");
  if(name==="shop")showShop();
- if(name==="cities"){showCities();showBoard()}
+ if(name==="cities"){showCities();showBoard();if(!S.territoryPending&&!S.busy)void refreshTerritory()}
  if(name==="boss"){showBoss();if(!S.bossPending&&!S.busy)void refreshBossVisual()}
  window.scrollTo({top:document.querySelector(".page-grid").offsetTop,behavior:"smooth"});
 }
@@ -429,12 +429,122 @@ function showTargets(){
 function showBoard(){
  el("leaderboard").innerHTML=S.board.length?S.board.map((r,i)=>"<div class='score-row'><span class='rank'>"+(i+1)+"</span><div><strong>"+esc(r.mr_username)+"</strong><small>"+esc(r.city)+"</small></div><strong>"+fmt(r.score)+" pts</strong></div>").join(""):"<div class='empty'>The scoreboard is waiting for its first winner.</div>";
 }
+// Original Discord v290 artwork landmarks and city palette.
+const CITY_META=Object.freeze({
+ "Chicago":{x:648,y:255,color:"#f07a74"},
+ "New York":{x:820,y:244,color:"#85bafb"},
+ "Detroit":{x:703,y:240,color:"#c09bea"},
+ "Philadelphia":{x:808,y:259,color:"#edc479"},
+ "Las Vegas":{x:289,y:332,color:"#e9a0d2"},
+ "Los Angeles":{x:240,y:358,color:"#84dcbb"}
+});
+const knownCity=city=>Object.hasOwn(CITY_META,city);
+const cityAsset=(city,type)=>{
+ if(!knownCity(city))return "";
+ const slug=CITY_SLUG[city];
+ return type==="skyline"?"/art/cities/"+slug+".webp":"/art/v290/cities/"+(type==="crest"?"crests/"+slug+"_crest.png":"banners/"+slug+"_district_banner.png");
+};
+function territoryView(board,city){
+ const banner=board?.banners?.find(b=>b.city===city)||null;
+ const match=board?.matches?.find(m=>[m.city_a,m.city_b].includes(city))||null;
+ const held=board?.districts?.filter(d=>d.owner===city)||[];
+ const home=board?.districts?.find(d=>d.kind==="home"&&d.contenders?.includes(city))||null;
+ const results=match?[match.rally_owner,match.duel_owner]:[];
+ const wins=results.filter(owner=>owner===city).length,losses=results.filter(owner=>knownCity(owner)&&owner!==city).length;
+ const archived=board?.day!=null&&(board.day<board.current_day||["closed","finalized"].includes(board.phase));
+ return {banner,match,held,home,wins,losses,archived,
+  outcome:wins>0&&losses===0?"victory":losses>0&&wins===0?"defeat":wins&&losses?"mixed":"neutral"};
+}
+function cityScore(n){return n==null?"—":(Number(n)/100).toLocaleString("en-GB",{maximumFractionDigits:2})}
+function mapMarkup(board,selected){
+ const lines=(board?.matches||[]).filter(m=>knownCity(m.city_a)&&knownCity(m.city_b)).map(m=>{
+  const a=CITY_META[m.city_a],b=CITY_META[m.city_b],color=knownCity(m.rally_owner)?CITY_META[m.rally_owner].color:"#a9b5bd";
+  return '<line x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'" stroke="'+color+'" stroke-width="3" stroke-dasharray="8 5" opacity=".85"/>';
+ }).join("");
+ const pins=Object.entries(CITY_META).map(([city,m])=>{
+  const owned=territoryView(board,city).home?.owner===city;
+  return '<circle data-map-city="'+city+'" class="map-city-pin" cx="'+m.x+'" cy="'+m.y+'" r="9" fill="#0b2031" stroke="'+(owned?m.color:"#a9b5bd")+'" stroke-width="4"><title>'+city+(owned?" · Home district held":" · Neutral home district")+'</title></circle>'+
+   (selected===city?'<circle cx="'+m.x+'" cy="'+m.y+'" r="15" fill="none" stroke="#fff1c5" stroke-width="2.5"/>':"");
+ }).join("");
+ return lines+pins;
+}
+function districtMarkup(d){
+ const owner=knownCity(d.owner)?d.owner:null,kind=["home","rally","duel"].includes(d.kind)?d.kind:"";
+ return "<article class='district-card' data-district-kind='"+kind+"'><span class='eyebrow'>"+esc(kind==="home"?"Home stronghold":kind==="rally"?"Rally frontier":"Duel frontier")+"</span><strong>"+esc(d.name)+"</strong><small>"+(d.contenders||[]).map(esc).join(" vs ")+"</small><div class='district-owner'>"+(owner?"<img src='"+cityAsset(owner,"crest")+"' alt='' loading='lazy'><span>"+esc(owner)+"</span>":"<span class='neutral-mark'>○</span><span>Neutral</span>")+"</div></article>";
+}
+function comparisonBar(label,a,b,owner,left,right){
+ const sum=Number(a)+Number(b);
+ return "<div class='match-metric'><strong>"+esc(label)+"</strong><div class='match-pair-values'><span>"+fmt(a)+"</span><span>"+fmt(b)+"</span></div><div class='match-balance' aria-hidden='true'><span style='width:"+(sum?Math.max(0,Math.min(100,Number(a)/sum*100)):50)+"%;background:"+CITY_META[left].color+"'></span><span style='background:"+CITY_META[right].color+"'></span></div><small>"+(knownCity(owner)?"Held by "+esc(owner):"Neutral · tied or no lead")+"</small></div>";
+}
+function matchMarkup(m,selected){
+ if(!knownCity(m.city_a)||!knownCity(m.city_b))return "";
+ const a=m.city_a,b=m.city_b;
+ return "<article class='city-match-card "+([a,b].includes(selected)?"selected-match":"")+"' data-match-slot='"+esc(m.slot)+"'><div class='match-header'><div><img src='"+cityAsset(a,"crest")+"' alt=''><strong>"+esc(a)+"</strong></div><span>VS</span><div><img src='"+cityAsset(b,"crest")+"' alt=''><strong>"+esc(b)+"</strong></div></div>"+
+ comparisonBar(m.rally_district+" · rally marks",m.rally_a,m.rally_b,m.rally_owner,a,b)+comparisonBar(m.duel_district+" · scored hits",m.hits_a,m.hits_b,m.duel_owner,a,b)+
+ "<div class='match-extra'><span>Throws: "+fmt(m.throws_a)+" / "+fmt(m.throws_b)+"</span><span>Damage: "+fmt(m.damage_a)+" / "+fmt(m.damage_b)+"</span><span>Knockouts: "+fmt(m.kos_a)+" / "+fmt(m.kos_b)+"</span></div></article>";
+}
 function showCities(){
- el("cityStandings").innerHTML=S.cities.length?S.cities.map(r=>{
-  const city=CITY_SLUG[r.city];
-  const crest=city?"<img class='city-crest' src='/art/v290/cities/crests/"+city+"_crest.png' alt='' loading='lazy'>":"<span class='rank'>✦</span>";
-  return "<div class='city-row'>"+crest+"<div><strong>"+esc(r.city)+"</strong><small>"+fmt(r.active_players)+" active · "+fmt(r.daily_wins)+" daily wins</small></div><strong>"+fmt(Math.round(r.score_x100/100))+" pts</strong></div>";
- }).join(""):"<div class='empty'>City standings are not available yet.</div>";
+ const board=S.territory,home=S.session&&S.me?.registered&&knownCity(S.me.city)?S.me.city:null;
+ const city=knownCity(S.citySelected)?S.citySelected:home||"Chicago",v=territoryView(board,city),b=v.banner;
+ const focused=document.activeElement?.dataset?.city;
+ const focusGroup=document.activeElement?.closest?.("#citySelectors,#cityStandings")?.id;
+ txt("territoryDayLabel",!board?"Awaiting territory status":board.day==null?"Awaiting kickoff":"Day "+board.day+" of 7 · "+(v.archived?"Historical result":board.phase==="paused"?"Paused":"Current territory"));
+ txt("territoryFreshness",S.territoryStale?"Unable to refresh — "+(board?"last known snapshot shown.":"territory unavailable."):S.territoryPending?"Refreshing territory…":board?"Shared Discord territory board · "+(v.archived?"historical view":"updates while this page is open"):"Waiting for territory data");
+ const day=el("territoryDay");
+ day.innerHTML='<option value="current">Current / latest day</option>'+Array.from({length:Math.max(0,Math.min(7,Number(board?.current_day)||0))},(_,i)=>'<option value="'+(i+1)+'">Day '+(i+1)+'</option>').join("");
+ day.value=S.territoryDay;day.disabled=S.territoryPending;
+ el("cityMapOverlay").innerHTML=mapMarkup(board,city);
+ el("citySelectors").innerHTML=Object.keys(CITY_META).map(name=>{
+  const x=territoryView(board,name);
+  return "<button class='city-select' data-city='"+esc(name)+"' aria-pressed='"+String(name===city)+"' style='--city-accent:"+CITY_META[name].color+"'><img src='"+cityAsset(name,"crest")+"' alt=''><strong>"+esc(name)+"</strong><small>"+(board?x.held.length+" held":"Awaiting data")+(home===name?" · Your city":"")+"</small></button>";
+ }).join("");
+ el("citySkyline").src=cityAsset(city,"skyline");el("cityWarCrest").src=cityAsset(city,"crest");el("cityWarBanner").src=cityAsset(city,"banner");
+ el("cityWarBanner").alt=city+" original district banner";
+ txt("cityWarTitle",city+" War Room");txt("cityMotto",b?.motto||"");txt("cityHomeLabel",b?.home_district?b.home_district+(home===city?" · Your home city":""):(home===city?"Your home city":""));
+ txt("cityHeld",board?v.held.length+" / "+board.districts.length:"—");txt("cityRally",b?fmt(b.rally_marks):"—");
+ txt("cityActivity",b?fmt(b.active)+" / "+fmt(b.registered):"—");txt("cityPve",b?fmt(b.pve_hits):"—");
+ txt("cityMissionName",b?.mission_name||"Awaiting city data");
+ el("cityMissionMeter").style.width=hqPercent(b?.mission_progress,b?.mission_target)+"%";
+ txt("cityMissionProgress",b&&b.mission_target?fmt(b.mission_progress)+" / "+fmt(b.mission_target)+(b.mission_complete?" · Complete":" · In progress"):"No active mission");
+ txt("cityQuorum",b&&board.day!=null?"Home stronghold requires the city mission and "+b.stronghold_quorum+" active member"+(b.stronghold_quorum===1?"":"s")+".":"");
+ const result=el("cityOutcomeArt"),art=v.archived&&["victory","defeat"].includes(v.outcome);
+ result.classList.toggle("hidden",!art);
+ if(art){result.src="/art/v290/cities/outcomes/city_"+v.outcome+"_background.png";result.alt=city+" "+v.outcome+" background"}else result.removeAttribute("src");
+ txt("cityOutcomeText",!board?"Awaiting territory status":!v.match?"Awaiting daily rivalry":(v.archived?"Recorded result: ":"Current control: ")+v.wins+" frontier"+(v.wins===1?"":"s")+" held · "+v.losses+" held by rival · "+(2-v.wins-v.losses)+" neutral");
+ txt("cityWarNote",b?"Claimed city quests: "+fmt(b.quests)+" · "+(v.home?.owner===city?"Home stronghold held.":"Home stronghold neutral."):"Territorial honours never add official points or prizes.");
+ el("cityMatches").innerHTML=board?.matches?.length?board.matches.map(m=>matchMarkup(m,city)).join(""):"<p class='empty'>Daily rivalries appear after kickoff.</p>";
+ txt("districtCount",board?board.districts.filter(d=>knownCity(d.owner)).length+" / "+board.districts.length+" held":"—");
+ el("cityDistricts").innerHTML=board?.districts?.length?board.districts.map(d=>districtMarkup(d)).join(""):"<p class='empty'>District data is unavailable.</p>";
+ const standings=S.cities.filter(r=>knownCity(r.city)),max=Math.max(0,...standings.map(r=>Number(r.score_x100)||0));
+ el("cityStandings").innerHTML=standings.length?standings.map((r,index)=>{
+  const leader=max>0&&r.score_x100===max;
+  return "<button class='city-standing "+(leader?"score-leader":"")+"' data-city='"+esc(r.city)+"' aria-label='View "+esc(r.city)+" war room'><span class='rank'>"+(index+1)+"</span><img class='city-crest' src='"+cityAsset(r.city,"crest")+"' alt=''><div><strong>"+esc(r.city)+(leader?" · Score leader":"")+"</strong><small>"+fmt(r.active_players)+" active · "+fmt(r.daily_wins)+" daily wins · "+fmt(r.siege_clears)+" siege clears</small><div class='hq-meter'><span style='width:"+hqPercent(r.score_x100,max)+"%;background:"+CITY_META[r.city].color+"'></span></div><small>Current-day score: "+cityScore(r.todays_score_x100)+" · "+(r.provisional?"Provisional":r.qualifying_today?"Qualified":"Not qualified today")+"</small></div><strong>"+cityScore(r.score_x100)+" pts</strong></button>";
+ }).join(""):"<div class='empty'>City standings are unavailable.</div>";
+ txt("cityStandingsStatus",S.citiesReady?"Official season scoreboard · ordered by the shared game.":"Unable to refresh standings"+(standings.length?" · last known scores shown.":"."));
+ if(focusGroup&&knownCity(focused))Array.from(el(focusGroup).querySelectorAll("[data-city]")).find(n=>n.dataset.city===focused)?.focus({preventScroll:true});
+}
+async function refreshCityStandings(){
+ try{
+  const data=await get("/v1/game/cities");
+  if(!Array.isArray(data.cities))throw Error("Missing city standings");
+  S.cities=data.cities;S.citiesReady=true;
+ }catch{S.citiesReady=false}
+ showCities();
+}
+async function refreshTerritory(){
+ const seq=++S.territoryRequest,requested=S.territoryDay;
+ S.territoryPending=true;txt("territoryFreshness","Refreshing territory…");el("territoryDay").disabled=true;
+ try{
+  const q=requested==="current"?"":"?day="+encodeURIComponent(requested);
+  const board=await get("/v1/web/territory"+q);
+  if(seq!==S.territoryRequest)return;
+  if(!board?.honorary_only||!Array.isArray(board.banners)||!Array.isArray(board.matches)||!Array.isArray(board.districts))throw Error("Invalid territory response");
+  S.territory=board;S.territoryStale=false;
+ }catch{
+  if(seq!==S.territoryRequest)return;
+  S.territoryStale=true;
+  if(S.territory&&requested!=="current"&&String(S.territory.day)!==requested)S.territoryDay=S.territory.day==null?"current":String(S.territory.day);
+ }finally{if(seq===S.territoryRequest){S.territoryPending=false;showCities()}}
 }
 const MARKET_SLOTS=Object.freeze(["portrait","frame","banner","gear","trail"]);
 const MARKET_FIELDS={marketCategory:"category",marketOwnership:"ownership",marketRarity:"rarity",marketSort:"sort",marketSearch:"search"};
@@ -578,7 +688,8 @@ function updateCraftArtwork(){
 async function loadPublic(){
  const results=await Promise.allSettled([get("/v1/game/leaderboard?limit=20"),get("/v1/game/cities"),get("/v1/game/catalog")]);
  if(results[0].status==="fulfilled")S.board=results[0].value.players||[];
- if(results[1].status==="fulfilled")S.cities=results[1].value.cities||[];
+ S.citiesReady=results[1].status==="fulfilled"&&Array.isArray(results[1].value.cities);
+ if(S.citiesReady)S.cities=results[1].value.cities;
  S.catalogReady=results[2].status==="fulfilled"&&Array.isArray(results[2].value.items);
  S.items=S.catalogReady?results[2].value.items:[];
  showBoard();showCities();showBoss();showShop();
@@ -602,7 +713,7 @@ async function loadPrivate(){
     catch{S.verification=null}
   }else S.verification=null;
  }else{S.shop=null;S.world=null;S.hq=null;S.progress=null;S.targets=[];S.verification=null;}
- showMe();showTargets();showBoss();showShop();
+ showMe();showTargets();showBoss();showShop();showCities();
 }
 function updateDiscardSubmit(){
  el("discardConfirm").disabled=!S.discard||!el("discardAcknowledge").checked||
@@ -635,7 +746,7 @@ async function loadDiscardOffer(){
  updateDiscardSubmit();
  notice("Choose carefully: your separate Discord character will be retired only if you confirm.","error");
 }
-async function refresh(){await Promise.all([loadPublic(),loadPrivate()]);await refreshBossVisual()}
+async function refresh(){await Promise.all([loadPublic(),loadPrivate()]);await Promise.all([refreshBossVisual(),refreshTerritory()])}
 async function resume(){try{S.session=await get("/v1/auth/session")}catch{S.session=null}await refresh()}
 async function act(fn){
  if(S.busy)return;
@@ -774,6 +885,13 @@ function bind(){
   if(b.dataset.buy)marketAction(b.dataset.buy,"buy");
   else if(b.dataset.equip)marketAction(b.dataset.equip,"equip");
  };
+ el("cityMapOverlay").onclick=e=>{
+  const pin=e.target.closest("[data-map-city]");
+  if(pin&&knownCity(pin.dataset.mapCity)){S.citySelected=pin.dataset.mapCity;showCities()}
+ };
+ el("territoryDay").onchange=()=>{S.territoryDay=el("territoryDay").value;void refreshTerritory()};
+ el("refreshTerritory").onclick=()=>{if(!S.territoryPending&&!S.busy)void Promise.all([refreshTerritory(),refreshCityStandings()])};
+ for(const id of ["citySelectors","cityStandings"])el(id).onclick=e=>{const b=e.target.closest("button[data-city]");if(b&&knownCity(b.dataset.city)){S.citySelected=b.dataset.city;showCities();if(id==="cityStandings")el("cityWarRoom").scrollIntoView({block:"start"});else el("citySelectors").querySelector("[aria-pressed=true]")?.focus({preventScroll:true})}};
  for(const id of ["refreshHome","refreshBoss","refreshShop"]){el(id).onclick=()=>refresh().then(()=>notice("Game state refreshed.")).catch(e=>notice(e.message,"error"))}
 }
 async function init(){
@@ -785,7 +903,7 @@ async function init(){
   if(!cfg.underworld_assertions)el("underworldForm").querySelector("button").disabled=true;
   txt("sideStatus",(health.status||"unknown").toUpperCase());txt("sideStatusDetail","Isolated staging · "+cfg.season);
   await resume();
-  const poll=()=>{if(!document.hidden&&!S.busy&&!S.bossPending)void refreshBossVisual()};
+  const poll=()=>{if(document.hidden||S.busy)return;if(!S.bossPending)void refreshBossVisual();if(el("page-cities").classList.contains("active")&&!S.territoryPending&&S.territoryDay==="current")void Promise.all([refreshTerritory(),refreshCityStandings()])};
   setInterval(poll,30000);document.addEventListener("visibilitychange",poll);
   setInterval(()=>{if(!document.hidden)updateHqTimers()},1000);
   if(location.search.includes("login=ok"))notice("Discord login successful.","success");
