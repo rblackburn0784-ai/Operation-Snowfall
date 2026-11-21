@@ -75,14 +75,14 @@ function showWardrobe(){
 function configureBranding(branding){
  const banner=el("siteBanner"),icon=el("brandIcon");
  if(branding?.banner){
+  banner.onerror=()=>{banner.classList.add("hidden");el("bannerFallback").classList.remove("hidden")};
   banner.src="/static/snowfall-site-banner.webp";
   banner.classList.remove("hidden");el("bannerFallback").classList.add("hidden");
-  banner.onerror=()=>{banner.classList.add("hidden");el("bannerFallback").classList.remove("hidden")};
  }
  if(branding?.icon){
+  icon.onerror=()=>{icon.classList.add("hidden");el("brandFallback").classList.remove("hidden")};
   icon.src="/static/snowfall-site-icon.webp";
   icon.classList.remove("hidden");el("brandFallback").classList.add("hidden");
-  icon.onerror=()=>{icon.classList.add("hidden");el("brandFallback").classList.remove("hidden")};
  }
 }
 function bossArtTier(hp,max){
@@ -341,7 +341,7 @@ async function loadPrivate(){
   if(results[0].status==="fulfilled")S.world=results[0].value;
   S.shop=results[1].status==="fulfilled"?results[1].value:null;
   if(results[2].status==="fulfilled")S.targets=results[2].value.targets||[];
-  if(results[3].status==="fulfilled")S.progress=results[3].value;
+  S.progress=results[3].status==="fulfilled"?results[3].value:null;
   const linked=(S.session.links||[]).some(x=>x.provider==="discord")&&
                (S.session.links||[]).some(x=>x.provider==="underworld");
   if(linked){
@@ -421,7 +421,6 @@ function bind(){
   try{
    S.session=await get("/v1/auth/session");
    await loadPrivate();
-   showMe();
    if(!S.progress?.registered)throw Error("Shared progress could not be verified. Refresh and try again.");
    notice("Progress verified against the authoritative PostgreSQL game.","success");
   }catch(e){notice(e.message,"error")}

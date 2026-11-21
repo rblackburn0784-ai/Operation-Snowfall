@@ -130,6 +130,10 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None) -> Fa
 def create_staging_app(env=None) -> FastAPI:
     env = dict(os.environ if env is None else env)
     require_staging(env)
+    # The bot activates this same art registry at startup. The web process
+    # otherwise would not reliably register the original female portrait keys.
+    from snowfall.graphics import snowverhaul
+    snowverhaul.activate()
     cfg = APISettings.from_env(env)
     qa_url = prepare_web_qa(env)
     cfg = replace(cfg, database_url=qa_url)
