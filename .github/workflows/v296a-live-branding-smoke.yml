@@ -1,0 +1,130 @@
+name: v2.9.6a deployed QA branding smoke
+on:
+  push:
+    branches: [qa/v2.9.6a-live-branding-smoke]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deployed-browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify live configuration, ready endpoint and exact artwork bytes
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib, json, pathlib, time, urllib.request
+          base = "https://snowfall-web-qa-staging.up.railway.app"
+          def get(path):
+              with urllib.request.urlopen(base+path, timeout=25) as result:
+                  return result.read(), result.headers.get("Content-Type","")
+          for i in range(12):
+              try:
+                  config=json.loads(get("/v1/web/config")[0])
+                  assert config["version"]=="2.9.6a", config.get("version")
+                  assert config["staging"] is True
+                  assert config["branding"]=={"banner":True,"icon":True},config["branding"]
+                  break
+              except Exception:
+                  if i==11: raise
+                  time.sleep(5)
+          print("LIVE /v1/web/config:", json.dumps({"version":config["version"], "staging":config["staging"], "branding":config["branding"]}))
+          get("/v1/ready")
+          print("LIVE /v1/ready: 200")
+          root=pathlib.Path("src/snowfall/platform/static")
+          for filename, url in [("snowfall-site-banner.webp","/static/snowfall-site-banner.webp"),("snowfall-site-icon.webp","/static/snowfall-site-icon.webp"),("snowfall-site-icon.webp","/favicon.ico")]:
+              data,kind=get(url)
+              assert hashlib.sha256(data).digest()==hashlib.sha256((root/filename).read_bytes()).digest(),url
+              assert "image/webp" in kind,kind
+              print("PASS 200 exact artwork bytes and image/webp:",url)
+          PY
+      - name: Install Chromium browser and Playwright
+        run: |
+          python -m pip install playwright
+          python -m playwright install chromium
+      - name: Render public site and fictional equipped HQ without any game writes
+        shell: bash
+        run: |
+          mkdir -p qa-screenshots
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright, expect
+          import json
+          from urllib.parse import urlsplit
+          base="https://snowfall-web-qa-staging.up.railway.app"
+          fake_id="999999999999999999"
+          equipment={"portrait":"noir_detective","frame":"gold_frame","banner":"midnight_banner","gear":"goggles","trail":"snow_trail"}
+          fixtures={
+              "/v1/auth/session":{"player_id":fake_id,"csrf":"fixture-no-real-session","links":[{"provider":"discord"},{"provider":"underworld"}]},
+              "/v1/game/me":{"registered":True,"player_id":fake_id,"mr_username":"QA Preview - fictional","city":"Chicago","phase":"live","day":2,"score":42,"resources":{"snowballs":10,"warmth":80,"snowflakes":53}},
+              "/v1/game/wardrobe":{"balance":53,"unlocked":list(equipment.values()),"equipped":equipment},
+              "/v1/game/world":{"boss_hp":76,"boss_max_hp":150},
+              "/v1/game/targets":{"targets":[]},
+              "/v1/game/progress":{"registered":True,"score":42,"snowballs":10,"snowflakes":53,"boss_hp":76,"boss_max_hp":150},
+              "/v1/verification/status":{"state":"not_started"},
+          }
+          def image(page,id):
+              image=page.locator("#"+id)
+              expect(image).to_be_visible(timeout=25000)
+              page.wait_for_function("(id)=>{const i=document.getElementById(id);return i.complete && i.naturalWidth>0 && i.naturalHeight>0;}",arg=id,timeout=25000)
+              return image.evaluate("i=>({width:i.naturalWidth,height:i.naturalHeight,displayWidth:i.getBoundingClientRect().width,displayHeight:i.getBoundingClientRect().height})")
+          def check_branding(page):
+              banner=image(page,"siteBanner")
+              icon=image(page,"brandIcon")
+              assert banner["width"]==2048 and banner["height"]==682,banner
+              assert icon["width"]==icon["height"],icon
+              assert abs(banner["displayWidth"]/banner["displayHeight"]-2048/682)<0.08,banner
+              expect(page.locator("#bannerFallback")).to_be_hidden()
+              return {"banner":banner,"icon":icon}
+          with sync_playwright() as p:
+              browser=p.chromium.launch(headless=True,args=["--no-sandbox"])
+              for label,width,height in [("desktop",1440,1000),("mobile",390,844)]:
+                  context=browser.new_context(viewport={"width":width,"height":height},device_scale_factor=1)
+                  page=context.new_page()
+                  page_errors=[]
+                  page.on("pageerror",lambda e:page_errors.append(str(e)))
+                  def public(route):
+                      if route.request.method not in ("GET","HEAD"): route.abort()
+                      else: route.continue_()
+                  page.route("**/*",public)
+                  page.goto(base,wait_until="domcontentloaded",timeout=45000)
+                  print(label,"PUBLIC BRANDING",json.dumps(check_branding(page)))
+                  page.screenshot(path=f"qa-screenshots/{label}-public.png",full_page=True)
+                  page.unroute("**/*",public)
+                  def simulated(route):
+                      req=route.request
+                      path=urlsplit(req.url).path
+                      if req.method not in ("GET","HEAD"): route.abort()
+                      elif path in fixtures: route.fulfill(status=200,content_type="application/json",body=json.dumps(fixtures[path]))
+                      else: route.continue_()
+                  page.route("**/*",simulated)
+                  page.reload(wait_until="domcontentloaded",timeout=45000)
+                  check_branding(page)
+                  expect(page.locator("#welcomeName")).to_have_text("QA Preview - fictional",timeout=30000)
+                  print(label,"FIXTURE HQ:",json.dumps({slot:image(page,"hq"+slot.capitalize()) for slot in equipment}))
+                  for slot,key in equipment.items():
+                      expect(page.locator("#hq"+slot.capitalize())).to_have_attribute("data-cosmetic",key)
+                  expect(page.locator("#accountTools")).not_to_have_attribute("open","")
+                  page.locator("#accountTools summary").click()
+                  expect(page.locator("#linkedIdentity")).to_be_visible()
+                  page.locator("#accountTools summary").click()
+                  page.screenshot(path=f"qa-screenshots/{label}-equipped-HQ-FIXTURE.png",full_page=True)
+                  overflow=page.evaluate("document.documentElement.scrollWidth-innerWidth")
+                  print(label,"horizontal overflow px=",overflow,"page errors=",page_errors)
+                  assert overflow<=2, f"{label} horizontal overflow: {overflow}"
+                  assert not page_errors,page_errors
+                  context.close()
+              browser.close()
+          print("PASS: desktop and mobile public branding and fictional equipped HQ, all five layers decoded; no write requests permitted.")
+          PY
+      - name: Save screenshots for visual review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snowfall-v296a-browser-screenshots
+          path: qa-screenshots/
+          if-no-files-found: ignore
