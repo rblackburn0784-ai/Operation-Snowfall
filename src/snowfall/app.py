@@ -130,8 +130,12 @@ class SnowfallBot(discord.Client):
         now = datetime.now(timezone.utc)
         try:
             await asyncio.to_thread(WorldEngine(self.store).tick, self.settings.season_key, now)
-            await self.broadcast.ensure_announcements(now)
-            await self.broadcast.publish_wire_recaps(now)
+            # This is the existing production Discord guild, but the shared
+            # database is isolated fictional QA. Do not overwrite real event
+            # announcements with test data during a verification cutover.
+            if not getattr(self.store, "unified_discord", False):
+                await self.broadcast.ensure_announcements(now)
+                await self.broadcast.publish_wire_recaps(now)
         except Exception as exc:
             # SQLite/disk failures must not permanently kill the one-minute loop.
             log.exception("Daily broadcast scheduler issue: %s", exc)
@@ -143,7 +147,10 @@ class SnowfallBot(discord.Client):
     @tasks.loop(minutes=5)
     async def refresh_leaderboard(self):
         try:
-            await self.broadcast.update_leaderboard(datetime.now(timezone.utc))
+            # Slash-command leaderboards remain readable in QA; do not
+            # publish fictional staging rankings over live pinned messages.
+            if not getattr(self.store, "unified_discord", False):
+                await self.broadcast.update_leaderboard(datetime.now(timezone.utc))
         except Exception as exc:
             # Keep retrying after unexpected database or render failures.
             log.exception("Five-minute leaderboard refresh failed: %s", exc)
