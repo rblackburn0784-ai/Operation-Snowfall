@@ -15,7 +15,6 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from snowfall.db.postgres import PostgresStore
-from snowfall.platform.identity import IdentityError
 from snowfall.platform.staging import QA_DB, STAGING_PROJECT
 
 # Reuse the already running, single-token worker; never create another bot.
