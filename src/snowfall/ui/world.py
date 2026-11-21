@@ -105,7 +105,8 @@ class WorldView(discord.ui.View):
         if interaction.guild_id != self.settings.guild_id or interaction.user.id != self.owner_id:
             await interaction.response.send_message('This is another player’s private menu.', ephemeral=True)
             return False
-        return True
+        from snowfall.platform.discord_security import check_linked_player
+        return await check_linked_player(interaction)
 
     async def _attack(self, interaction, kind):
         await interaction.response.edit_message(
@@ -160,7 +161,8 @@ class WorldConfirm(discord.ui.View):
         if interaction.guild_id != self.settings.guild_id or interaction.user.id != self.owner_id:
             await interaction.response.send_message('Not your attack confirmation.', ephemeral=True)
             return False
-        return True
+        from snowfall.platform.discord_security import check_linked_player
+        return await check_linked_player(interaction)
 
     @discord.ui.button(label='Confirm Attack', style=discord.ButtonStyle.danger)
     async def confirm(self, interaction, _):
