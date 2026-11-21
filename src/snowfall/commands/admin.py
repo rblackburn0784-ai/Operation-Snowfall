@@ -425,6 +425,30 @@ class SnowAdminGroup(app_commands.Group):
         if not await self.require_host(interaction):
             return
         await interaction.response.defer(ephemeral=True)
+        if self._shared_qa(interaction):
+            # Production's SQLite-only checks do not apply in shared QA.
+            from snowfall.platform.launch_audit import audit_qa_database
+            try:
+                report = await asyncio.to_thread(
+                    audit_qa_database, interaction.client.store.dsn)
+            except Exception:
+                await interaction.followup.send(
+                    "⚠️ Shared QA audit unavailable. No game state was changed.",
+                    ephemeral=True)
+                return
+            await interaction.followup.send(
+                "**🧪 Shared QA PostgreSQL launch audit — NO REAL PRIZES**\n"
+                f"Status: **{report['status']}**\n"
+                f"Registered linked players: {report['linked_registered_players']}\n"
+                f"Fictional/unlinked players: {report['unlinked_or_fixture_players']}\n"
+                f"Orphan resources: {report['orphan_resources']} · "
+                f"Bad resource values: {report['bad_resources']}\n"
+                f"QA prize awards (MUST BE ZERO): {report['prize_awards']}\n"
+                "Blockers: " + (", ".join(report["blockers"]) or "none") +
+                "\nWarnings: " + (", ".join(report["warnings"]) or "none") +
+                "\nOfficial prize launch is disabled in this QA season.",
+                ephemeral=True)
+            return
         state = await asyncio.to_thread(self.store.season, self.settings.season_key)
         health = await asyncio.to_thread(check_health, self.store, self.settings.season_key,
                                          self.settings.backup_dir)
@@ -498,6 +522,8 @@ class SnowAdminGroup(app_commands.Group):
     @app_commands.command(name="backup", description="Host: create an immediate verified database backup")
     async def backup(self, interaction: discord.Interaction):
         if not await self.require_host(interaction):
+            return
+        if await self._qa_forbidden(interaction, "backup (use managed PostgreSQL backups)"):
             return
         await interaction.response.defer(ephemeral=True)
         try:
