@@ -1,6 +1,6 @@
-/* Operation Snowfall v2.9.4d — verified Discord character replacement. */
+/* Operation Snowfall v2.9.5 — reliable shared action retries and reconnects. */
 "use strict";
-const S={session:null,me:null,world:null,raid:null,shop:null,items:[],board:[],cities:[],targets:[],config:null,progress:null,discard:null,verification:null,busy:false};
+const S={session:null,me:null,world:null,raid:null,shop:null,items:[],board:[],cities:[],targets:[],config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
 const txt=(id,v)=>{if(el(id))el(id).textContent=v==null?"—":String(v)};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -10,16 +10,48 @@ function notice(message,kind){
  const node=el("toast");node.textContent=String(message);node.className="toast "+(kind||"");
  clearTimeout(timer);timer=setTimeout(()=>node.classList.add("hidden"),5500);
 }
+function requestKey(path,body){
+ // Stable within the current authenticated character for identical inputs.
+ return String(S.session?.player_id||"guest")+"|"+path+"|"+JSON.stringify(body??{});
+}
+function nextActionId(){
+ return "web-ui-"+(crypto.randomUUID?crypto.randomUUID():
+        String(Date.now())+"-"+Math.random()).replace(/[^A-Za-z0-9_-]/g,"");
+}
 async function request(path,method,body,mutation,unique){
  const headers={"Accept":"application/json"};
  if(body!==undefined)headers["Content-Type"]="application/json";
  if(mutation)headers["X-Snowfall-CSRF"]=S.session?.csrf||"";
- if(unique)headers["Idempotency-Key"]="web-ui-"+(crypto.randomUUID?crypto.randomUUID():String(Date.now())+"-"+Math.random()).replace(/[^A-Za-z0-9_-]/g,"");
+ const key=unique?requestKey(path,body):null;
+ if(key){
+  if(!S.pendingActions.has(key))S.pendingActions.set(key,nextActionId());
+  headers["Idempotency-Key"]=S.pendingActions.get(key);
+ }
+ const abort=new AbortController();
+ const clock=setTimeout(()=>abort.abort(),15000);
  let response;
- try{response=await fetch(path,{method:method||"GET",headers,credentials:"same-origin",cache:"no-store",body:body===undefined?undefined:JSON.stringify(body)})}
- catch{throw Error("Cannot reach the staging server.")}
+ try{
+  response=await fetch(path,{
+   method:method||"GET",headers,credentials:"same-origin",cache:"no-store",
+   body:body===undefined?undefined:JSON.stringify(body),signal:abort.signal
+  });
+ }catch{
+  // The server may have committed an action before the response was lost.
+  // KEEP the key for the player's next attempt rather than spending twice.
+  let err=Error("Connection interrupted. Your action may have succeeded. "+
+      "Check shared progress, then retry the same action safely.");
+  err.status=0;throw err;
+ }finally{clearTimeout(clock)}
  let data={};try{data=await response.json()}catch{}
- if(!response.ok){let e=Error(typeof data.detail==="string"?data.detail:"Request failed ("+response.status+")");e.status=response.status;throw e}
+ if(!response.ok){
+  if(key&&response.status<500)S.pendingActions.delete(key);
+  let err=Error(typeof data.detail==="string"?data.detail:
+      "Request failed ("+response.status+")");
+  err.status=response.status;
+  if(response.status>=500)err.message+=". Status uncertain — check progress before retrying.";
+  throw err;
+ }
+ if(key)S.pendingActions.delete(key);
  return data;
 }
 const get=path=>request(path);
@@ -167,7 +199,7 @@ async function loadPublic(){
  showBoard();showCities();showBoss();showShop();
 }
 async function loadPrivate(){
- if(!S.session){S.me=null;S.world=null;S.shop=null;S.targets=[];S.progress=null;S.verification=null;showMe();return}
+ if(!S.session){S.me=null;S.world=null;S.shop=null;S.targets=[];S.progress=null;S.verification=null;S.pendingActions.clear();showMe();return}
  try{S.me=await get("/v1/game/me")}
  catch(e){if(e.status===401){S.session=null;S.me=null;S.progress=null;showMe();return}throw e}
  if(S.me.registered){
@@ -232,17 +264,17 @@ function bind(){
  el("loginCTA").onclick=authModal;el("closeAuth").onclick=closeAuth;
  el("authDialog").onclick=e=>{if(e.target===el("authDialog"))closeAuth()};
  document.addEventListener("keydown",e=>{if(e.key==="Escape")closeAuth()});
- el("authToggle").onclick=()=>{if(!S.session)return authModal();act(async()=>{await post("/v1/auth/logout",{},true);S.session=null;S.me=null;notice("Signed out.","success")})};
+ el("authToggle").onclick=()=>{if(!S.session)return authModal();act(async()=>{await post("/v1/auth/logout",{},true);S.session=null;S.me=null;S.pendingActions.clear();notice("Signed out.","success")})};
  el("demoForm").onsubmit=async e=>{
   e.preventDefault();let b=e.target.querySelector("button");b.disabled=true;
   try{
-   S.session=await post("/v1/auth/demo",{code:el("demoCode").value,slot:Number(el("demoSlot").value)},false);
+   S.pendingActions.clear();S.session=await post("/v1/auth/demo",{code:el("demoCode").value,slot:Number(el("demoSlot").value)},false);
    el("demoCode").value="";closeAuth();await refresh();notice("Signed in to isolated staging.","success");
   }catch(x){notice(x.message,"error")}finally{b.disabled=false}
  };
  el("underworldForm").onsubmit=async e=>{
   e.preventDefault();
-  try{S.session=await post("/v1/auth/underworld",{assertion:el("underworldAssertion").value},false);el("underworldAssertion").value="";closeAuth();await refresh();notice("Underworld assertion verified.","success")}
+  try{S.pendingActions.clear();S.session=await post("/v1/auth/underworld",{assertion:el("underworldAssertion").value},false);el("underworldAssertion").value="";closeAuth();await refresh();notice("Underworld assertion verified.","success")}
   catch(x){notice(x.message,"error")}
  };
  el("refreshShared").onclick=async()=>{
