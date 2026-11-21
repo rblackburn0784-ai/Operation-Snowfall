@@ -1,4 +1,4 @@
-/* Operation Snowfall v2.9.7b — consolidated release and safe recovery. */
+/* Operation Snowfall v2.9.7c — consolidated release and safe recovery. */
 "use strict";
 const S={session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
@@ -179,6 +179,7 @@ function configureBranding(branding){
  header?.classList.toggle("has-city-header",Boolean(branding?.city_header));
  header?.classList.toggle("has-city-title",Boolean(branding?.title));
  document.body.classList.toggle("has-city-wallpaper",Boolean(branding?.wallpaper));
+ el("wirePaper")?.classList.toggle("has-wire-template",Boolean(branding?.wire_template));
  if(branding?.title||branding?.banner){
   banner.onerror=()=>{banner.classList.add("hidden");el("bannerFallback").classList.remove("hidden")};
   banner.src=branding?.title?"/static/snowfall-title.png?v=297a":"/static/snowfall-site-banner.webp";
@@ -1083,8 +1084,12 @@ function showEvent(){
 function wireHeadlineMarkup(h){
  return "<article class='wire-story'><p class='wire-byline'>"+esc(h.category)+"</p><h4>"+esc(h.title)+"</h4><p>"+esc(h.detail)+"</p></article>";
 }
+const WIRE_SLOTS=Object.freeze([["streets","Combat"],["boss","Boss"],["cities","Cities"],["community","Community"]]);
+function wireSlots(heads){
+ return WIRE_SLOTS.map(([key,category])=>heads.find(h=>h?.key===key)||{key,category,title:"Awaiting dispatch",detail:"No verified report for this edition yet."});
+}
 function showWire(){
- const w=S.wire,heads=Array.isArray(w?.headlines)?w.headlines:[],lead=heads.find(h=>h.key==="lead")||heads[0];
+ const w=S.wire,heads=Array.isArray(w?.headlines)?w.headlines:[],lead=heads.find(h=>h?.key==="lead");
  const kind=!w?.day?"waiting":w.complete&&w.day===7?"final":w.complete?"archive":"live";
  el("wirePaper").dataset.edition=kind;
  const select=el("wireDay");
@@ -1093,7 +1098,7 @@ function showWire(){
  txt("wireEdition",w?.day?"DAY "+w.day+" / 7 · "+(w.complete?"ARCHIVE": "LIVE DISPATCH"):"AWAITING KICKOFF");
  txt("wireTheme",w?.theme||"THE WINTER UNDERWORLD");
  txt("wireLead",lead?.title||"The streets are waiting");txt("wireLeadDetail",lead?.detail||"Verified dispatches appear once the event opens.");
- el("wireHeadlines").innerHTML=heads.filter(h=>h!==lead).map(wireHeadlineMarkup).join("");
+ el("wireHeadlines").innerHTML=wireSlots(heads).map(wireHeadlineMarkup).join("");
  txt("wireNotice",S.wireStale?"Refresh unavailable — "+(w?"last known edition shown.":"no edition loaded."):w?.day?w.complete?"Historical ledger dispatch · review-cleared records as of this refresh. Not a prize announcement.":"Live figures may change until the day closes.":"No edition has opened yet.");
  txt("wireSideTitle",lead?.title||"Special bulletin");
  txt("wireSideDetail",(w?.day?"Day "+w.day+" · ":"")+(lead?.detail||"Verified dispatches from the shared game."));

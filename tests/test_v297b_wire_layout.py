@@ -19,4 +19,17 @@ def test_wire_art_is_decorative_not_standalone():
     assert 'el("wirePaper").dataset.edition=kind' in js
     for element in ("wireLead", "wireLeadDetail", "wireHeadlines", "wireNotice"):
         assert f'id="{element}"' in html
-    assert 'v=297b' in html
+    assert 'v=297c' in html
+
+
+def test_wire_v297c_uses_calibrated_art_and_dynamic_issue():
+    html = (STATIC / "index.html").read_text(encoding="utf-8")
+    js = (STATIC / "app.js").read_text(encoding="utf-8")
+    css = (STATIC / "app.css").read_text(encoding="utf-8")
+    assert 'class="wire-lead-block"' in html
+    assert 'snowfall-wire-frontpage.webp' in css
+    assert 'aspect-ratio:1197/1051' in css
+    assert 'wireSlots(heads).map(wireHeadlineMarkup)' in js
+    assert 'has-wire-template' in js
+    assert 'id="wireEdition"' in html
+    assert 'DAY "+w.day' in js

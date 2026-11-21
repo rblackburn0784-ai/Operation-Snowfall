@@ -522,3 +522,26 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
 .wire-notice{margin:.9rem 0 0;padding-top:.55rem;text-align:center;border-top:1px solid #9d8965;color:#473626}
 @media(max-width:560px){.wire-edition-body{padding:3.4rem .85rem 3.25rem;background-size:100% 100%;background-image:linear-gradient(180deg,transparent,rgba(245,229,194,.94) 10%,rgba(245,229,194,.94) 90%,transparent),var(--wire-edition-art)}.wire-editorial>h3{font-size:1.6rem}.wire-headlines{grid-template-columns:minmax(0,1fr);gap:.3rem}.wire-story{padding:.5rem .1rem}.wire-edition-line{font-size:.58rem}}
 @media(forced-colors:active){.wire-edition-body{background:none;border:1px solid CanvasText}.wire-editorial>h3,.wire-editorial>p,.wire-story,.wire-notice{color:CanvasText}}
+
+/* v2.9.7c — mapped headline and fixed four editorial slots. The supplied
+   1197 x 1051 body art omits its baked masthead and Day 2 strip. */
+.wire-edition-body{container-type:inline-size;position:relative;margin-top:.65rem;min-width:0;padding:clamp(.6rem,2vw,1rem);background:#ead6af;border:1px solid #ac9165}
+.wire-lead-block{text-align:center;min-width:0;padding:1rem .8rem;border:3px double #92724a;overflow-wrap:anywhere}
+.wire-lead-block .wire-byline{margin:0 0 .45rem}
+.wire-lead-block h3{line-height:1.08;margin:.25rem 0 .55rem;color:#32271d;font-size:clamp(1.4rem,5cqw,3rem);text-wrap:balance}
+.wire-lead-block #wireLeadDetail{color:#3b2e20;margin:0;line-height:1.35;font-size:clamp(.8rem,2.1cqw,1.05rem)}
+.wire-edition-body .wire-headlines{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem;border:0;margin:.7rem 0 0;padding:0}
+.wire-edition-body .wire-story{min-width:0;border:3px double #92724a;padding:.8rem .65rem;overflow-wrap:anywhere}
+.wire-edition-body .wire-story .wire-byline{font-size:clamp(.65rem,1.4cqw,.8rem);margin:0 0 .35rem}
+.wire-edition-body .wire-story h4{font-size:clamp(.95rem,2.65cqw,1.45rem);margin:0 0 .45rem;line-height:1.12}
+.wire-edition-body .wire-story p:not(.wire-byline){font-size:clamp(.75rem,1.8cqw,1rem);line-height:1.36;margin:0}
+.wire-paper.has-wire-template .wire-edition-body{box-sizing:border-box;aspect-ratio:1197/1051;min-height:570px;padding:0;border:0;background:#ead6af url('/static/snowfall-wire-frontpage.webp?v=297c') center/100% 100% no-repeat}
+.wire-paper.has-wire-template .wire-lead-block{position:absolute;left:8%;right:8%;top:19%;bottom:64%;border:0;padding:.2rem .25rem;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:auto;scrollbar-width:thin}
+.wire-paper.has-wire-template .wire-lead-block .wire-byline{font-size:clamp(.65rem,1.5cqw,.85rem);line-height:1.15;margin:0 0 .25rem}
+.wire-paper.has-wire-template .wire-edition-body .wire-headlines{position:absolute;left:6.3%;right:6.3%;top:40.7%;bottom:20.7%;column-gap:6%;row-gap:11%;margin:0;grid-template-rows:repeat(2,minmax(0,1fr));min-height:0}
+.wire-paper.has-wire-template .wire-edition-body .wire-story{border:0;padding:.1rem .15rem;display:flex;flex-direction:column;justify-content:safe center;overflow:auto;min-height:0;scrollbar-width:thin}
+.wire-paper.has-wire-template .wire-edition-body .wire-story h4{margin-bottom:.3rem}
+.wire-paper .wire-notice{margin:.65rem 0 0;padding-top:.55rem}
+@container (max-width:460px){.wire-paper.has-wire-template .wire-lead-block h3{font-size:clamp(1.2rem,5.2cqw,1.65rem)}.wire-edition-body .wire-story h4{font-size:clamp(.88rem,3.2cqw,1rem)}}
+@media(max-width:560px){.wire-paper.has-wire-template .wire-edition-body{min-height:740px}.wire-edition-body .wire-headlines{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(forced-colors:active){.wire-paper.has-wire-template .wire-edition-body{aspect-ratio:auto;min-height:0;padding:.6rem;background:none}.wire-paper.has-wire-template .wire-lead-block,.wire-paper.has-wire-template .wire-edition-body .wire-headlines{position:static}.wire-paper.has-wire-template .wire-lead-block,.wire-paper.has-wire-template .wire-edition-body .wire-story{border:1px solid CanvasText;padding:.6rem;overflow:visible}.wire-paper.has-wire-template .wire-edition-body .wire-headlines{margin-top:.6rem;gap:.6rem}}
