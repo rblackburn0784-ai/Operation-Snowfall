@@ -63,6 +63,10 @@ class SharedGame:
         })
         return response
 
+    def headquarters(self, player_id: int, *, now=None) -> dict:
+        from snowfall.platform.headquarters_view import headquarters_view
+        return headquarters_view(self.store, self.season, player_id, now)
+
     def progress(self, player_id: int, *, now=None) -> dict:
         """Cross-platform comparison: one canonical game's persistent values.
 

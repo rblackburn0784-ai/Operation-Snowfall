@@ -1,6 +1,6 @@
-/* Operation Snowfall v2.9.6c — shared Snow Don visual state. */
+/* Operation Snowfall v2.9.6d — illustrated headquarters and shared boss state. */
 "use strict";
-const S={session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,shop:null,items:[],board:[],cities:[],targets:[],config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
+const S={session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],board:[],cities:[],targets:[],config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
 const txt=(id,v)=>{if(el(id))el(id).textContent=v==null?"—":String(v)};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -55,6 +55,7 @@ function showWardrobe(){
  const wardrobe=S.session&&S.me?.registered?S.shop:null;
  const layers=profileLayers(wardrobe);
  el("hqPortraitWell").classList.toggle("has-frame",!!layers.frame.key);
+ el("hqBannerWell").classList.toggle("hidden",!layers.banner.key);
  for(const slot of Object.keys(layers)){
   const id=slot[0].toUpperCase()+slot.slice(1),node=el("hq"+id),layer=layers[slot];
   if(layer.src){
@@ -72,6 +73,74 @@ function showWardrobe(){
  txt("hqWardrobeStatus",wardrobe?
      fmt(wardrobe.unlocked?.length||0)+" cosmetics owned · shared with Discord":
      "Wardrobe not loaded — refresh to check equipped cosmetics.");
+}
+const MEDALS=Object.freeze(["first_flurry","deadeye","rival_hunter","critical_ace","knockout_artist","don_destroyer","boss_regular","fort_breaker","quest_master","gift_collector","golden_legend","seven_days","cocoa_club","first_style","collector","full_outfit"]);
+const RARITIES=["Common","Rare","Epic","Legendary"];
+function hqPercent(value,cap){
+ if(value==null||!(Number(cap)>0)||!Number.isFinite(Number(value)))return 0;
+ return Math.min(100,Math.max(0,Number(value)*100/Number(cap)));
+}
+function hqTimer(value,phase,now){
+ if(phase==="paused")return "Paused";
+ if(phase!=="live"||!value)return "—";
+ const until=Date.parse(value);
+ if(!Number.isFinite(until))return "—";
+ const seconds=Math.ceil((until-now)/1000);
+ if(seconds<=0)return "Refresh due";
+ const d=Math.floor(seconds/86400),h=Math.floor(seconds/3600)%24,m=Math.floor(seconds/60)%60,s=seconds%60;
+ return (d?d+"d ":"")+(d||h?h+"h ":"")+String(m).padStart(2,"0")+"m "+String(s).padStart(2,"0")+"s";
+}
+function updateHqTimers(){
+ if(!S.session||!S.hq?.registered)return;
+ const now=Date.now()+S.hqClock;
+ for(const key of ["snowball","warmth","throw","reset","knockout","shield"])
+  txt("hqTimer"+key[0].toUpperCase()+key.slice(1),hqTimer(S.hq.timers?.[key],S.hq.phase,now));
+ if(S.hq.timers?.arena&&S.hq.phase==="live")
+  txt("hqArenaState",Date.parse(S.hq.timers.arena)>now?"Arena active · "+hqTimer(S.hq.timers.arena,S.hq.phase,now):"Arena status expired · refresh");
+}
+function hqMedal(t,featured=false){
+ if(!MEDALS.includes(t.key))return "";
+ const rarity=RARITIES.includes(t.rarity)?t.rarity:"Common",earned=t.unlocked===true;
+ return "<article class='hq-medal "+(earned?"earned":"locked")+"' data-rarity='"+rarity+"'>"+
+ "<img loading='lazy' src='/art/v290/trophies/medals/"+t.key+".png' alt=''>"+
+ "<div><strong>"+esc(t.badge)+"</strong><small>"+esc(rarity)+" · "+(earned?"Earned":"Locked")+"</small>"+
+ (featured?"":"<p>"+esc(t.description)+"</p><div class='hq-meter'><span style='width:"+hqPercent(t.progress,t.target)+"%'></span></div><small>"+fmt(t.progress)+" / "+fmt(t.target)+"</small>")+"</div></article>";
+}
+function showHq(){
+ const h=S.session&&S.me?.registered&&S.hq?.registered?S.hq:null;
+ const quests=h&&Array.isArray(h.quests)?h.quests:[],trophies=h&&Array.isArray(h.trophies)?h.trophies.filter(t=>MEDALS.includes(t.key)):[];
+ const earned=trophies.filter(t=>t.unlocked===true);
+ const rarity=h&&RARITIES.includes(h.rarity)?h.rarity:"Common";
+ el("hqCollector").dataset.rarity=rarity;
+ txt("hqPlayerTitle",h?.title||"Title unavailable");
+ txt("hqRarity",h?rarity+" style":"Style unavailable");
+ txt("hqRank",h?.rank!=null?"#"+fmt(h.rank):"—");
+ txt("hqDailyPoints",h?.daily_points==null?"—":fmt(h.daily_points));
+ txt("hqPhase",S.me?.phase?String(S.me.phase).toUpperCase()+" · "+(S.me.day?"Day "+S.me.day+" of 7":"Awaiting event"):"Awaiting event");
+ const cap=h?.caps||{};
+ el("hqAmmoMeter").style.width=hqPercent(S.me?.resources?.snowballs,cap.snowballs)+"%";
+ el("hqWarmthMeter").style.width=hqPercent(S.me?.resources?.warmth,cap.warmth)+"%";
+ el("hqPvpMeter").style.width=hqPercent(h?.today_pvp,cap.pvp)+"%";
+ txt("hqPvpValue",h?.today_pvp!=null?fmt(h.today_pvp)+" / "+fmt(cap.pvp)+" pts":"—");
+ txt("hqArenaState",!h?"Arena status unavailable":h.phase==="paused"?"Event paused":h.phase!=="live"?"Arena not open":h.timers?.arena?"Checking arena timer…":"Arena inactive — enter Snowball Alley");
+ for(const key of ["snowball","warmth","throw","reset","knockout","shield"])
+  txt("hqTimer"+key[0].toUpperCase()+key.slice(1),"—");
+ if(h)updateHqTimers();
+ const recommendation=el("hqRecommended");
+ const routes={world:["boss","Open raid"],fight:["combat","Find rivals"],player:["combat","Enter arena"],rankings:["cities","View standings"],quests:["missions","View assignments"]};
+ const next=h?routes[h.next_action_route]:null;
+ recommendation.classList.toggle("hidden",!next);
+ recommendation.dataset.destination=next?.[0]||"";
+ recommendation.textContent=next?.[1]||"Open";
+ if(h)txt("hqNextMove",h.next_action+(["arcade","guide"].includes(h.next_action_route)?" See Discord for this feature.":""));
+ txt("hqQuestCount",h?quests.filter(q=>q.claimed).length+" / "+quests.length+" claimed":"Unavailable");
+ el("hqQuestList").innerHTML=quests.length?quests.map(q=>"<article class='hq-quest'><strong>"+esc(q.name)+"</strong><span>"+(q.claimed?"Claimed":Number(q.progress)>=Number(q.target)?"Ready to claim in Discord":"In progress")+"</span><div class='hq-meter'><span style='width:"+hqPercent(q.progress,q.target)+"%'></span></div><small>"+fmt(q.progress)+" / "+fmt(q.target)+"</small></article>").join(""):"<p class='subtle'>"+(h?"No daily assignments are available.":"Refresh to load your assignments.")+"</p>";
+ txt("hqGiftStatus",h?"Daily gift: "+h.daily_gift+" · Bonus: "+h.bonus_gift+" · Open gifts in Discord.":"Gift status unavailable.");
+ txt("hqTrophyCount",h?earned.length+" / "+trophies.length+" collected":"Achievements unavailable — refresh to retry.");
+ el("hqTrophyGrid").innerHTML=trophies.map(t=>hqMedal(t)).join("");
+ el("hqFeatured").innerHTML=earned.slice().sort((a,b)=>(Number(b.title===h.title)-Number(a.title===h.title))||RARITIES.indexOf(b.rarity)-RARITIES.indexOf(a.rarity)||String(a.badge).localeCompare(String(b.badge))).slice(0,3).map(t=>hqMedal(t,true)).join("");
+ const records=[["PvP throws","pvp_throws"],["PvP accuracy","accuracy"],["Critical hits","critical_hits"],["Knockouts","knockouts"],["Best hit","best_hit"],["Boss damage","boss_damage"],["Siege damage","siege_damage"],["Active days","active_days"]];
+ el("hqRecordGrid").innerHTML=records.map(([label,key])=>"<div><small>"+label+"</small><strong>"+(h?.records?.[key]==null?"—":fmt(h.records[key])+(key==="accuracy"?"%":""))+"</strong></div>").join("");
 }
 function configureBranding(branding){
  const banner=el("siteBanner"),icon=el("brandIcon");
@@ -214,7 +283,8 @@ function showMe(){
   txt("hqCityName",S.me.city+" winter headquarters");
   const citySlug=CITY_SLUG[S.me.city];
   const cityImage=el("hqCityArt");
-  if(citySlug)cityImage.src="/art/cities/"+citySlug+".webp";
+  if(citySlug){cityImage.src="/art/cities/"+citySlug+".webp";el("hqCityCrest").src="/art/v290/cities/crests/"+citySlug+"_crest.png";}
+  else {cityImage.removeAttribute("src");el("hqCityCrest").removeAttribute("src");}
   cityImage.alt="";
   const ammo=Number(S.me.resources?.snowballs||0);
   txt("hqNextMove",ammo>0?
@@ -226,6 +296,7 @@ function showMe(){
  txt("ammoSub",S.me.resources?.next_snowball_at?"Regenerating snowballs":"Ready for action");
  txt("phaseValue",S.me.phase.toUpperCase());txt("sideStatus",S.me.phase.toUpperCase());
  txt("sideStatusDetail","Day "+(S.me.day||"—")+" of 7 · "+S.me.city);
+ showHq();
 }
 function showVerification(){
  const links=S.session?.links||[];
@@ -385,22 +456,24 @@ async function loadPublic(){
  showBoard();showCities();showBoss();showShop();
 }
 async function loadPrivate(){
- if(!S.session){S.me=null;S.world=null;S.shop=null;S.targets=[];S.progress=null;S.verification=null;S.pendingActions.clear();showMe();showShop();return}
+ if(!S.session){S.me=null;S.world=null;S.hq=null;S.shop=null;S.targets=[];S.progress=null;S.verification=null;S.pendingActions.clear();showMe();showShop();return}
  try{S.me=await get("/v1/game/me")}
- catch(e){if(e.status===401){S.session=null;S.me=null;S.world=null;S.shop=null;S.progress=null;S.targets=[];S.verification=null;showMe();showShop();return}throw e}
+ catch(e){if(e.status===401){S.session=null;S.me=null;S.world=null;S.hq=null;S.shop=null;S.progress=null;S.targets=[];S.verification=null;showMe();showShop();return}throw e}
  if(S.me.registered){
-  const results=await Promise.allSettled([get("/v1/game/world"),get("/v1/game/wardrobe"),get("/v1/game/targets"),get("/v1/game/progress")]);
+  const results=await Promise.allSettled([get("/v1/game/world"),get("/v1/game/wardrobe"),get("/v1/game/targets"),get("/v1/game/progress"),get("/v1/game/headquarters")]);
   if(results[0].status==="fulfilled")S.world=results[0].value;
   S.shop=results[1].status==="fulfilled"?results[1].value:null;
   if(results[2].status==="fulfilled")S.targets=results[2].value.targets||[];
   S.progress=results[3].status==="fulfilled"?results[3].value:null;
+  S.hq=results[4].status==="fulfilled"?results[4].value:null;
+  S.hqClock=Number.isFinite(Date.parse(S.hq?.server_time))?Date.parse(S.hq.server_time)-Date.now():0;
   const linked=(S.session.links||[]).some(x=>x.provider==="discord")&&
                (S.session.links||[]).some(x=>x.provider==="underworld");
   if(linked){
     try{S.verification=await get("/v1/verification/status")}
     catch{S.verification=null}
   }else S.verification=null;
- }else{S.shop=null;S.world=null;S.progress=null;S.targets=[];S.verification=null;}
+ }else{S.shop=null;S.world=null;S.hq=null;S.progress=null;S.targets=[];S.verification=null;}
  showMe();showTargets();showBoss();showShop();
 }
 function updateDiscardSubmit(){
@@ -452,6 +525,7 @@ function bind(){
  };
  document.querySelectorAll(".nav-item").forEach(b=>b.setAttribute("aria-pressed",String(b.classList.contains("active"))));
  el("heroPlay").onclick=()=>S.session?section("home"):authModal();
+ el("hqRecommended").onclick=()=>{const dest=el("hqRecommended").dataset.destination;if(dest==="missions")el("hqMissions").scrollIntoView({block:"start"});else if(dest)section(dest)};
  el("loginCTA").onclick=authModal;el("closeAuth").onclick=closeAuth;
  el("authDialog").onclick=e=>{if(e.target===el("authDialog"))closeAuth()};
  document.addEventListener("keydown",e=>{if(e.key==="Escape")closeAuth()});
@@ -565,6 +639,7 @@ async function init(){
   await resume();
   const poll=()=>{if(!document.hidden&&!S.busy&&!S.bossPending)void refreshBossVisual()};
   setInterval(poll,30000);document.addEventListener("visibilitychange",poll);
+  setInterval(()=>{if(!document.hidden)updateHqTimers()},1000);
   if(location.search.includes("login=ok"))notice("Discord login successful.","success");
   if(location.search.includes("linked=discord"))notice("Discord account linked to this character.","success");
   if(location.search.includes("discord=discard-offer")){
