@@ -67,7 +67,7 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None) -> Fa
     @app.get("/v1/web/config")
     def config():
         return {
-            "version": "2.9.6a", "staging": True,
+            "version": "2.9.6b", "staging": True,
             "branding": {"banner": (ASSETS / "snowfall-site-banner.webp").is_file(),
                          "icon": (ASSETS / "snowfall-site-icon.webp").is_file()},
             "season": cfg.season_key,

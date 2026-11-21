@@ -116,3 +116,66 @@
 .account-tools .side-card{padding:.8rem}
 @media(max-width:680px){.masthead-strip{padding:.55rem .7rem}.masthead-strip>p{display:none}.masthead-controls{width:100%}.collector-layout{grid-template-columns:minmax(105px,.68fr) minmax(0,1fr);padding:.7rem;gap:.65rem}.equipped-list{grid-template-columns:1fr;gap:.25rem}.collector-info h3{font-size:1.45rem}.collector-profile .button{letter-spacing:.025em;font-size:.62rem;padding:.5rem .2rem}.collector-info .eyebrow{font-size:.55rem}.collector-info .subtle{font-size:.66rem}}
 @media(max-width:360px){.collector-layout{grid-template-columns:1fr}.collector-profile{max-width:185px;width:100%;margin:auto}.equipped-list{grid-template-columns:1fr 1fr}}
+
+
+/* v2.9.6b: banner belongs in the navigation brand, not the Snow Don splash. */
+.topbar{gap:.85rem;padding:.65rem max(3%,calc((100vw - 1440px)/2))}
+.brand{flex:0 1 auto;min-width:0;gap:.55rem}
+.brand-icon{width:48px;height:48px}
+.brand .header-banner{display:block;width:clamp(182px,20vw,300px);height:auto;max-width:100%;aspect-ratio:2048/682;object-fit:contain;background:transparent;border:0;flex:none}
+.brand .brand-lines{flex:none}
+.topnav{flex:1 1 auto;min-width:0}
+.topbar-actions{flex:none}
+.hero-artwork .art-caption{width:auto}
+.page-grid{padding-top:2.3rem}
+
+/* Use a square art well so the original 400x400 PNG frames are not distorted.
+   Expand the frame and portrait together; no extra dark mat around the artwork. */
+.collector-layout{grid-template-columns:minmax(0,340px) minmax(0,1fr);align-items:center;gap:1.35rem;padding:1.25rem}
+.collector-profile{width:100%;max-width:340px;justify-self:center;gap:.65rem}
+.portrait-well{aspect-ratio:1;overflow:hidden;border-radius:5px;background:transparent}
+.portrait-layer{left:2%;top:2%;width:96%;height:96%;object-fit:cover;border-radius:4px}
+.portrait-well.has-frame .portrait-layer{left:6%;top:6%;width:88%;height:88%}
+.frame-layer{inset:0;width:100%;height:100%;object-fit:contain;transform:scale(1.06);transform-origin:center}
+.trail-layer{left:6%;top:39%;width:88%;height:53%;object-fit:fill}
+.gear-layer[data-cosmetic="goggles"]{left:28%;top:24%;width:44%;height:23%}
+.gear-layer[data-cosmetic="scarf"]{left:23%;top:50%;width:57%;height:40%}
+.gear-layer[data-cosmetic="boots"]{left:60%;top:66%;width:31%;height:28%}
+.collector-profile .button{min-height:44px}
+@media(max-width:1120px){
+ .topbar{flex-wrap:wrap}
+ .topnav{order:3;flex-basis:100%}
+ .topbar-actions{margin-left:auto}
+ .brand .header-banner{width:clamp(195px,28vw,280px)}
+ .collector-layout{grid-template-columns:minmax(0, min(46%,320px)) minmax(0,1fr);gap:1rem}
+}
+@media(max-width:780px){
+ .topbar{padding:.45rem 3%}
+ .brand .header-banner{width:clamp(150px,34vw,235px)}
+ .brand-icon{width:40px;height:40px}
+ .topbar-actions{gap:.35rem}
+ .topnav{order:4;flex-basis:100%}
+ .collector-layout{grid-template-columns:minmax(0,1fr);gap:.9rem;padding:1rem}
+ .collector-profile{max-width:320px;width:100%}
+ .equipped-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:.45rem}
+ .collector-info h3{font-size:1.8rem}
+ .collector-info .eyebrow{font-size:.65rem}
+ .collector-info .subtle{font-size:.78rem}
+ .collector-profile .button{font-size:.69rem;padding:.6rem .65rem}
+}
+@media(max-width:480px){
+ .topbar{gap:.4rem}
+ .brand{gap:.35rem}
+ .brand .header-banner{width:clamp(120px,33vw,160px)}
+ .brand-icon{width:34px;height:34px}
+ .topbar-actions .button{min-height:38px;padding:.45rem .48rem;font-size:.62rem;letter-spacing:.045em}
+ .collector-layout{padding:.7rem}
+ .collector-profile{max-width:300px}
+ .hero-artwork{border-left:0;border-top:1px solid #4e6c75}
+}
+@media(max-width:360px){
+ .brand .header-banner{width:118px}
+ .brand-icon{width:32px;height:32px}
+ .topbar-actions{gap:.25rem}
+ .collector-profile{max-width:280px}
+}
