@@ -7,8 +7,8 @@
   <meta name="description" content="Operation Snowfall — the seven-day winter city showdown. Isolated staging preview.">
   <title>Operation Snowfall | The Winter Underworld</title>
   <link rel="icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/static/app.css?v=296c">
-  <script defer src="/static/app.js?v=296c"></script>
+  <link rel="stylesheet" href="/static/app.css?v=296d">
+  <script defer src="/static/app.js?v=296d"></script>
 </head>
 <body>
   <a class="skip-link" href="#mainContent">Skip to game content</a>
@@ -77,10 +77,14 @@
             </div>
           </div>
           <div id="playerDashboard" class="hidden">
-            <div class="collector-card">
-              <img class="collector-city" id="hqCityArt" src="/art/cities/chicago.webp" alt="" loading="lazy">
-              <img id="hqBanner" class="collector-banner hidden" alt="">
+            <div class="hq-city-intro">
+              <img id="hqCityArt" src="/art/cities/chicago.webp" alt="" loading="lazy">
+              <div class="hq-city-identity"><img id="hqCityCrest" src="/art/v290/cities/crests/chicago_crest.png" alt="" loading="lazy"><div><p class="eyebrow">YOUR CITY HEADQUARTERS</p><h3 id="hqCityName">Winter headquarters</h3><span id="hqPhase">Awaiting event</span></div></div>
+            </div>
+            <div class="collector-card" id="hqCollector" data-rarity="Common">
+              <img class="collector-office" src="/art/v290/cosmetics/backgrounds/headquarters.webp" alt="" loading="lazy">
               <div class="collector-shade"></div>
+              <div id="hqBannerWell" class="collector-banner-well hidden"><img id="hqBanner" class="collector-banner hidden" alt=""></div>
               <div class="collector-layout">
                 <div class="collector-profile">
                   <div class="portrait-well" id="hqPortraitWell">
@@ -95,7 +99,9 @@
                   <p class="eyebrow">YOUR OFFICIAL PLAYER RECORD</p>
                   <h3 id="welcomeName">—</h3>
                   <p id="welcomeCity" class="muted">Your city</p>
-                  <p id="hqCityName" class="collector-city-name">Winter headquarters</p>
+                  <p id="hqPlayerTitle" class="hq-title">Shared player title</p>
+                  <p id="hqRarity" class="hq-rarity">Style unavailable</p>
+                  <div class="hq-rank-row"><div><small>Season rank</small><strong id="hqRank">—</strong></div><div><small>Today's points</small><strong id="hqDailyPoints">—</strong></div></div>
                   <dl class="equipped-list">
                     <div><dt>Portrait</dt><dd id="hqPortraitName">Recruit</dd></div>
                     <div><dt>Frame</dt><dd id="hqFrameName">None</dd></div>
@@ -104,17 +110,38 @@
                     <div><dt>Trail</dt><dd id="hqTrailName">None</dd></div>
                   </dl>
                   <p id="hqWardrobeStatus" class="subtle" role="status">Loading your shared wardrobe…</p>
+                  <div id="hqFeatured" class="hq-featured" aria-label="Featured earned trophies"></div>
                 </div>
               </div>
             </div>
             <div class="stat-cards">
-              <div class="stat"><span>❄ SNOWBALLS</span><strong id="ammoValue">—</strong><small id="ammoSub">Regenerates over time</small></div>
-              <div class="stat"><span>◈ WARMTH</span><strong id="warmthValue">—</strong><small>Stay out of the cold</small></div>
+              <div class="stat"><span>❄ SNOWBALLS</span><strong id="ammoValue">—</strong><div class="hq-meter"><span id="hqAmmoMeter"></span></div><small id="ammoSub">Regenerates over time</small></div>
+              <div class="stat"><span>◈ WARMTH</span><strong id="warmthValue">—</strong><div class="hq-meter warmth-meter"><span id="hqWarmthMeter"></span></div><small id="hqWarmthSub">Stay out of the cold</small></div>
               <div class="stat"><span>✦ SNOWFLAKES</span><strong id="flakeValue">—</strong><small>Spend in the winter market</small></div>
               <div class="stat"><span>★ TOTAL POINTS</span><strong id="scoreValue">—</strong><small>Official shared score</small></div>
             </div>
-            <div class="hq-next"><p class="eyebrow">YOUR NEXT MOVE</p><p id="hqNextMove">Choose your next action.</p></div>
+            <div class="hq-next">
+              <div><p class="eyebrow">YOUR NEXT MOVE</p><p id="hqNextMove">Choose your next action.</p></div>
+              <button class="button button-outline button-small hidden" id="hqRecommended">Open</button>
+            </div>
+            <div class="hq-field-grid">
+              <div class="hq-field-card"><p class="eyebrow">FIELD READINESS</p><h3>Daily PvP progress</h3><strong id="hqPvpValue">—</strong><div class="hq-meter"><span id="hqPvpMeter"></span></div><p id="hqArenaState" class="subtle">Checking arena status…</p></div>
+              <div class="hq-field-card"><p class="eyebrow">THE CLOCK IS TICKING</p><h3>Regeneration &amp; recovery</h3><dl class="hq-timers"><div><dt>Next snowball</dt><dd id="hqTimerSnowball">—</dd></div><div><dt>Next warmth</dt><dd id="hqTimerWarmth">—</dd></div><div><dt>Throw cooldown</dt><dd id="hqTimerThrow">—</dd></div><div><dt>Daily reset</dt><dd id="hqTimerReset">—</dd></div><div><dt>Knockout recovery</dt><dd id="hqTimerKnockout">—</dd></div><div><dt>Shield</dt><dd id="hqTimerShield">—</dd></div></dl></div>
+            </div>
             <div class="quick-actions"><button class="button button-gold" data-nav="combat">❄ Throw a snowball</button><button class="button button-outline" id="hqBossLink" data-nav="boss">🎯 Attack Snow Don</button><button class="button button-outline" data-nav="shop">✦ Winter Market</button><button class="button button-outline" data-nav="cities">★ City standings</button></div>
+            <section class="hq-missions" aria-labelledby="hqMissionsTitle" id="hqMissions">
+              <div class="hq-section-head"><div><p class="eyebrow">FROM THE DESK OF THE DON</p><h3 id="hqMissionsTitle">Daily assignments</h3></div><span id="hqQuestCount" class="subtle">—</span></div>
+              <div id="hqQuestList" class="hq-quest-list"></div>
+              <p id="hqGiftStatus" class="subtle">Gift status unavailable.</p>
+            </section>
+            <section class="hq-trophy-room" id="hqTrophies" aria-labelledby="hqTrophyTitle">
+              <div class="hq-trophy-heading"><p class="eyebrow">THE COLLECTOR'S ROOM</p><h3 id="hqTrophyTitle">Trophy Cabinet</h3><p id="hqTrophyCount">Loading achievements…</p></div>
+              <div id="hqTrophyGrid" class="hq-trophy-grid"></div>
+              <p class="subtle">Decorative achievements only. Equip earned titles in Discord; they appear here after refresh.</p>
+            </section>
+            <section class="hq-records" aria-labelledby="hqRecordsTitle"><div class="hq-section-head"><div><p class="eyebrow">YOUR WINTER DOSSIER</p><h3 id="hqRecordsTitle">Personal combat records</h3></div></div>
+              <div class="hq-record-grid" id="hqRecordGrid"></div>
+            </section>
           </div>
           <details id="accountTools" class="account-tools hidden">
             <summary>Connected accounts &amp; QA verification</summary>
@@ -166,7 +193,7 @@
             <p class="subtle" style="margin-top:.8rem">This staging database is independent of the live Discord Christmas event. Only linked QA accounts can share its progress.</p>
           </div>
           <div id="crossPlatformPanel" class="side-card hidden" style="margin-top:1.1rem">
-            <p class="eyebrow">v2.9.6c · CROSS-PLATFORM TEST LAB</p>
+            <p class="eyebrow">v2.9.6d · CROSS-PLATFORM TEST LAB</p>
             <h3>One character. One scoreboard. Verified gameplay.</h3>
             <p>Check that Discord and Snowfall Web read and update the same official Snowfall character. Testing never awards extra points.</p>
             <p id="verificationState" role="status"><strong>Not started</strong></p>

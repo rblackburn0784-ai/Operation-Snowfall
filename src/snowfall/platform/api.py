@@ -482,6 +482,11 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
     def me(principal: int = Depends(player)):
         return jsonable_encoder(shared.me(principal))
 
+    @app.get("/v1/game/headquarters")
+    def headquarters(response: Response, principal: int = Depends(player)):
+        response.headers["Cache-Control"] = "no-store"
+        return jsonable_encoder(shared.headquarters(principal))
+
     @app.get("/v1/game/progress")
     def progress(principal: int = Depends(player)):
         """Same authoritative snapshot consumed by /snowbridge progress."""
