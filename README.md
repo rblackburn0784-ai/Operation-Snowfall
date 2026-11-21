@@ -1,4 +1,4 @@
-# v2.9.5b — Live QA Smoke Repair
+> **v2.9.6 Website Experience & Visual Integration (QA):** Snowfall-Web-QA can now reuse the Discord bot's bundled artwork, display boss damage stages, offer an illustrated headquarters and responsive navigation, and optionally link to the existing Discord #the-streets channel (no chat relay). See [release and QA checklist](docs/RELEASE_v2.9.6.md). No real prizes, data migration, or Discord worker change.\n\n# v2.9.5b — Live QA Smoke Repair
 
 Live Railway checks on 21 November 2026 confirmed both platforms online, the shared SQLite rollback snapshot intact, and no HTTP 5xx failures. They also uncovered one Discord `Unknown interaction (10062)` error when selecting the legacy **Attack Snow Don** button. This bot-only QA patch acknowledges boss/siege button clicks before slow cross-project Underworld identity checks. It does not affect the canonical game ledger, scoring, rewards, browser site or real-prize season.
 
