@@ -263,7 +263,7 @@ class IdentityRepository:
                     from psycopg import sql
                     cur.execute("""SELECT table_name,column_name FROM information_schema.columns
                                    WHERE table_schema='public'
-                                     AND table_name NOT LIKE 'snowfall_identity_%'
+                                     AND table_name NOT LIKE 'snowfall_identity_%%'
                                      AND column_name = ANY(%s)
                                    ORDER BY table_name,column_name""",
                                 (["discord_user_id", "player_id", "user_id",
