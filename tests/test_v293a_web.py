@@ -179,3 +179,22 @@ def test_staging_fixture_and_one_time_registration_bonus(tmp_path):
     assert first == second
     assert facade.me(6_000_000_000_000_000_001, now=now)["resources"]["snowflakes"] == 60
     assert facade.targets(6_000_000_000_000_000_001, now=now)
+
+
+def test_v296d_headquarters_is_private_and_bound_to_authenticated_player():
+    from unittest.mock import Mock
+    identities = DummyIdentity()
+    game = DummyGame()
+    game.headquarters = Mock(return_value={"registered": True, "title": "Snowball Recruit"})
+    cfg = APISettings("postgresql://unused/db", "web-qa-2026", "https://qa.example")
+    app = create_app(cfg, identity=identities, game=game)
+    with TestClient(app, base_url="https://qa.example") as client:
+        assert client.get("/v1/game/headquarters").status_code == 401
+        token, _ = identities.new_session(6000000000000000001)
+        from snowfall.platform.api import COOKIE
+        client.cookies.set(COOKIE, token)
+        result = client.get("/v1/game/headquarters?player_id=999")
+        assert result.status_code == 200
+        assert result.headers["cache-control"] == "no-store"
+        game.headquarters.assert_called_once_with(6000000000000000001)
+        assert client.post("/v1/game/headquarters").status_code == 405

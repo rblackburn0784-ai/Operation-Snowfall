@@ -259,7 +259,7 @@ function showMe(){
  el("accountTools").classList.toggle("hidden",!signed);
  if(signed&&!S.session?.links?.some(x=>x.provider==="discord"))el("accountTools").open=true;
  showWardrobe();
- if(!signed)el("bossRecap").classList.add("hidden");
+ if(!signed){el("bossRecap").classList.add("hidden");showHq();}
  if(!signed||S.session?.links?.some(x=>x.provider==="discord")){
    el("discordDiscardPanel").classList.add("hidden");S.discard=null;
  }
@@ -461,9 +461,9 @@ async function loadPrivate(){
  catch(e){if(e.status===401){S.session=null;S.me=null;S.world=null;S.hq=null;S.shop=null;S.progress=null;S.targets=[];S.verification=null;showMe();showShop();return}throw e}
  if(S.me.registered){
   const results=await Promise.allSettled([get("/v1/game/world"),get("/v1/game/wardrobe"),get("/v1/game/targets"),get("/v1/game/progress"),get("/v1/game/headquarters")]);
-  if(results[0].status==="fulfilled")S.world=results[0].value;
+  S.world=results[0].status==="fulfilled"?results[0].value:null;
   S.shop=results[1].status==="fulfilled"?results[1].value:null;
-  if(results[2].status==="fulfilled")S.targets=results[2].value.targets||[];
+  S.targets=results[2].status==="fulfilled"?results[2].value.targets||[]:[];
   S.progress=results[3].status==="fulfilled"?results[3].value:null;
   S.hq=results[4].status==="fulfilled"?results[4].value:null;
   S.hqClock=Number.isFinite(Date.parse(S.hq?.server_time))?Date.parse(S.hq.server_time)-Date.now():0;
