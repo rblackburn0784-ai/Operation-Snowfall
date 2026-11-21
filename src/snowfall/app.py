@@ -70,11 +70,15 @@ class SnowfallBot(discord.Client):
             from snowfall.platform.discord_bridge import DiscordBridgeGateway
             from snowfall.platform.game import SharedGame
             from snowfall.platform.staging import StagingGame
+            from snowfall.platform.verification import CrossPlatformVerifier
             self.unified_identity = IdentityRepository(store.dsn)
             self.unified_identity.check()
             raw = PostgresStore(store.dsn, practice_root=store.path.parent)
+            unified_game = StagingGame(SharedGame(raw, settings.season_key))
+            verification = CrossPlatformVerifier(
+                self.unified_identity, unified_game, settings.season_key)
             self.unified_gateway = DiscordBridgeGateway(
-                self.unified_identity, StagingGame(SharedGame(raw, settings.season_key)))
+                self.unified_identity, unified_game, verification=verification)
 
     async def setup_hook(self):
         guild = discord.Object(id=self.settings.guild_id)
