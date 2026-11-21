@@ -2,6 +2,11 @@ name: Snowball bot tests
 on:
   push:
   pull_request:
+# Consolidation branches receive several fast commits. Cancel older runs
+# for the SAME branch to test the final tree rather than obsolete revisions.
+concurrency:
+  group: snowfall-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   tests:
     runs-on: ${{ matrix.os }}
