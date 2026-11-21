@@ -75,6 +75,9 @@ class JoinModal(discord.ui.Modal, title="Operation Snowfall — Register"):
         if not permitted_guild(interaction.guild_id, self.settings.guild_id):
             await interaction.response.send_message("Wrong event server.", ephemeral=True)
             return
+        from snowfall.platform.discord_security import check_linked_player
+        if not await check_linked_player(interaction):
+            return
         if self.declaration.value.strip().upper() != "I AGREE":
             await interaction.response.send_message("Type I AGREE to confirm your own MR identity.", ephemeral=True)
             return
@@ -131,6 +134,9 @@ class CityPicker(discord.ui.View):
             if not permitted_guild(interaction.guild_id, settings.guild_id):
                 await interaction.response.send_message("Wrong event server.", ephemeral=True)
                 return
+            from snowfall.platform.discord_security import check_linked_player
+            if not await check_linked_player(interaction):
+                return
             if store.season(settings.season_key).phase(datetime.now(timezone.utc)) not in (
                     "registration", "ready", "live", "paused"):
                 await interaction.response.send_message("Registration is not open.", ephemeral=True)
@@ -168,20 +174,8 @@ class Dashboard(discord.ui.View):
         if not permitted_guild(interaction.guild_id, self.settings.guild_id):
             await interaction.response.send_message("Wrong event server.", ephemeral=True)
             return False
-        # Persistent public buttons bypass slash-command tree checks, so they
-        # must also verify account linking before any canonical game write.
-        identity = getattr(interaction.client, "unified_identity", None)
-        if identity is not None:
-            from snowfall.platform.identity import IdentityError
-            try:
-                await asyncio.to_thread(
-                    identity.principal_for_discord, str(interaction.user.id))
-            except IdentityError:
-                await interaction.response.send_message(
-                    "🔗 Link your Discord account through Snowfall first. "
-                    "Use `/snowbridge link` to get started.", ephemeral=True)
-                return False
-        return True
+        from snowfall.platform.discord_security import check_linked_player
+        return await check_linked_player(interaction)
 
     @discord.ui.button(label="Join", emoji="❄️", style=discord.ButtonStyle.primary,
                        custom_id="snowfall:v1:join")
