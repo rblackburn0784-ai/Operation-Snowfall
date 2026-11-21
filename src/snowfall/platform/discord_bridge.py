@@ -23,8 +23,9 @@ ID_PATTERN = re.compile(r"[1-9][0-9]{0,18}\Z")
 class DiscordBridgeGateway:
     """Only the verified interaction's Discord ID may select an actor."""
 
-    def __init__(self, identity, game):
+    def __init__(self, identity, game, *, verification=None):
         self.identity, self.game = identity, game
+        self.verification = verification
 
     def principal(self, discord_id: int) -> int:
         if not isinstance(discord_id, int) or discord_id <= 0:
@@ -71,6 +72,12 @@ class DiscordBridgeGateway:
             raise ValueError("Use cocoa, fort, mittens or bomb")
         return self.game.craft(self.principal(discord_id), item,
                                "discord-bridge:" + str(interaction_id))
+
+    def verify(self, discord_id: int):
+        """Proof requires an actual Discord interaction from this user."""
+        if self.verification is None:
+            raise ValueError("Verification is only available on the unified QA game worker")
+        return self.verification.from_discord(discord_id)
 
     def leaderboard(self):
         return self.game.leaderboard(limit=10)
@@ -197,6 +204,28 @@ class SnowBridgeGroup(app_commands.Group):
             "Snow Don: **" + str(result["boss_hp"]) + "/" +
             str(result["boss_max_hp"]) + " HP**\n" +
             "These figures use the same database as " + WEB_URL,
+            ephemeral=True)
+
+    @app_commands.command(name="verify", description="Prove your Discord and web progress use the same character")
+    async def verify(self, interaction: discord.Interaction):
+        result = await self._action(interaction, self.gateway.verify)
+        if result is None:
+            return
+        current = result.get("current", {})
+        await interaction.followup.send(
+            "✅ **Verified Discord ↔ Web character**\\n" +
+            "Canonical player: `" + result["player_id"] + "`\\n" +
+            "Points: **" + str(current.get("score", 0)) +
+            "** · Snowflakes: **" + str(current.get("snowflakes", 0)) +
+            "** · Snowballs: **" + str(current.get("snowballs", 0)) +
+            "**\\nSnow Don: **" + str(current.get("boss_hp", 0)) + "/" +
+            str(current.get("boss_max_hp", 0)) + "** HP\\n" +
+            "Discord gameplay events in this check: **" +
+            str(result["discord_action_count"]) + "**.\\n" +
+            ("Website activity has also been read by Discord.\\n"
+             if result["web_gameplay_seen_by_discord"] else "") +
+            "Return to Snowfall Web and press **Check shared progress**. "
+            "Only actual game actions will count as gameplay proof.",
             ephemeral=True)
 
     @app_commands.command(name="craft", description="Craft equipment in the shared winter economy")
