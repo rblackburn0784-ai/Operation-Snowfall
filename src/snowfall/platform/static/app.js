@@ -1,4 +1,4 @@
-/* Operation Snowfall v2.9.6i — City Wars siege and fitted cosmetics. */
+/* Operation Snowfall v2.9.7 — consolidated release and safe recovery. */
 "use strict";
 const S={session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
@@ -224,40 +224,74 @@ function nextActionId(){
  return "web-ui-"+(crypto.randomUUID?crypto.randomUUID():
         String(Date.now())+"-"+Math.random()).replace(/[^A-Za-z0-9_-]/g,"");
 }
+// Store only pending operation keys and their opaque IDs in this browser tab.
+ // No passwords, session cookies, CSRF values or names are persisted.
+const RECOVERABLE_ACTIONS=new Set(["/v1/game/throw","/v1/game/boss","/v1/game/siege","/v1/game/craft","/v1/game/wardrobe/purchase"]);
+function pendingStoreKey(){
+ const id=String(S.session?.player_id||"");
+ return /^[1-9][0-9]{0,18}$/.test(id)?"snowfall-pending-v1:"+String(S.config?.season||"qa")+":"+id:null;
+}
+function savePending(){
+ const storage=pendingStoreKey();if(!storage)return;
+ const prefix=String(S.session.player_id)+"|";
+ const entries=Array.from(S.pendingActions).filter(([k])=>k.startsWith(prefix)).slice(0,32);
+ try{if(entries.length)sessionStorage.setItem(storage,JSON.stringify(entries));else sessionStorage.removeItem(storage)}catch{}
+}
+function restorePending(){
+ const storage=pendingStoreKey();if(!storage)return;
+ const prefix=String(S.session.player_id)+"|";
+ try{
+  const entries=JSON.parse(sessionStorage.getItem(storage)||"[]");
+  if(!Array.isArray(entries))return;
+  for(const entry of entries.slice(0,32)){
+   if(!Array.isArray(entry)||entry.length!==2)continue;
+   const [key,id]=entry;
+   if(typeof key!=="string"||!key.startsWith(prefix)||key.length>350||typeof id!=="string"||!/^[A-Za-z0-9_-]{12,100}$/.test(id))continue;
+   const split=key.indexOf("|",prefix.length),path=key.slice(prefix.length,split);
+   if(!RECOVERABLE_ACTIONS.has(path))continue;
+   const body=JSON.parse(key.slice(split+1));
+   if(!body||Array.isArray(body)||typeof body!=="object")continue;
+   S.pendingActions.set(key,id);
+   if(path==="/v1/game/throw"&&/^[1-9][0-9]{0,18}$/.test(body.target_player_id)&&["quick","standard","power","golden"].includes(body.style))S.lastThrow={body:{target_player_id:body.target_player_id,style:body.style}};
+  }
+ }catch{}
+}
+function clearPending(key){S.pendingActions.delete(key);savePending()}
+function uncertainResponse(){const err=Error("Connection interrupted. Your action may have succeeded. Check shared progress, then retry the same action safely.");err.status=0;return err}
 async function request(path,method,body,mutation,unique){
  const headers={"Accept":"application/json"};
  if(body!==undefined)headers["Content-Type"]="application/json";
  if(mutation)headers["X-Snowfall-CSRF"]=S.session?.csrf||"";
+ if(S.session?.player_id&&path!=="/v1/auth/session"&&(mutation||path.startsWith("/v1/game/")||path.startsWith("/v1/verification/")))headers["X-Snowfall-Player"]=String(S.session.player_id);
  const key=unique?requestKey(path,body):null;
  if(key){
-  if(!S.pendingActions.has(key))S.pendingActions.set(key,nextActionId());
+  if(!S.pendingActions.has(key)){S.pendingActions.set(key,nextActionId());savePending()}
   headers["Idempotency-Key"]=S.pendingActions.get(key);
  }
  const abort=new AbortController();
  const clock=setTimeout(()=>abort.abort(),15000);
- let response;
+ let response,data,decoded=false;
  try{
   response=await fetch(path,{
    method:method||"GET",headers,credentials:"same-origin",cache:"no-store",
    body:body===undefined?undefined:JSON.stringify(body),signal:abort.signal
   });
- }catch{
-  // The server may have committed an action before the response was lost.
-  // KEEP the key for the player's next attempt rather than spending twice.
-  let err=Error("Connection interrupted. Your action may have succeeded. "+
-      "Check shared progress, then retry the same action safely.");
-  err.status=0;throw err;
- }finally{clearTimeout(clock)}
- let data={};try{data=await response.json()}catch{}
+  try{data=await response.json();decoded=data!==null&&typeof data==="object"&&!Array.isArray(data)}catch{}
+ }catch{throw uncertainResponse()}
+ finally{clearTimeout(clock)}
+ if(response.ok&&!decoded)throw uncertainResponse();
  if(!response.ok){
-  if(key&&response.status<500)S.pendingActions.delete(key);
+  // A proxy/timeout/auth failure does not establish whether a prior
+  // attempt committed. Only explicit game validation rejections end it.
+  if(key&&decoded&&[400,409,422].includes(response.status)&&data.detail!=="Account changed in another tab; sign in again")clearPending(key);
+  data=decoded?data:{};
   let err=Error(typeof data.detail==="string"?data.detail:
       "Request failed ("+response.status+")");
   err.status=response.status;
   if(response.status>=500)err.message+=". Status uncertain — check progress before retrying.";
   throw err;
  }
- if(key)S.pendingActions.delete(key);
+ if(key)clearPending(key);
  return data;
 }
 const get=path=>request(path);
@@ -306,7 +340,8 @@ function syncPlayIdentity(){
  const id=S.session?String(S.session.player_id):null;
  if(id===S.playIdentity)return;
  S.playIdentity=id;S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
- el("targetSelect").value="";el("combatOutcome").classList.add("hidden");el("siegeOutcome").classList.add("hidden");el("playFeedback").classList.add("hidden");
+ S.pendingActions.clear();restorePending();
+ el("targetSelect").value="";el("combatOutcome").classList.add("hidden");el("siegeOutcome").classList.add("hidden");el("bossRecap").classList.add("hidden");el("playFeedback").classList.add("hidden");
 }
 function timeLeft(value,now){const t=Date.parse(value);return Number.isFinite(t)?Math.max(0,Math.ceil((t-now)/1000)):0}
 function shortTime(seconds){const n=Math.max(0,Math.ceil(seconds||0));if(n<60)return n+"s";const m=Math.ceil(n/60);return m<60?m+" min":Math.floor(m/60)+"h "+(m%60)+"m"}
@@ -440,7 +475,7 @@ function showMe(){
  showVerification();
  txt("welcomeName",S.me.mr_username);txt("welcomeCity",S.me.city+" · Day "+(S.me.day||"—"));
   txt("hqCityName",S.me.city+" winter headquarters");
-  const citySlug=CITY_SLUG[S.me.city];
+  const citySlug=Object.hasOwn(CITY_SLUG,S.me.city)?CITY_SLUG[S.me.city]:null;
   const cityImage=el("hqCityArt");
   if(citySlug){cityImage.src="/art/cities/"+citySlug+".webp";el("hqCityCrest").src="/art/v290/cities/crests/"+citySlug+"_crest.png";}
   else {cityImage.removeAttribute("src");el("hqCityCrest").removeAttribute("src");}
@@ -764,7 +799,7 @@ function marketState(item,wardrobe){
 }
 function marketEligible(item,kind){
  const w=marketWardrobe();
- if(S.busy||!w||!S.catalogReady||!item||["flagged","disqualified"].includes(S.me?.review_state))return false;
+ if(S.busy||S.privatePending||!w||!S.catalogReady||!item||["flagged","disqualified"].includes(S.me?.review_state))return false;
  if(S.config?.staging&&!S.session?.links?.some(x=>x.provider==="underworld"))return false;
  const state=marketState(item,w);
  return kind==="equip"?state==="owned":
@@ -907,10 +942,16 @@ async function loadPrivate(){
 async function readPrivate(){
  syncPlayIdentity();
  if(!S.session){S.me=null;S.world=null;S.hq=null;S.shop=null;S.targetsReady=false;S.targets=[];S.progress=null;S.verification=null;S.pendingActions.clear();showMe();showShop();showTargets();showSiege();return}
- try{S.me=await get("/v1/game/me")}
- catch(e){if(e.status===401){S.session=null;S.me=null;S.world=null;S.hq=null;S.shop=null;S.progress=null;S.targetsReady=false;S.targets=[];S.verification=null;showMe();showShop();showTargets();showSiege();return}throw e}
+ try{
+  S.me=await get("/v1/game/me");
+  if(String(S.me?.player_id)!==String(S.session?.player_id)){const err=Error("Account changed in another tab; sign in again");err.status=409;throw err}
+ }
+ catch(e){if(e.status===401||e.message==="Account changed in another tab; sign in again"){S.session=null;S.me=null;S.world=null;S.hq=null;S.shop=null;S.progress=null;S.targetsReady=false;S.targets=[];S.verification=null;showMe();showShop();showTargets();showSiege();return}throw e}
  if(S.me.registered){
   const results=await Promise.allSettled([get("/v1/game/world"),get("/v1/game/wardrobe"),get("/v1/game/targets"),get("/v1/game/progress"),get("/v1/game/headquarters")]);
+  if(results.some(r=>r.status==="rejected"&&(r.reason?.status===401||r.reason?.message==="Account changed in another tab; sign in again"))){
+   S.session=null;return readPrivate();
+  }
   S.world=results[0].status==="fulfilled"?results[0].value:null;
   S.shop=results[1].status==="fulfilled"?results[1].value:null;
   S.targetsReady=results[2].status==="fulfilled"&&Array.isArray(results[2].value.targets);
@@ -959,7 +1000,7 @@ async function loadDiscardOffer(){
  notice("Choose carefully: your separate Discord character will be retired only if you confirm.","error");
 }
 async function refresh(){await Promise.all([loadPublic(),loadPrivate()]);await Promise.all([refreshBossVisual(),refreshTerritory(),refreshWire()]);showEvent()}
-async function resume(){try{S.session=await get("/v1/auth/session")}catch{S.session=null}await refresh()}
+async function resume(){try{S.session=await get("/v1/auth/session")}catch(e){if(e.status!==401)throw e;S.session=null}await refresh()}
 async function act(fn){
  if(S.busy||S.privatePending)return;
  if(!S.session)return authModal();
@@ -1099,13 +1140,14 @@ function bind(){
  el("demoForm").onsubmit=async e=>{
   e.preventDefault();let b=e.target.querySelector("button");b.disabled=true;
   try{
-   S.pendingActions.clear();S.session=await post("/v1/auth/demo",{code:el("demoCode").value,slot:Number(el("demoSlot").value)},false);
+   await post("/v1/auth/demo",{code:el("demoCode").value,slot:Number(el("demoSlot").value)},false);
+   S.session=await get("/v1/auth/session");
    el("demoCode").value="";closeAuth();await refresh();notice("Signed in to isolated staging.","success");
   }catch(x){notice(x.message,"error")}finally{b.disabled=false}
  };
  el("underworldForm").onsubmit=async e=>{
   e.preventDefault();
-  try{S.pendingActions.clear();S.session=await post("/v1/auth/underworld",{assertion:el("underworldAssertion").value},false);el("underworldAssertion").value="";closeAuth();await refresh();notice("Underworld assertion verified.","success")}
+  try{await post("/v1/auth/underworld",{assertion:el("underworldAssertion").value},false);S.session=await get("/v1/auth/session");el("underworldAssertion").value="";closeAuth();await refresh();notice("Underworld assertion verified.","success")}
   catch(x){notice(x.message,"error")}
  };
  el("refreshShared").onclick=async()=>{

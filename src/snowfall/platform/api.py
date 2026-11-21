@@ -30,6 +30,7 @@ from snowfall.platform.game import SharedGame
 from snowfall.platform.identity import IdentityConflict, IdentityError, IdentityRepository
 from snowfall.platform.discard import CONFIRM_PHRASE, DiscardService, QA_SEASON
 from snowfall.platform.verification import CrossPlatformVerifier
+from snowfall.platform.release import VERSION
 
 
 COOKIE = "snowfall_session"
@@ -181,12 +182,13 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         shared.store.season(cfg.season_key)
         yield
 
-    app = FastAPI(title="Operation Snowfall Shared API", version="2.9.5a",
+    app = FastAPI(title="Operation Snowfall Shared API", version=VERSION,
                   lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
     if cfg.cors_origins:
         app.add_middleware(CORSMiddleware, allow_origins=list(cfg.cors_origins),
                            allow_credentials=True, allow_methods=["GET", "POST"],
-                           allow_headers=["Content-Type", "X-Snowfall-CSRF", "Idempotency-Key"])
+                           allow_headers=["Content-Type", "X-Snowfall-CSRF", "Idempotency-Key",
+                                          "X-Snowfall-Player"])
 
     @app.middleware("http")
     async def security_headers(request: Request, call_next):
@@ -195,6 +197,14 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         result.headers["X-Content-Type-Options"] = "nosniff"
         result.headers["X-Frame-Options"] = "DENY"
         result.headers["Referrer-Policy"] = "no-referrer"
+        result.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        result.headers["Content-Security-Policy"] = (
+            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data:; connect-src 'self'; object-src 'none'; "
+            "base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+        )
+        if cfg.cookie_secure:
+            result.headers["Strict-Transport-Security"] = "max-age=31536000"
         return result
 
     @app.exception_handler(IdentityConflict)
@@ -227,6 +237,9 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         session = identities.session(token)
         if not session:
             raise HTTPException(401, "Authentication required")
+        expected = request.headers.get("X-Snowfall-Player")
+        if expected is not None and expected != str(session.player_id):
+            raise HTTPException(409, "Account changed in another tab; sign in again")
         if mutate and not identities.csrf_ok(
                 token, request.headers.get("X-Snowfall-CSRF", "")):
             raise HTTPException(403, "Missing or invalid CSRF token")
@@ -259,7 +272,7 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
 
     @app.get("/v1/health")
     def health():
-        return {"status": "ok", "version": "2.9.5a", "backend": "postgres",
+        return {"status": "ok", "version": VERSION, "backend": "postgres",
                 "season": cfg.season_key}
 
     @app.get("/v1/ready")
@@ -271,7 +284,8 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         """
         try:
             identities.check()
-            shared.store.season(cfg.season_key)
+            if shared.store.season(cfg.season_key) is None:
+                raise RuntimeError("Missing season configuration")
             if cfg.season_key == "web-qa-2026":
                 from snowfall.platform.unified_discord import verify_qa_database
                 verify_qa_database(cfg.database_url, season=cfg.season_key)
@@ -305,9 +319,11 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         if request.headers.get("content-type", "").split(";")[0].strip() != (
                 "application/x-www-form-urlencoded"):
             raise HTTPException(415, "Handoff requires an encoded form")
-        content = await request.body()
-        if len(content) > 8192:
-            raise HTTPException(413, "Handoff is too large")
+        content = bytearray()
+        async for chunk in request.stream():
+            if len(content) + len(chunk) > 8192:
+                raise HTTPException(413, "Handoff is too large")
+            content.extend(chunk)
         try:
             fields = parse_qs(content.decode("ascii"), strict_parsing=True,
                               max_num_fields=2)

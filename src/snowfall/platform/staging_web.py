@@ -25,6 +25,7 @@ from snowfall.db.postgres import PostgresStore
 from snowfall.platform.api import APISettings, create_app
 from snowfall.platform.game import SharedGame
 from snowfall.platform.identity import IdentityRepository
+from snowfall.platform.release import VERSION
 from snowfall.platform.staging import StagingGame, prepare_web_qa, require_staging
 
 ASSETS = Path(__file__).resolve().parent / "static"
@@ -71,7 +72,7 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None, game=
         from snowfall.services.world import BOSS_LIMIT, SIEGE_LIMIT, BOSS_CAP, SIEGE_CAP
         from snowfall.services.territory import schedule_for_day
         return {
-            "version": "2.9.6i", "staging": True,
+            "version": VERSION, "staging": True,
             "branding": {"banner": (ASSETS / "snowfall-site-banner.webp").is_file(),
                          "icon": (ASSETS / "snowfall-site-icon.webp").is_file()},
             "season": cfg.season_key,
@@ -131,6 +132,12 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None, game=
         host = request.client.host if request.client else "unknown"
         now = time.monotonic()
         with gate:
+            # Bound transient unauthenticated rate-limit state without evicting
+            # active blocked clients. Never trust arbitrary forwarded IP headers.
+            for expired in [key for key, (_, end) in attempts.items() if end <= now]:
+                attempts.pop(expired, None)
+            if host not in attempts and len(attempts) >= 4096:
+                raise HTTPException(429, "Too many attempts; try again later")
             count, until = attempts.get(host, (0, now + 600))
             if until < now:
                 count, until = 0, now + 600
