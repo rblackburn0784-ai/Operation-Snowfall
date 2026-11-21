@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#101b25">
   <meta name="description" content="Operation Snowfall — the seven-day winter city showdown. Isolated staging preview.">
   <title>Operation Snowfall | The Winter Underworld</title>
-  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="/static/app.css">
   <script defer src="/static/app.js"></script>
 </head>
@@ -16,7 +16,7 @@
   <div class="snow dust-b" aria-hidden="true"></div>
   <header class="topbar">
     <a class="brand" href="/" aria-label="Operation Snowfall home">
-      <span class="brand-mark">❄</span><span class="brand-lines"><strong>OPERATION<br>SNOWFALL</strong><small>THE WINTER UNDERWORLD</small></span>
+      <span class="brand-mark" id="brandFallback">❄</span><img id="brandIcon" class="brand-icon hidden" alt="" width="48" height="48"><span class="brand-lines"><strong>OPERATION<br>SNOWFALL</strong><small>THE WINTER UNDERWORLD</small></span>
     </a>
     <nav class="topnav" id="primaryNav" aria-label="Game sections">
       <button class="nav-item active" data-nav="home">Headquarters</button>
@@ -33,24 +33,17 @@
   </header>
   <main id="mainContent">
     <div class="staging-flag"><span class="pulse-dot"></span> STAGING PLAYGROUND <span class="sep">/</span> FICTIONAL PLAYERS ONLY <span class="sep">/</span> NO PRIZES OR LIVE PROGRESS</div>
-    <section class="hero">
-      <div class="hero-content">
-        <p class="eyebrow">A Christmas event from the wrong side of town</p>
-        <h1>THE COLD<br><em>NEVER</em> BOTHERED<br>THE <span>MOB.</span></h1>
-        <p class="lede">Six cities. Seven days. One very angry Snow Don. Grab your ammunition, pick your city and make a name for yourself.</p>
-        <div class="hero-actions">
-          <button class="button button-gold" id="heroPlay">Enter the event <span aria-hidden="true">↗</span></button>
-          <button class="button button-ghost" data-nav="boss">Meet the Snow Don</button>
-        </div>
-        <div class="hero-stats">
-          <div><strong>06</strong><small>CITIES AT WAR</small></div>
-          <div><strong>07</strong><small>DAYS OF MAYHEM</small></div>
-          <div><strong id="phaseValue">—</strong><small>GAME STATUS</small></div>
-        </div>
+    <section class="site-masthead" aria-label="Operation Snowfall">
+      <img id="siteBanner" class="site-banner hidden" alt="Operation Snowfall — The Winter Underworld" width="2048" height="682" fetchpriority="high">
+      <div id="bannerFallback" class="masthead-fallback">
+        <p class="eyebrow">THE WINTER UNDERWORLD</p><h1>Operation Snowfall</h1>
       </div>
-      <div class="hero-art hero-artwork">
-        <img class="hero-illustration" src="/art/v290/boss/phase_ice.webp" alt="Snow Don rising over the winter underworld, original Discord game artwork" fetchpriority="high">
-        <div class="art-caption"><span class="art-rule"></span> ART FROM THE ORIGINAL DISCORD EVENT <span class="art-rule"></span></div>
+      <div class="masthead-strip">
+        <p>Six cities. Seven days. One very angry Snow Don.</p>
+        <div class="masthead-controls"><span class="masthead-phase">SEASON <strong id="phaseValue">—</strong></span>
+          <button class="button button-gold button-small" id="heroPlay">Enter the event</button>
+          <button class="button button-outline button-small" data-nav="boss">Meet the Snow Don</button>
+        </div>
       </div>
     </section>
 
@@ -76,23 +69,47 @@
             </div>
           </div>
           <div id="playerDashboard" class="hidden">
-            <div class="hq-showcase">
-              <img id="hqCityArt" src="/art/cities/chicago.webp" alt="Winter city headquarters illustration" loading="lazy">
-              <div class="hq-overlay">
-                <p class="eyebrow">YOUR CITY. YOUR STORY.</p>
-                <h3 id="hqCityName">Your winter headquarters</h3>
-                <p id="hqNextMove">Every move you make counts across Discord and the website.</p>
+            <div class="collector-card">
+              <img class="collector-city" id="hqCityArt" src="/art/cities/chicago.webp" alt="" loading="lazy">
+              <img id="hqBanner" class="collector-banner hidden" alt="">
+              <div class="collector-shade"></div>
+              <div class="collector-layout">
+                <div class="collector-profile">
+                  <div class="portrait-well">
+                    <img id="hqPortrait" class="portrait-layer" src="/art/v290/portraits/recruit_m.webp" alt="Recruit profile">
+                    <img id="hqTrail" class="trail-layer hidden" alt="">
+                    <img id="hqGear" class="gear-layer hidden" alt="">
+                    <img id="hqFrame" class="frame-layer hidden" alt="">
+                  </div>
+                  <button class="button button-outline button-small" data-nav="shop">Edit appearance</button>
+                </div>
+                <div class="collector-info">
+                  <p class="eyebrow">YOUR OFFICIAL PLAYER RECORD</p>
+                  <h3 id="welcomeName">—</h3>
+                  <p id="welcomeCity" class="muted">Your city</p>
+                  <p id="hqCityName" class="collector-city-name">Winter headquarters</p>
+                  <dl class="equipped-list">
+                    <div><dt>Portrait</dt><dd id="hqPortraitName">Recruit</dd></div>
+                    <div><dt>Frame</dt><dd id="hqFrameName">None</dd></div>
+                    <div><dt>Banner</dt><dd id="hqBannerName">None</dd></div>
+                    <div><dt>Gear</dt><dd id="hqGearName">None</dd></div>
+                    <div><dt>Trail</dt><dd id="hqTrailName">None</dd></div>
+                  </dl>
+                  <p id="hqWardrobeStatus" class="subtle" role="status">Loading your shared wardrobe…</p>
+                </div>
               </div>
             </div>
-            <div class="player-hello"><div><p class="eyebrow">OFFICIAL PLAYER RECORD</p><h3 id="welcomeName">—</h3><p id="welcomeCity" class="muted">Your city</p></div><span class="seal">SNOWBALL<br>OPERATIVE</span></div>
             <div class="stat-cards">
               <div class="stat"><span>❄ SNOWBALLS</span><strong id="ammoValue">—</strong><small id="ammoSub">Regenerates over time</small></div>
               <div class="stat"><span>◈ WARMTH</span><strong id="warmthValue">—</strong><small>Stay out of the cold</small></div>
               <div class="stat"><span>✦ SNOWFLAKES</span><strong id="flakeValue">—</strong><small>Spend in the winter market</small></div>
               <div class="stat"><span>★ TOTAL POINTS</span><strong id="scoreValue">—</strong><small>Official shared score</small></div>
             </div>
+            <div class="hq-next"><p class="eyebrow">YOUR NEXT MOVE</p><p id="hqNextMove">Choose your next action.</p></div>
             <div class="quick-actions"><button class="button button-gold" data-nav="combat">❄ Throw a snowball</button><button class="button button-outline" data-nav="boss">🎯 Attack Snow Don</button><button class="button button-outline" data-nav="shop">✦ Winter Market</button><button class="button button-outline" data-nav="cities">★ City standings</button></div>
           </div>
+          <details id="accountTools" class="account-tools hidden">
+            <summary>Connected accounts &amp; QA verification</summary>
           <div id="linkedIdentity" class="side-card hidden" style="margin-top:1.2rem">
             <p class="eyebrow">YOUR CONNECTED IDENTITIES</p>
             <h3>One character. Two platforms.</h3>
@@ -141,7 +158,7 @@
             <p class="subtle" style="margin-top:.8rem">This staging database is independent of the live Discord Christmas event. Only linked QA accounts can share its progress.</p>
           </div>
           <div id="crossPlatformPanel" class="side-card hidden" style="margin-top:1.1rem">
-            <p class="eyebrow">v2.9.6 · CROSS-PLATFORM TEST LAB</p>
+            <p class="eyebrow">v2.9.6a · CROSS-PLATFORM TEST LAB</p>
             <h3>One character. One scoreboard. Verified gameplay.</h3>
             <p>Check that Discord and Snowfall Web read and update the same official Snowfall character. Testing never awards extra points.</p>
             <p id="verificationState" role="status"><strong>Not started</strong></p>
@@ -163,6 +180,7 @@
             <p id="verificationDelta" class="subtle">Progress changes since test started will appear here.</p>
             <p class="subtle">The test expires after 15 minutes. If Discord isn't connected to the shared QA game yet, confirmation will remain pending instead of claiming success.</p>
           </div>
+          </details>
           <div class="section-heading compact"><div><p class="eyebrow">THE DAILY BRIEFING</p><h2>Word on the street</h2></div></div>
           <div class="briefing">
             <article><span class="brief-num">01 / FIELD REPORT</span><h3>The snow war is on.</h3><p>Every successful move counts toward your official game ledger. The Discord and web engines use the same rules.</p></article>

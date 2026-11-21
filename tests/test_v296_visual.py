@@ -37,7 +37,7 @@ def test_v296_web_uses_existing_artwork_without_changing_gameplay():
         assert 'id="hqCityArt"' in page.text
         assert 'id="streetsLink"' in page.text
         assert 'src="/art/v290/cities/map/six_city_territory_map.png"' in page.text
-        assert client.get("/v1/web/config").json()["version"] == "2.9.6"
+        assert client.get("/v1/web/config").json()["version"] == "2.9.6a"
         assert client.get("/v1/web/config").json()["streets_url"] == ""
         for path, mime in (
             ("/art/v290/boss/phase_ice.webp", "image/webp"),
@@ -51,7 +51,13 @@ def test_v296_web_uses_existing_artwork_without_changing_gameplay():
             assert response.headers["content-type"].startswith(mime), path
         assert client.get("/art/not-present.webp").status_code == 404
         assert client.get("/static/favicon.svg").status_code == 200
-        assert client.get("/favicon.ico").headers["content-type"].startswith("image/svg+xml")
+        branding = client.get("/v1/web/config").json()["branding"]
+        mime = "image/webp" if branding["icon"] else "image/svg+xml"
+        assert client.get("/favicon.ico").headers["content-type"].startswith(mime)
+        for flag, filename in (("banner", "snowfall-site-banner.webp"),
+                               ("icon", "snowfall-site-icon.webp")):
+            response = client.get("/static/" + filename)
+            assert response.status_code == (200 if branding[flag] else 404)
 
 
 @pytest.mark.parametrize("url", [

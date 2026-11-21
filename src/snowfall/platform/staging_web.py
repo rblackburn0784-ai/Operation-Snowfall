@@ -66,7 +66,9 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None) -> Fa
     @app.get("/v1/web/config")
     def config():
         return {
-            "version": "2.9.6", "staging": True,
+            "version": "2.9.6a", "staging": True,
+            "branding": {"banner": (ASSETS / "snowfall-site-banner.webp").is_file(),
+                         "icon": (ASSETS / "snowfall-site-icon.webp").is_file()},
             "season": cfg.season_key,
             "demo_enabled": True,
             "discord_oauth": bool(cfg.discord_client_id),
@@ -111,6 +113,9 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None) -> Fa
 
     @app.get("/favicon.ico", include_in_schema=False)
     def favicon():
+        icon = ASSETS / "snowfall-site-icon.webp"
+        if icon.is_file():
+            return FileResponse(icon, media_type="image/webp")
         return FileResponse(ASSETS / "favicon.svg", media_type="image/svg+xml")
 
     @app.get("/")

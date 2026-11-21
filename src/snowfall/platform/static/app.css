@@ -72,3 +72,47 @@
  .city-row>strong{font-size:.87rem}
 }
 @media(prefers-reduced-motion:reduce){.hero-illustration,.boss-portrait,.hq-showcase img{transition:none}}
+
+
+/* v2.9.6a: supplied 3:1 masthead and collector-style headquarters */
+.brand-icon{width:48px;height:48px;object-fit:cover;border-radius:50%;border:1px solid #d5b376;flex:none}
+.site-masthead{margin:0 auto 0;border-bottom:1px solid #66563b;background:#0b1b28;max-width:1440px}
+.site-banner{width:100%;height:auto;aspect-ratio:2048/682;display:block;object-fit:contain;background:#081824}
+.masthead-fallback{min-height:168px;background:linear-gradient(90deg,#0a1c29e8,#0a1c2980),url('/art/v290/boss/phase_ice.webp') center 38%/cover;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:1.3rem;text-align:center}
+.masthead-fallback h1{font-family:Georgia,serif;letter-spacing:.055em;font-size:clamp(2rem,6vw,4rem);color:#f3ddb0;margin:0}
+.masthead-fallback p{margin:.2rem 0 .5rem}
+.masthead-strip{padding:.68rem 1.15rem;display:flex;align-items:center;justify-content:space-between;gap:.6rem;flex-wrap:wrap;background:#132936}
+.masthead-strip>p{margin:0;color:#d0e0e9;font-size:.82rem}
+.masthead-controls{display:flex;align-items:center;flex-wrap:wrap;gap:.5rem}
+.masthead-phase{font-size:.68rem;color:#a6bdca;letter-spacing:.06em;margin-right:.35rem}
+.masthead-phase strong{color:var(--gold)}
+.page-grid{padding-top:1.6rem}
+.collector-card{position:relative;border:1px solid #6f8590;border-radius:7px;isolation:isolate;overflow:hidden;min-width:0;background:#122533;margin:0 0 1rem}
+.collector-city,.collector-banner,.collector-shade{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-3}
+.collector-banner{height:34%;object-fit:cover;z-index:-2;opacity:.88}
+.collector-shade{z-index:-1;background:linear-gradient(90deg,#071622b0,#071622b5 55%,#071622e8),linear-gradient(0deg,#0b202de8,transparent)}
+.collector-layout{display:grid;grid-template-columns:minmax(125px,235px) minmax(0,1fr);gap:1rem;padding:1.2rem;align-items:center}
+.collector-profile{display:flex;flex-direction:column;align-items:stretch;gap:.5rem;min-width:0}
+.portrait-well{position:relative;aspect-ratio:336/297;isolation:isolate;background:radial-gradient(ellipse,#365568,#142a3a 75%);border-radius:7px;overflow:hidden}
+.portrait-layer{position:absolute;left:5.65%;top:5.39%;width:87.8%;height:88.55%;object-fit:cover;border-radius:3px}
+.trail-layer{position:absolute;left:5.65%;top:39.1%;width:88.7%;height:53%;object-fit:fill;opacity:.7}
+.gear-layer{position:absolute;object-fit:contain;opacity:.94}
+.gear-layer[data-cosmetic="goggles"]{left:27.38%;top:23.23%;width:44.35%;height:22.9%}
+.gear-layer[data-cosmetic="scarf"]{left:22.62%;top:50.5%;width:56.85%;height:40.4%}
+.gear-layer[data-cosmetic="boots"]{left:60.42%;top:66.67%;width:31.25%;height:27.95%}
+.frame-layer{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none}
+.collector-info{min-width:0;overflow-wrap:anywhere;padding:.3rem 0}
+.collector-info h3{font-size:clamp(1.55rem,3.7vw,2.35rem);margin:.2rem 0 .3rem}
+.collector-info>p{margin-bottom:.45rem}
+.collector-city-name{font-size:.78rem;color:#f0d4a3}
+.equipped-list{margin:.8rem 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.48rem .7rem}
+.equipped-list div{min-width:0;border-bottom:1px solid #ffffff28;padding-bottom:.45rem}
+.equipped-list dt{font-size:.59rem;text-transform:uppercase;letter-spacing:.1em;color:#aad0dc;font-weight:800}
+.equipped-list dd{margin:.18rem 0 0;color:#f1f2ed;font-size:.77rem}
+.hq-next{padding:.8rem 1rem;background:#142c3b;border:1px solid #456377;margin:1rem 0 .65rem}
+.hq-next p{margin:0}.hq-next p:last-child{font-size:.86rem;color:#dce9ed}
+.account-tools{margin-top:1.1rem;border:1px solid #425e70;background:#142b38;padding:.75rem 1rem;border-radius:4px}
+.account-tools>summary{cursor:pointer;font-weight:700;color:#c6dce5;padding:.4rem 0}
+.account-tools .side-card{padding:.8rem}
+@media(max-width:680px){.masthead-strip{padding:.55rem .7rem}.masthead-strip>p{display:none}.masthead-controls{width:100%}.collector-layout{grid-template-columns:minmax(105px,.68fr) minmax(0,1fr);padding:.7rem;gap:.65rem}.equipped-list{grid-template-columns:1fr;gap:.25rem}.collector-info h3{font-size:1.45rem}.collector-profile .button{letter-spacing:.025em;font-size:.62rem;padding:.5rem .2rem}.collector-info .eyebrow{font-size:.55rem}.collector-info .subtle{font-size:.66rem}}
+@media(max-width:360px){.collector-layout{grid-template-columns:1fr}.collector-profile{max-width:185px;width:100%;margin:auto}.equipped-list{grid-template-columns:1fr 1fr}}

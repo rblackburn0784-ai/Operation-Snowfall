@@ -1,4 +1,4 @@
-/* Operation Snowfall v2.9.6 — shared actions, original artwork and responsive QA website. */
+/* Operation Snowfall v2.9.6a — branded HQ with shared cosmetic layers. */
 "use strict";
 const S={session:null,me:null,world:null,raid:null,shop:null,items:[],board:[],cities:[],targets:[],config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
@@ -23,8 +23,68 @@ const COSMETIC_ART=Object.freeze({
  "gilded_banner":"/art/v290/cosmetics/banners/gilded_banner.png",
  "noir_detective":"/art/v290/portraits/noir_detective_m.webp",
  "winter_enforcer":"/art/v290/portraits/winter_enforcer_m.webp",
- "frost_spectre":"/art/v290/portraits/frost_spectre_m.webp"
+ "frost_spectre":"/art/v290/portraits/frost_spectre_m.webp",
+ "recruit_f":"/art/v290/portraits/recruit_f.webp",
+ "noir_detective_f":"/art/v290/portraits/noir_detective_f.webp",
+ "winter_enforcer_f":"/art/v290/portraits/winter_enforcer_f.webp",
+ "frost_spectre_f":"/art/v290/portraits/frost_spectre_f.webp"
 });
+const HQ_SLOTS=Object.freeze({
+ portrait:["noir_detective","winter_enforcer","frost_spectre","recruit_f","noir_detective_f","winter_enforcer_f","frost_spectre_f"],
+ frame:["ice_frame","gold_frame","holly_frame"],
+ banner:["midnight_banner","aurora_banner","gilded_banner"],
+ gear:["goggles","boots","scarf"],
+ trail:["snow_trail","candy_trail"]
+});
+function ownedEquipped(wardrobe,slot){
+ const key=wardrobe?.equipped?.[slot];
+ return Array.isArray(wardrobe?.unlocked)&&wardrobe.unlocked.includes(key)&&
+     HQ_SLOTS[slot]?.includes(key)?key:null;
+}
+function profileLayers(wardrobe){
+ const layers={};
+ for(const slot of Object.keys(HQ_SLOTS)){
+  const key=ownedEquipped(wardrobe,slot);
+  layers[slot]={key,src:key?COSMETIC_ART[key]:slot==="portrait"?"/art/v290/portraits/recruit_m.webp":null};
+ }
+ return layers;
+}
+function cosmeticName(key){return S.items.find(item=>item.key===key)?.name||
+    (key?key.split("_").map(word=>word[0].toUpperCase()+word.slice(1)).join(" "):"None");}
+function showWardrobe(){
+ const wardrobe=S.session&&S.me?.registered?S.shop:null;
+ const layers=profileLayers(wardrobe);
+ for(const slot of Object.keys(layers)){
+  const id=slot[0].toUpperCase()+slot.slice(1),node=el("hq"+id),layer=layers[slot];
+  if(layer.src){
+   if(node.getAttribute("src")!==layer.src)node.setAttribute("src",layer.src);
+   node.classList.remove("hidden");
+  }else{
+   node.classList.add("hidden");
+   node.removeAttribute("src");
+  }
+  node.dataset.cosmetic=layer.key||"";
+  const name=layer.key?cosmeticName(layer.key):slot==="portrait"?"Recruit":"None";
+  if(slot==="portrait")node.alt=name+" profile";
+  txt("hq"+id+"Name",name);
+ }
+ txt("hqWardrobeStatus",wardrobe?
+     fmt(wardrobe.unlocked?.length||0)+" cosmetics owned · shared with Discord":
+     "Wardrobe not loaded — refresh to check equipped cosmetics.");
+}
+function configureBranding(branding){
+ const banner=el("siteBanner"),icon=el("brandIcon");
+ if(branding?.banner){
+  banner.src="/static/snowfall-site-banner.webp";
+  banner.classList.remove("hidden");el("bannerFallback").classList.add("hidden");
+  banner.onerror=()=>{banner.classList.add("hidden");el("bannerFallback").classList.remove("hidden")};
+ }
+ if(branding?.icon){
+  icon.src="/static/snowfall-site-icon.webp";
+  icon.classList.remove("hidden");el("brandFallback").classList.add("hidden");
+  icon.onerror=()=>{icon.classList.add("hidden");el("brandFallback").classList.remove("hidden")};
+ }
+}
 function bossArtTier(hp,max){
  if(!(Number(max)>0))return 100;
  if(Number(hp)<=0)return 0;
@@ -125,6 +185,9 @@ function showMe(){
  el("registration").classList.toggle("hidden",!signed||!!S.me?.registered);
  el("playerDashboard").classList.toggle("hidden",!signed||!S.me?.registered);
  el("linkedIdentity").classList.toggle("hidden",!signed);
+ el("accountTools").classList.toggle("hidden",!signed);
+ if(signed&&!S.session?.links?.some(x=>x.provider==="discord"))el("accountTools").open=true;
+ showWardrobe();
  if(!signed||S.session?.links?.some(x=>x.provider==="discord")){
    el("discordDiscardPanel").classList.add("hidden");S.discard=null;
  }
@@ -149,7 +212,7 @@ function showMe(){
   const citySlug=CITY_SLUG[S.me.city];
   const cityImage=el("hqCityArt");
   if(citySlug)cityImage.src="/art/cities/"+citySlug+".webp";
-  cityImage.alt="Winter illustration of "+S.me.city;
+  cityImage.alt="";
   const ammo=Number(S.me.resources?.snowballs||0);
   txt("hqNextMove",ammo>0?
       "You've got "+fmt(ammo)+" snowballs ready. Pick a rival or confront the Snow Don.":
@@ -254,7 +317,7 @@ function showShop(){
  txt("shopBalance",S.shop?.balance??S.me?.resources?.snowflakes);
  const owned=new Set(S.shop?.unlocked||[]),wearing=S.shop?.equipped||{};
  el("catalog").innerHTML=S.items.length?S.items.map(i=>{
-  let has=owned.has(i.key),on=wearing[i.category]===i.key;
+  let has=owned.has(i.key),on=has&&wearing[i.category]===i.key;
   let button=has?"<button class='button button-outline' data-equip='"+esc(i.key)+"' "+(on?"disabled":"")+">"+(on?"Equipped":"Equip")+"</button>":"<button class='button button-gold' data-buy='"+esc(i.key)+"' "+(!S.me?.registered?"disabled":"")+">Purchase</button>";
   const art=COSMETIC_ART[i.key];
    const preview=art?"<img class='catalog-thumb' src='"+art+"' loading='lazy' alt='"+esc(i.name)+" artwork preview'>":"";
@@ -270,13 +333,13 @@ async function loadPublic(){
  showBoard();showCities();showBoss();showShop();
 }
 async function loadPrivate(){
- if(!S.session){S.me=null;S.world=null;S.shop=null;S.targets=[];S.progress=null;S.verification=null;S.pendingActions.clear();showMe();return}
+ if(!S.session){S.me=null;S.world=null;S.shop=null;S.targets=[];S.progress=null;S.verification=null;S.pendingActions.clear();showMe();showShop();return}
  try{S.me=await get("/v1/game/me")}
- catch(e){if(e.status===401){S.session=null;S.me=null;S.progress=null;showMe();return}throw e}
+ catch(e){if(e.status===401){S.session=null;S.me=null;S.world=null;S.shop=null;S.progress=null;S.targets=[];S.verification=null;showMe();showShop();return}throw e}
  if(S.me.registered){
   const results=await Promise.allSettled([get("/v1/game/world"),get("/v1/game/wardrobe"),get("/v1/game/targets"),get("/v1/game/progress")]);
   if(results[0].status==="fulfilled")S.world=results[0].value;
-  if(results[1].status==="fulfilled")S.shop=results[1].value;
+  S.shop=results[1].status==="fulfilled"?results[1].value:null;
   if(results[2].status==="fulfilled")S.targets=results[2].value.targets||[];
   if(results[3].status==="fulfilled")S.progress=results[3].value;
   const linked=(S.session.links||[]).some(x=>x.provider==="discord")&&
@@ -285,7 +348,7 @@ async function loadPrivate(){
     try{S.verification=await get("/v1/verification/status")}
     catch{S.verification=null}
   }else S.verification=null;
- }
+ }else{S.shop=null;S.world=null;S.progress=null;S.targets=[];S.verification=null;}
  showMe();showTargets();showBoss();showShop();
 }
 function updateDiscardSubmit(){
@@ -357,8 +420,9 @@ function bind(){
   if(!S.session)return authModal();
   try{
    S.session=await get("/v1/auth/session");
-   S.progress=await get("/v1/game/progress");
+   await loadPrivate();
    showMe();
+   if(!S.progress?.registered)throw Error("Shared progress could not be verified. Refresh and try again.");
    notice("Progress verified against the authoritative PostgreSQL game.","success");
   }catch(e){notice(e.message,"error")}
  };
@@ -443,7 +507,7 @@ async function init(){
  bind();
  try{
   let [cfg,health]=await Promise.all([get("/v1/web/config"),get("/v1/health")]);
-  S.config=cfg;configureStreets(cfg.streets_url);el("discordLogin").disabled=!cfg.discord_oauth;
+  S.config=cfg;configureBranding(cfg.branding);configureStreets(cfg.streets_url);el("discordLogin").disabled=!cfg.discord_oauth;
   if(!cfg.discord_oauth)el("discordLogin").textContent="Discord login (not configured)";
   if(!cfg.underworld_assertions)el("underworldForm").querySelector("button").disabled=true;
   txt("sideStatus",(health.status||"unknown").toUpperCase());txt("sideStatusDetail","Isolated staging · "+cfg.season);
@@ -451,10 +515,12 @@ async function init(){
   if(location.search.includes("login=ok"))notice("Discord login successful.","success");
   if(location.search.includes("linked=discord"))notice("Discord account linked to this character.","success");
   if(location.search.includes("discord=discard-offer")){
+    el("accountTools").open=true;
     try{await loadDiscardOffer()}
     catch(e){notice("Cannot load Discord character confirmation: "+e.message,"error")}
   }
   if(location.search.includes("discord=conflict")){
+    el("accountTools").open=true;
     const reason=new URLSearchParams(location.search).get("reason")||"manual-review";
     const explanations={
       "gameplay":"That Discord login already has its own registered Snowfall player. For safety, its game progress cannot be automatically merged with your Underworld character.",
