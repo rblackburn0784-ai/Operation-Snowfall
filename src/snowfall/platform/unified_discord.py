@@ -198,3 +198,26 @@ class UnifiedDiscordStore(PostgresStore):
     def connect(self):
         with super().connect() as conn:
             yield MappedConnection(conn)
+
+    def register(self, season, user_id, mr_name, city, now):
+        """Match web QA's one-time bonus regardless of first registration route.
+
+        StagingGame.register gives +60 Snowflakes exactly once per canonical
+        player. The same marker and transaction ensure legacy /snow join
+        cannot issue a second bonus or leave Discord-first players behind.
+        """
+        if season != QA_SEASON:
+            raise UnifiedConfigurationError("Unified registration is QA-only")
+        player = super().register(season, user_id, mr_name, city, now)
+        with self.connect() as con:
+            con.execute("BEGIN IMMEDIATE")
+            marker = con.execute(
+                "INSERT INTO snowfall_web_qa_bonus(player_id) VALUES(?) "
+                "ON CONFLICT DO NOTHING RETURNING player_id", (user_id,)).fetchone()
+            if marker is not None:
+                con.execute(
+                    "UPDATE player_resources SET "
+                    "snowflakes=LEAST(100,snowflakes+60) "
+                    "WHERE season_key=? AND discord_user_id=?",
+                    (season, user_id))
+        return player
