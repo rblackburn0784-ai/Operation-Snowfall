@@ -272,3 +272,52 @@
 .hq-record-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.5rem}
 @media(max-width:780px){#hqCollector .collector-layout{grid-template-columns:1fr;padding:.9rem}#hqCollector .collector-profile{max-width:350px}.hq-field-grid{grid-template-columns:1fr}.hq-record-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hq-featured .hq-medal{flex:1 1 140px}}
 @media(max-width:420px){.hq-city-identity img{width:55px;height:55px}.hq-city-identity{padding:.65rem}.hq-trophy-grid{grid-template-columns:1fr}#hqCollector .collector-layout{padding:.62rem}.hq-quest-list{grid-template-columns:1fr}}
+
+/* v2.9.6e — original-art Winter Market and private, non-persistent fitting room. */
+.market-wallet{background:#142d3c;border:1px solid #8b7650;flex-wrap:wrap;gap:.8rem;padding:.85rem 1rem;margin:.8rem 0 1.1rem}
+.market-wallet strong{color:#f4d49c;font-size:1.5rem}.market-wallet p{margin:.2rem 0}
+.market-feature{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1rem;align-items:center;padding:.85rem;border:1px solid #8b7650;background:linear-gradient(130deg,#19394a,#131f2c);margin-bottom:1.2rem;min-width:0}
+.market-feature-art{position:relative;min-width:0;aspect-ratio:4/3;background:radial-gradient(ellipse,#38586b,#112530 74%);display:flex;align-items:center;justify-content:center}
+.market-feature-art img{width:100%;height:100%;object-fit:contain;max-height:250px;padding:.5rem}
+.market-feature-art .market-rarity{position:absolute;bottom:.3rem;left:.3rem;background:#091c29ed;padding:.35rem .5rem}
+.market-feature-content{min-width:0}.market-feature-content h3{font-family:Georgia,serif;font-size:clamp(1.2rem,2.8vw,1.8rem);color:#f1d6a5;margin:.3rem 0}
+.market-feature-content p{font-size:.83rem;color:#c8dce5}.market-feature-content strong{color:#e6c58d}
+.market-feature-controls{display:flex;gap:.35rem;flex-wrap:wrap;margin:.65rem 0 .25rem}
+.market-feature-controls button,.market-card-actions button{min-height:42px}
+.market-fitting{border:1px solid #617b88;padding:.8rem;background:#142b38;margin-bottom:1.25rem;scroll-margin-top:1rem}
+.market-fitting .hq-section-head{flex-wrap:wrap}.market-fitting .section-desc{font-size:.83rem;margin:.4rem 0 .75rem}
+.fitting-stage{position:relative;isolation:isolate;overflow:hidden;border:1px solid #8b7650;background:#112736}
+.fitting-stage .collector-shade{background:linear-gradient(90deg,#0718249c,#091e2bdc)}
+.fitting-layout{display:grid;grid-template-columns:minmax(0, min(48%,380px)) minmax(0,1fr);gap:1rem;padding:.85rem;align-items:center}
+.fitting-stage .collector-profile{max-width:380px;min-width:0}
+.fitting-stage .frame-layer{transform:scale(1.02)}
+.fitting-stage .hq-rarity{align-self:center;text-align:center;margin:.25rem 0 0}
+.fit-outfit{min-width:0}.fit-outfit h3{font-family:Georgia,serif;font-size:clamp(1.2rem,2.5vw,1.9rem);overflow-wrap:anywhere;color:#f1dbb4;margin:.3rem 0}
+.fit-changes{display:grid;gap:.3rem}.fit-change{display:flex;align-items:center;justify-content:space-between;gap:.4rem;background:#112a39c9;padding:.4rem .5rem;border:1px solid #4b6878}
+.fit-change>div{min-width:0;overflow-wrap:anywhere}.fit-change strong,.fit-change small{display:block;font-size:.73rem}.fit-change small{color:#b5cbd7}
+#fitBrowse{margin-top:.65rem}
+.market-catalogue{scroll-margin-top:1rem}
+.market-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.6rem;background:#122a39;border:1px solid #476574;padding:.85rem}
+.market-filters label{min-width:0}.market-filters select,.market-filters input{width:100%;min-width:0}
+.market-search{grid-column:1/-1}
+.market-item{padding:.75rem!important;gap:.4rem;min-width:0;display:flex;flex-direction:column}
+.market-item[data-rarity="Common"]{border-color:#596d78}
+.market-item[data-rarity="Rare"]{border-color:#75b4d2}
+.market-item[data-rarity="Epic"]{border-color:#ac87d0}
+.market-item[data-rarity="Legendary"]{border-color:#d5b16c;box-shadow:inset 0 0 16px #b383361b}
+.market-item[data-item-state="equipped"]{outline:1px solid #89bba1;outline-offset:-3px}
+.market-item-art{position:relative;display:flex;align-items:center;justify-content:center;aspect-ratio:4/3;background:radial-gradient(ellipse,#3b596c,#112530 78%);border:1px solid #405b6c;min-width:0}
+.market-item-art .catalog-thumb{height:100%;max-height:250px;width:100%;object-fit:contain;margin:0;padding:.45rem;border:0;background:none}
+.market-state{position:absolute;top:.35rem;right:.35rem;max-width:90%;font-size:.65rem;font-weight:700;padding:.27rem .45rem;background:#0b1929ec;border:1px solid #7c96a4;color:#dfeaf0}
+.market-item[data-item-state="equipped"] .market-state{color:#c2f2d1;border-color:#89bba1}
+.market-rarity{font-size:.65rem;letter-spacing:.06em;font-weight:750;text-transform:uppercase;color:#c6d7e0}
+.market-rarity[data-rarity="Rare"],#fitCollector[data-rarity="Rare"] .hq-rarity{color:#a9dff7;border-color:#83c9e7}
+.market-rarity[data-rarity="Epic"],#fitCollector[data-rarity="Epic"] .hq-rarity{color:#dab7fb;border-color:#d1a3ed}
+.market-rarity[data-rarity="Legendary"],#fitCollector[data-rarity="Legendary"] .hq-rarity{color:#ffe1a1;border-color:#f2cf83}
+.market-item h3{font-size:1.12rem;margin:.2rem 0}.market-item p{min-height:0;margin:.2rem 0;flex:1}
+.market-item .catalog-row{margin:.25rem 0;padding:0}
+.market-card-actions{display:flex;gap:.4rem;flex-wrap:wrap}.market-card-actions button{flex:1 1 110px;white-space:normal}
+.market-card-actions button[aria-pressed="true"]{border-color:#89bba1;color:#bde5c9}
+.market-item small{font-size:.7rem;overflow-wrap:anywhere}
+@media(max-width:780px){.fitting-layout{grid-template-columns:1fr}.fitting-stage .collector-profile{max-width:350px}.market-feature{gap:.6rem}.market-feature-content h3{font-size:1.2rem}}
+@media(max-width:480px){.market-feature{grid-template-columns:1fr}.market-feature-art{aspect-ratio:16/10}.market-feature-art img{max-height:200px}.market-fitting{padding:.55rem}.fitting-layout{padding:.55rem}.market-filters{padding:.55rem;gap:.45rem}.market-item{padding:.65rem!important}.market-catalogue .catalog-grid{grid-template-columns:1fr}.market-item-art{aspect-ratio:16/10}.market-item-art .catalog-thumb{max-height:230px}.market-wallet .button{width:100%}}
