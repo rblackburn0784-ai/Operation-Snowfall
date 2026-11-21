@@ -92,6 +92,9 @@ def configuration(env: Mapping[str, str]) -> tuple[str, Path, Path, str]:
         raise RailwayConfigurationError("SNOWFALL_DB_BACKEND must be sqlite or postgres")
     if backend == "postgres" and not env.get("SNOWFALL_DATABASE_URL", "").strip():
         raise RailwayConfigurationError("PostgreSQL cutover needs SNOWFALL_DATABASE_URL")
+    if env.get("SNOWFALL_SHARED_MODE", "").strip():
+        from snowfall.platform.unified_discord import validate_unified_environment
+        validate_unified_environment(env)
     guild = _positive_id(_required(env, "SNOWFALL_GUILD_ID"), "SNOWFALL_GUILD_ID")
     admins = _ids(env, "SNOWFALL_ADMIN_USER_IDS", required=True)
     staff = _ids(env, "SNOWFALL_STAFF_ROLE_IDS")
