@@ -370,3 +370,49 @@
 @media(max-width:360px){.city-selectors{grid-template-columns:repeat(2,minmax(0,1fr))}.district-grid{grid-template-columns:1fr}.city-command-controls{flex-direction:column;align-items:stretch}.city-war-heading{gap:.45rem;padding:.6rem}}
 
 .city-map-stage .map-city-pin{pointer-events:all;cursor:pointer}.city-map-stage .map-city-pin:hover{stroke:#fff1c5;stroke-width:6}
+
+/* v2.9.6g — restrained winter atmosphere, original newspaper and genuine event states. */
+.snow{opacity:.11;z-index:3;background-position:0 0;animation:snowfall-polish 28s linear infinite;transform:none}
+.dust-b{opacity:.06;animation-duration:45s}
+@keyframes snowfall-polish{to{background-position:160px 145px}}
+.hero-artwork:after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 50%,#07152045);z-index:1}
+.hero-artwork .art-caption{z-index:2}
+.panel.active{animation:panel-enter .22s ease-out}
+@keyframes panel-enter{from{opacity:.7;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.event-connection{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;padding:.65rem .85rem;border:1px solid #415b69;border-top:0;color:#c0d4de;background:#112633;font-size:.74rem}
+.connection-dot{height:7px;width:7px;border-radius:50%;background:#91c9d9;flex:none}
+.event-connection button{margin-left:auto}
+.event-finale{display:grid;grid-template-columns:minmax(0,42%) minmax(0,1fr);align-items:center;border:1px solid #8d7954;background:linear-gradient(120deg,#172c39,#2a3434);margin-top:1rem;min-width:0}
+.event-finale>img{width:100%;height:100%;min-height:200px;max-height:330px;object-fit:cover}
+.event-finale-copy{padding:clamp(1rem,3vw,2rem);min-width:0}
+.event-finale h2{color:#f2d6a4;margin:.35rem 0 .65rem;font-size:clamp(1.6rem,3vw,2.5rem)}
+.event-finale p:not(.eyebrow){font-size:.9rem;color:#d0dfe3}
+.finale-actions{display:flex;gap:.45rem;flex-wrap:wrap}
+.raid-celebration{display:grid;grid-template-columns:minmax(0,40%) minmax(0,1fr);align-items:center;gap:.9rem;border:1px solid #af925c;background:#263b3c;padding:.75rem;margin:1rem 0}
+.raid-celebration img{width:100%;height:150px;object-fit:cover}
+.raid-celebration h3{color:#f0d49e;margin:.25rem 0}.raid-celebration p{font-size:.8rem;margin:.35rem 0}
+.wire-toolbar{display:flex;align-items:end;gap:.75rem;flex-wrap:wrap;background:#122a39;border:1px solid #5a7180;padding:.8rem;margin-bottom:1rem}
+.wire-toolbar label{flex:1;min-width:130px}.wire-toolbar select{margin-bottom:0}.wire-toolbar button{min-height:44px}
+.wire-paper{background:#e8ddc1;color:#352d24;border:4px double #9d8965;padding:clamp(.65rem,2vw,1.4rem);box-shadow:0 8px 30px #020b1550;min-width:0}
+.wire-masthead{display:block;width:100%;max-height:150px;object-fit:contain;margin:0 auto .55rem}
+.wire-edition-line{display:flex;justify-content:space-between;gap:.4rem;flex-wrap:wrap;border-top:2px solid #68533a;border-bottom:1px solid #68533a;padding:.45rem 0;font-size:.65rem;font-weight:800;letter-spacing:.09em}
+#wireEditionArt{width:100%;max-height:270px;object-fit:contain;margin:.65rem 0 .45rem}
+.wire-editorial h3{font-family:Georgia,serif;font-size:clamp(1.55rem,3.7vw,2.5rem);line-height:1.08;color:#3c3023;margin:.3rem 0 .5rem;overflow-wrap:anywhere}
+.wire-byline{font-size:.67rem;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:#715339;margin:.25rem 0}
+.wire-editorial>p:not(.wire-byline){font-size:.92rem}
+.wire-headlines{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.65rem;border-top:3px double #8c7655;padding-top:.75rem;margin:.8rem 0}
+.wire-story{border-bottom:1px solid #a49574;padding:.3rem .1rem;min-width:0}.wire-story h4{font:700 1.12rem Georgia,serif;margin:.3rem 0;overflow-wrap:anywhere}.wire-story p:not(.wire-byline){font-size:.8rem;margin:.35rem 0}
+.wire-notice{font-size:.73rem;border-top:1px solid #9d8965;padding-top:.6rem;margin:.7rem 0 0;color:#594932}
+.wire-paper[data-edition="final"]{border-color:#a47837}
+.wire-newsroom{display:grid;grid-template-columns:minmax(0,35%) minmax(0,1fr);align-items:center;gap:.8rem;background:#132b38;border:1px solid #566d77;padding:.75rem;margin-top:1rem}
+.wire-newsroom>img{width:100%;height:165px;object-fit:cover}
+.wire-newsroom p{font-size:.79rem;color:#c1d5de;margin:.4rem 0}
+.wire-side>img{width:100%;max-height:94px;object-fit:contain;margin-bottom:.7rem}.wire-side .button{margin-top:1rem}
+.footer-preferences{display:flex;align-items:center;justify-content:center;gap:.75rem;flex-wrap:wrap;margin:1rem auto}
+@media(max-width:560px){.event-finale,.raid-celebration,.wire-newsroom{grid-template-columns:1fr}.event-finale>img{height:180px;min-height:0}.raid-celebration img{height:165px}.wire-newsroom>img{height:165px}.wire-headlines{grid-template-columns:1fr}.wire-paper{padding:.6rem}.wire-toolbar button{width:100%}.hero-stats{flex-wrap:wrap}.hero-stats strong{overflow-wrap:anywhere}.snow{opacity:.07}.dust-b{display:none}}
+html[data-atmosphere="off"] .snow{display:none}
+html[data-atmosphere="off"] .panel.active{animation:none}
+html[data-atmosphere="off"]{scroll-behavior:auto}
+html[data-atmosphere="off"] .button,html[data-atmosphere="off"] .progress-fill{transition:none}
+html[data-atmosphere="off"] .button:hover:not(:disabled){transform:none}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.snow{display:none}.panel.active{animation:none}.button,.progress-fill{transition:none}.button:hover:not(:disabled){transform:none}}

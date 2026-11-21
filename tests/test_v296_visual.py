@@ -137,3 +137,18 @@ def test_v296f_public_city_aggregates_no_player_identity():
             assert read.call_args.kwargs["day"] == 2
         assert client.get("/v1/web/territory?day=8").status_code == 422
         assert client.post("/v1/web/territory").status_code == 405
+
+
+def test_v296g_wire_route_only_public_verified_data():
+    from unittest.mock import patch
+    result = {"day": 1, "verified_only": True, "headlines": [], "available_days": [1]}
+    game = object()
+    with TestClient(web_app(game=game), base_url="https://qa.example") as client:
+        with patch("snowfall.platform.wire_view.wire_view", return_value=result) as read:
+            response = client.get("/v1/web/wire?day=1")
+            assert response.status_code == 200
+            assert response.json() == result
+            assert response.headers["cache-control"] == "no-store"
+            read.assert_called_once_with(game, day=1)
+        assert client.post("/v1/web/wire").status_code == 405
+        assert client.get("/v1/web/wire?day=8").status_code == 422
