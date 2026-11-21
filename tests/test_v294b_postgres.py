@@ -108,6 +108,21 @@ def test_existing_snow_engines_share_website_progress(tmp_path):
             QA_SEASON, actor, "boss", "discord-v294b-1003", now).repeated
         assert web.progress(principal) == status
 
+        # When Discord is the *first* place a linked character registers,
+        # the legacy /snow join grants exactly the same one-time QA bonus.
+        second_actor = 234567890123456789
+        second_principal = ids.resolve_underworld(
+            "second-underworld-account", "second-character", "second-login", expiry)
+        ids.link_discord(second_principal, str(second_actor))
+        legacy_player = discord_store.register(
+            QA_SEASON, second_actor, "DiscordFirst", "Detroit", now)
+        assert legacy_player.discord_user_id == second_actor
+        assert web.progress(second_principal)["snowflakes"] == 60
+        discord_store.register(QA_SEASON, second_actor, "DiscordFirst", "Detroit", now)
+        assert web.progress(second_principal)["snowflakes"] == 60
+        web.register(second_principal, "DiscordFirst", "Detroit")
+        assert web.progress(second_principal)["snowflakes"] == 60
+
         with psycopg.connect(dsn) as conn:
             assert conn.execute(
                 "SELECT COUNT(*) FROM players WHERE discord_user_id=%s",
