@@ -94,8 +94,6 @@ def test_unlinked_registration_modal_and_wire_submission_are_rejected():
     async def run():
         settings, store = _settings(), SimpleNamespace(unified_discord=True)
         registration = JoinModal(settings, store, "Chicago")
-        registration.declaration._value = "I AGREE"
-        registration.mr_username._value = "UnlinkedCheater"
         interaction = fake_interaction()
         await registration.on_submit(interaction)
         assert interaction.response.messages[-1] == (UNLINKED_MESSAGE, True)
@@ -163,8 +161,7 @@ def test_legacy_host_navigation_cannot_bypass_admin_lock():
 def test_shared_qa_labels_never_promise_real_prizes():
     from snowfall.ui.navigation import _mode
     from snowfall.ui.dashboard import dashboard_embed
-    from snowfall.db.store import Season
-    settings = _settings()
+        settings = _settings()
     assert "NO REAL PRIZES" in _mode(settings)
     # The dashboard renderer separately recognises the isolated QA season
     # even though the Railway environment is named "production".
