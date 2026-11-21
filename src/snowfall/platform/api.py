@@ -244,7 +244,7 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
                 "season": cfg.season_key}
 
     @app.get("/v1/ready")
-    def ready():
+    def readiness():
         """DB-dependent readiness, distinct from Railway's lightweight liveness.
 
         Checks actual canonical identity/schema and a game transaction;
