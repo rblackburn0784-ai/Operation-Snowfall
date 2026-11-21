@@ -265,5 +265,5 @@ class SnowGroup(app_commands.Group):
 
     @app_commands.command(name="rules", description="Read event rules and identity policy")
     async def rules(self, interaction: discord.Interaction):
-        await interaction.response.send_message(rules_text(), ephemeral=True,
+        await interaction.response.send_message(rules_text(self.settings), ephemeral=True,
                                                 allowed_mentions=discord.AllowedMentions.none())

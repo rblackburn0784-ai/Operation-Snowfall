@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 import discord
 
 from snowfall.practice import pin, practice_expired
+from snowfall.ui.linked import require_linked_discord
 
 from snowfall.services.world import WorldEngine, WorldError, BOSS_LIMIT, SIEGE_LIMIT
 from snowfall.ui.dashboard import escape_name
@@ -105,7 +106,7 @@ class WorldView(discord.ui.View):
         if interaction.guild_id != self.settings.guild_id or interaction.user.id != self.owner_id:
             await interaction.response.send_message('This is another player’s private menu.', ephemeral=True)
             return False
-        return True
+        return await require_linked_discord(interaction)
 
     async def _attack(self, interaction, kind):
         await interaction.response.edit_message(
@@ -160,7 +161,7 @@ class WorldConfirm(discord.ui.View):
         if interaction.guild_id != self.settings.guild_id or interaction.user.id != self.owner_id:
             await interaction.response.send_message('Not your attack confirmation.', ephemeral=True)
             return False
-        return True
+        return await require_linked_discord(interaction)
 
     @discord.ui.button(label='Confirm Attack', style=discord.ButtonStyle.danger)
     async def confirm(self, interaction, _):

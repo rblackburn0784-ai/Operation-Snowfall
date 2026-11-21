@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 import discord
 
 from snowfall.practice import pin, practice_expired
+from snowfall.ui.linked import require_linked_discord
 
 from snowfall.services.economy import (EconomyEngine, EconomyError, ITEM_COSTS,
                                        ITEM_NAMES)
@@ -56,7 +57,7 @@ class EconomyView(discord.ui.View):
                 interaction.user.id != self.owner_id):
             await interaction.response.send_message("This is another player's private menu.", ephemeral=True)
             return False
-        return True
+        return await require_linked_discord(interaction)
 
     async def show_inventory(self, interaction):
         await interaction.response.defer()

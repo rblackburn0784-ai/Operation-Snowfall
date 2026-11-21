@@ -1,6 +1,8 @@
-"""Opt-in separate Discord TEST bot using canonical identities and shared PostgreSQL.
+"""Discord gateway using one canonical player on Snowfall Web and Discord.
 
-Never imported by the live /snow worker. Does not have a production token.
+The standalone DiscordBridgeBot entry point remains available only for a
+separate, guarded TEST worker. In QA the original existing Discord app imports
+SnowBridgeGroup into its own single process and token.
 """
 from __future__ import annotations
 
@@ -30,7 +32,12 @@ class DiscordBridgeGateway:
     def principal(self, discord_id: int) -> int:
         if not isinstance(discord_id, int) or discord_id <= 0:
             raise IdentityError("Invalid Discord user ID")
-        return self.identity.principal_for_discord(str(discord_id))
+        principal = self.identity.principal_for_discord(str(discord_id))
+        if not any(link["provider"] == "underworld"
+                   for link in self.identity.links(principal)):
+            raise IdentityError(
+                "Sign in through Underworld and link this Discord account before playing")
+        return principal
 
     def me(self, discord_id: int):
         return self.game.me(self.principal(discord_id))
@@ -102,7 +109,10 @@ class SnowBridgeGroup(app_commands.Group):
         except ValueError as exc:
             await interaction.followup.send("⚠️ " + str(exc), ephemeral=True)
         except Exception:
-            await interaction.followup.send("Staging gameplay unavailable.", ephemeral=True)
+            await interaction.followup.send(
+                "⚠️ Shared game temporarily unavailable. Your action's outcome "
+                "may be uncertain. Check /snowbridge progress before trying again.",
+                ephemeral=True)
         return None
 
     @app_commands.command(name="link", description="How to link Discord and Underworld")

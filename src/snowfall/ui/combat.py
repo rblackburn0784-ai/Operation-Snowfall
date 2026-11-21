@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 import discord
 
 from snowfall.practice import pin, practice_expired
+from snowfall.ui.linked import require_linked_discord
 
 from snowfall.services.combat import ATTACKS, CombatEngine, CombatError, CombatResult
 from snowfall.services.combat_intel import CombatIntelEngine, target_order
@@ -66,7 +67,7 @@ class CombatMenu(discord.ui.View):
         if interaction.guild_id != self.settings.guild_id or interaction.user.id != self.owner_id:
             await interaction.response.send_message("This is someone else's private snowball menu.", ephemeral=True)
             return False
-        return True
+        return await require_linked_discord(interaction)
 
     async def _targets(self, interaction: discord.Interaction):
         engine = CombatEngine(self.store)

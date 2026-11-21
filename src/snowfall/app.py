@@ -22,7 +22,8 @@ from snowfall.services.world import WorldEngine
 from snowfall.ui.broadcast import BroadcastPublisher
 from snowfall.ops import backup_sqlite, restore_sqlite
 from snowfall.practice import PracticeManager, ScopedSettings, ScopedStore
-from snowfall.platform.identity import IdentityError, IdentityRepository
+from snowfall.platform.identity import IdentityRepository
+from snowfall.ui.linked import require_linked_discord
 
 log = logging.getLogger(__name__)
 
@@ -39,17 +40,30 @@ class GuildCommandTree(app_commands.CommandTree):
             # administration. Gameplay cannot create an unlinked second profile.
             public = {"snow privacy", "snow rules", "snow guide", "snowbridge link"}
             if command not in public and not command.startswith("snowadmin "):
-                try:
-                    await asyncio.to_thread(
-                        self.client.unified_identity.principal_for_discord,
-                        str(interaction.user.id))
-                except IdentityError:
-                    await interaction.response.send_message(
-                        "🔗 Link your Discord account to your Underworld character "
-                        "before playing. Use `/snowbridge link` for instructions.",
-                        ephemeral=True)
+                if not await require_linked_discord(interaction):
                     return False
         return True
+
+    async def on_error(self, interaction: discord.Interaction,
+                       error: app_commands.AppCommandError) -> None:
+        """Prevent raw database exceptions or connection strings leaking in Discord.
+
+        CommandTree checks can already respond with a helpful link prompt.
+        Do not send a second message when that check rejects the request.
+        """
+        if isinstance(error, app_commands.CheckFailure):
+            return
+        log.warning("Discord interaction failed safely: %s", type(error).__name__)
+        message = ("⚠️ That Snowfall action could not be completed. "
+                   "No result has been confirmed. Check your connection "
+                   "and retry with a fresh command.")
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send(message, ephemeral=True)
+            else:
+                await interaction.response.send_message(message, ephemeral=True)
+        except discord.HTTPException:
+            log.warning("Could not deliver the private failure response")
 
 
 class SnowfallBot(discord.Client):
@@ -103,18 +117,30 @@ class SnowfallBot(discord.Client):
         self.tree.add_command(cityhq, guild=guild)
         # All buttons must have fixed custom_ids and timeout=None so old messages work.
         self.add_view(Dashboard(self.settings, self.store))
-        try:
-            await self.tree.sync(guild=guild)
-        except discord.Forbidden:
-            log.error("Discord refused slash-command sync (403 Missing Access) for guild %s. "
-                      "Confirm config.toml guild_id is the exact event server ID, "
-                      "and that the token's application is installed in that guild "
-                      "with bot + applications.commands scopes.", self.settings.guild_id)
-            raise
+        for attempt in range(3):
+            try:
+                commands = await self.tree.sync(guild=guild)
+                log.info("Registered %d slash command groups in guild %s",
+                         len(commands), self.settings.guild_id)
+                break
+            except discord.Forbidden:
+                log.error("Discord refused command sync in guild %s. "
+                          "Check bot permissions and applications.commands scope.",
+                          self.settings.guild_id)
+                raise
+            except discord.HTTPException as exc:
+                if exc.status not in (429, 500, 502, 503, 504) or attempt == 2:
+                    raise
+                log.warning("Transient command sync HTTP %s; retry %s/2",
+                            exc.status, attempt + 1)
+                await asyncio.sleep(2 ** attempt)
 
     async def on_ready(self):
+        label = ("SHARED QA — NO REAL PRIZES"
+                 if getattr(self.store, "unified_discord", False)
+                 else self.settings.mode.upper())
         log.info("[%s] Connected as %s in guild %s, season %s, database %s",
-                 self.settings.mode.upper(), self.user, self.settings.guild_id,
+                 label, self.user, self.settings.guild_id,
                  self.settings.season_key, "PostgreSQL" if getattr(self.store, "backend", "sqlite") == "postgres"
         else self.settings.database_path)
         if not self.refresh_world.is_running():
@@ -178,7 +204,7 @@ class SnowfallBot(discord.Client):
 def main(argv: list[str] | None = None):
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    parser = argparse.ArgumentParser(description="Operation Snowfall v0.2.8")
+    parser = argparse.ArgumentParser(description="Operation Snowfall v2.9.5a")
     parser.add_argument("--test", action="store_true", help="Obsolete: use /snowadmin test-start in the main bot")
     parser.add_argument("--backup-now", action="store_true", help="Create a verified backup then exit")
     parser.add_argument("--restore", metavar="BACKUP", help="Offline restore from a verified backup")

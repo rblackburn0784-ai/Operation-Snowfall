@@ -181,7 +181,7 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         shared.store.season(cfg.season_key)
         yield
 
-    app = FastAPI(title="Operation Snowfall Shared API", version="2.9.4e",
+    app = FastAPI(title="Operation Snowfall Shared API", version="2.9.5a",
                   lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
     if cfg.cors_origins:
         app.add_middleware(CORSMiddleware, allow_origins=list(cfg.cors_origins),
@@ -238,9 +238,48 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
     def writer(request: Request) -> int:
         return authenticated(request, mutate=True)
 
+    def game_writer(request: Request) -> int:
+        """Shared QA gameplay always belongs to an Underworld character.
+
+        Discord-first OAuth may create a temporary authentication principal.
+        That identity may browse and link but must never register, spend,
+        earn rewards or launch a second character before Underworld linking.
+        """
+        principal = authenticated(request, mutate=True)
+        if cfg.season_key == "web-qa-2026":
+            try:
+                linked = any(link["provider"] == "underworld"
+                             for link in identities.links(principal))
+            except Exception:
+                raise HTTPException(503, "Account linking temporarily unavailable") from None
+            if not linked:
+                raise HTTPException(
+                    403, "Sign in through Underworld before playing Snowfall")
+        return principal
+
     @app.get("/v1/health")
     def health():
-        return {"status": "ok", "version": "2.9.4c1", "backend": "postgres",
+        return {"status": "ok", "version": "2.9.5a", "backend": "postgres",
+                "season": cfg.season_key}
+
+    @app.get("/v1/ready")
+    def readiness():
+        """Read-only live dependency check; liveness alone cannot prove game access.
+
+        Do not return DB errors, OAuth secrets or connection URLs in responses.
+        Railway can monitor this independently from the cheap /v1/health.
+        """
+        try:
+            identities.check()
+            shared.store.season(cfg.season_key)
+            if cfg.season_key == "web-qa-2026":
+                from snowfall.platform.unified_discord import verify_qa_database
+                verify_qa_database(cfg.database_url, season=cfg.season_key)
+        except Exception:
+            logging.getLogger(__name__).warning(
+                "Snowfall readiness dependency check failed; no credentials logged")
+            raise HTTPException(503, "Game database not ready") from None
+        return {"status": "ready", "backend": "postgres",
                 "season": cfg.season_key}
 
     @app.post("/v1/auth/underworld")
@@ -449,7 +488,7 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         return jsonable_encoder(shared.progress(principal))
 
     @app.post("/v1/game/register")
-    def register(body: RegisterBody, principal: int = Depends(writer)):
+    def register(body: RegisterBody, principal: int = Depends(game_writer)):
         return jsonable_encoder(shared.register(principal, body.mr_username, body.city))
 
     @app.get("/v1/game/targets")
@@ -457,24 +496,24 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         return jsonable_encoder({"targets": shared.targets(principal)})
 
     @app.post("/v1/game/ready")
-    def ready(principal: int = Depends(writer)):
+    def ready(principal: int = Depends(game_writer)):
         return jsonable_encoder(shared.ready(principal))
 
     @app.post("/v1/game/throw")
     def throw(body: ThrowBody, idempotency_key: str | None = Header(default=None),
-              principal: int = Depends(writer)):
+              principal: int = Depends(game_writer)):
         iid = _idempotency(principal, "throw", idempotency_key)
         return jsonable_encoder(shared.throw(principal, int(body.target_player_id), body.style, iid))
 
     @app.post("/v1/game/boss")
     def boss(idempotency_key: str | None = Header(default=None),
-             principal: int = Depends(writer)):
+             principal: int = Depends(game_writer)):
         return jsonable_encoder(shared.boss(
             principal, _idempotency(principal, "boss", idempotency_key)))
 
     @app.post("/v1/game/siege")
     def siege(idempotency_key: str | None = Header(default=None),
-              principal: int = Depends(writer)):
+              principal: int = Depends(game_writer)):
         return jsonable_encoder(shared.siege(
             principal, _idempotency(principal, "siege", idempotency_key)))
 
@@ -499,7 +538,7 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         return jsonable_encoder({"quests": shared.quests(principal)})
 
     @app.post("/v1/game/quests/claim")
-    def claim_quest(body: ItemBody, principal: int = Depends(writer)):
+    def claim_quest(body: ItemBody, principal: int = Depends(game_writer)):
         return jsonable_encoder(shared.claim_quest(principal, body.item))
 
     @app.get("/v1/game/raid")
@@ -512,7 +551,7 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
 
     @app.post("/v1/game/craft")
     def craft(body: ItemBody, idempotency_key: str | None = Header(default=None),
-              principal: int = Depends(writer)):
+              principal: int = Depends(game_writer)):
         return jsonable_encoder(shared.craft(
             principal, body.item, _idempotency(principal, "craft", idempotency_key)))
 
@@ -522,12 +561,12 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
 
     @app.post("/v1/game/wardrobe/purchase")
     def purchase(body: ItemBody, idempotency_key: str | None = Header(default=None),
-                 principal: int = Depends(writer)):
+                 principal: int = Depends(game_writer)):
         return jsonable_encoder(shared.purchase(
             principal, body.item, _idempotency(principal, "purchase", idempotency_key)))
 
     @app.post("/v1/game/wardrobe/equip")
-    def equip(body: ItemBody, principal: int = Depends(writer)):
+    def equip(body: ItemBody, principal: int = Depends(game_writer)):
         return jsonable_encoder(shared.equip(principal, body.item))
 
     return app

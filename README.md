@@ -1,3 +1,17 @@
+# Operation Snowfall v2.9.5a — Release Consolidation & QA Deployment
+
+The isolated shared PostgreSQL game is now guarded by the combined v2.9.5 QA release: strict Underworld + Discord identity verification, read-only host launch audit, duplicate-action and browser retry safety, original Discord UI link checks, and multi-client PostgreSQL replay tests.
+
+This is **not** the prize-bearing production launch. [Read the v2.9.5a release plan](docs/RELEASE_v2.9.5a.md).
+
+# v2.9.5 — Cross-Platform Consolidation & Launch Readiness (QA)
+
+**Core gameplay confirmed across Discord and Snowfall Web:** one verified Underworld character, one PostgreSQL game, shared crafting/currency, Snow Don and scoring. This release closes stale-button and Discord-only account bypasses, labels the shared QA season as **no real prizes**, adds safe Discord failure responses and database readiness checks, and includes a read-only, non-identifying launch audit for the isolated QA database.
+
+The existing Railway Discord bot and Snowfall-Web-QA remain on their successful v2.9.4e1/v2.9.4e deployments until this branch passes CI and a separate rollout is approved. **Advanced Discord experiences are not yet all implemented in the browser**; see the feature parity and acceptance matrix.
+
+[Read v2.9.5 release notes, verification checklist and known launch gaps](docs/RELEASE_v2.9.5.md).
+
 # v2.9.4e1 — Existing Discord Bot QA Cutover (single token, verified backup)
 
 The existing `Operation-Snowfall` Railway Discord service now has a fail-closed staging PostgreSQL cutover with a persistent, verified original SQLite backup. It still uses the same application, bot token, guild and slash commands. When isolated QA mode is enabled with a valid staging PostgreSQL connection, `/snowbridge verify` joins its original `/snow` commands. No new bot, mirrored data store or prize transfer.

@@ -105,7 +105,34 @@ def test_verified_discord_retirement_retains_underworld_and_immutable_audit(tmp_
                 old_csrf = {"X-Snowfall-CSRF": current["csrf"]}
                 old_registration = client.post("/v1/game/register", headers=old_csrf, json={
                     "mr_username": "DiscardThisDiscord", "city": "Detroit"})
-                assert old_registration.status_code == 200, old_registration.text
+                # v2.9.5 prevents *new* Discord-only profiles. The discard
+                # workflow must still support profiles created by older QA.
+                assert old_registration.status_code == 403, old_registration.text
+                assert "Underworld" in old_registration.json()["detail"]
+                assert not client.get("/v1/game/progress").json()["registered"]
+                # Every score/inventory/world-mutating HTTP route must deny
+                # Discord-first OAuth before an Underworld character is linked.
+                protected = [
+                    ("/v1/game/ready", None),
+                    ("/v1/game/boss", None),
+                    ("/v1/game/siege", None),
+                    ("/v1/game/throw", {"target_player_id": "6000000000000000001",
+                                        "style": "quick"}),
+                    ("/v1/game/craft", {"item": "cocoa"}),
+                    ("/v1/game/quests/claim", {"item": "throws"}),
+                    ("/v1/game/wardrobe/purchase", {"item": "ice_frame"}),
+                    ("/v1/game/wardrobe/equip", {"item": "ice_frame"}),
+                ]
+                for path, body in protected:
+                    blocked_write = client.post(
+                        path, headers={**old_csrf, "Idempotency-Key": "launch-guard-test-12345"},
+                        json=body)
+                    assert blocked_write.status_code == 403, (path, blocked_write.text)
+                assert not client.get("/v1/game/progress").json()["registered"]
+
+                game.register(int(DISCORD_USER), "DiscardThisDiscord", "Detroit")
+                # Historical Discord-only gameplay is retained solely to
+                # test the safe, explicitly acknowledged recovery route.
                 # Write real immutable score history for the profile to lose.
                 with store.connect() as conn:
                     conn.execute("BEGIN IMMEDIATE")

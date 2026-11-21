@@ -9,6 +9,7 @@ import discord
 from snowfall.practice import pin, practice_expired
 
 from snowfall.core.permissions import permitted_guild
+from snowfall.ui.linked import require_linked_discord
 from snowfall.db.store import CITIES, RegistrationError
 
 
@@ -16,13 +17,21 @@ def escape_name(name: str) -> str:
     return discord.utils.escape_markdown(discord.utils.escape_mentions(name))
 
 
-def rules_text() -> str:
+def rules_text(settings=None) -> str:
+    shared_qa = getattr(settings, "season_key", "") == "web-qa-2026"
+    introduction = (
+        "• **Entry:** Use your verified Underworld character and link Discord. "
+        "Both platforms share one player, score and inventory.\n"
+        "• **Prizes:** QA is fictional: no real prizes or official event awards.\n"
+        if shared_qa else
+        "• **Entry:** Self-declare your MR username and city. No MR password required.\n"
+        "• **Prizes:** Only individual awards receive prizes. City titles are for bragging rights.\n"
+    )
     return (
         "**❄️ Operation Snowfall — Community Christmas Event**\n"
         "Seven full days of snowball battles across six MafiaReturns city teams.\n"
-        "• **Entry:** Self-declare your MR username and city. No MR password or account linking.\n"
-        "• **Registration:** Opens 168 hours before scheduled kickoff; late entry is allowed.\n"
-        "• **Prizes:** Only individual awards receive prizes. City titles are for bragging rights.\n"
+        + introduction
+        + "• **Registration:** Opens 168 hours before scheduled kickoff; late entry is allowed.\n"
         "• **Fair play:** One MR name per Discord account; impersonation reports go to staff.\n"
         "• **Privacy:** Declared names, Discord IDs and scores are stored; see `/snow privacy`.\n"
         "• **Combat:** `/snow ready` opts in to being targeted for 36 effective hours.\n"
@@ -40,8 +49,11 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
     opens = int(season.registration_opens().timestamp())
     starts = int(season.planned_start.timestamp())
     ending = season.projected_end(now)
+    prizes = ("QA only — no prizes" if settings.season_key == "web-qa-2026"
+              else "Individual only. City standings = bragging rights.")
     embed = discord.Embed(
-        title=("🧪 Operation Snowfall — TEST ARENA" if settings.is_test else
+        title=("🧪 Operation Snowfall — SHARED QA / NO PRIZES" if settings.season_key == "web-qa-2026" else
+               "🧪 Operation Snowfall — TEST ARENA" if settings.is_test else
                "❄️ Operation Snowfall — Event Headquarters"),
         description=(
             f"**Phase:** {stage.replace('_', ' ').title()}\n"
@@ -50,12 +62,13 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
             f"**Projected end:** {f'<t:{int(ending.timestamp())}:F>' if ending else 'After host starts'}\n"
             f"**Current day:** {season.day(now) or '—'} / 7\n"
             f"**Registered players:** {registered}\n"
-            "**Prizes:** Individual only. City standings = bragging rights."
+            f"**Prizes:** {prizes}"
         ),
         color=0x78B9EA,
     )
-    embed.set_footer(text="v0.2.8 • TEST — NO PRIZES" if settings.is_test else
-                     "v0.2.8 • Live event, individual prizes only")
+    embed.set_footer(text="v2.9.5 • Shared QA — NO PRIZES" if settings.season_key == "web-qa-2026" else
+                     "v2.9.5 • TEST — NO PRIZES" if settings.is_test else
+                     "v2.9.5 • Live event, individual prizes only")
     return embed
 
 
@@ -78,6 +91,8 @@ class JoinModal(discord.ui.Modal, title="Operation Snowfall — Register"):
         if self.declaration.value.strip().upper() != "I AGREE":
             await interaction.response.send_message("Type I AGREE to confirm your own MR identity.", ephemeral=True)
             return
+        if not await require_linked_discord(interaction):
+            return
         # The database re-checks the time inside the write transaction.
         await interaction.response.defer(ephemeral=True)
         try:
@@ -98,6 +113,7 @@ class CityPicker(discord.ui.View):
     def __init__(self, settings, store, owner_id: int | None = None):
         super().__init__(timeout=180)
         settings, store = pin(settings, store)
+        self.settings, self.store, self.owner_id = settings, store, owner_id
         if owner_id is not None:
             back = discord.ui.Button(label="◀ My Player", style=discord.ButtonStyle.secondary, row=1)
             home = discord.ui.Button(label="🏠 Home", style=discord.ButtonStyle.secondary, row=1)
@@ -125,6 +141,8 @@ class CityPicker(discord.ui.View):
             options=[discord.SelectOption(label=c, value=c) for c in CITIES])
 
         async def selected(interaction: discord.Interaction):
+            if not await require_linked_discord(interaction):
+                return
             if practice_expired(settings, store):
                 await interaction.response.send_message("This test day has ended.", ephemeral=True)
                 return
@@ -139,6 +157,22 @@ class CityPicker(discord.ui.View):
 
         picker.callback = selected
         self.add_item(picker)
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        # Selected options and navigation from old registration menus must
+        # re-check ownership as well as the current Underworld/Discord link.
+        if self.owner_id is not None and interaction.user.id != self.owner_id:
+            await interaction.response.send_message(
+                "This registration menu belongs to another player.", ephemeral=True)
+            return False
+        if not permitted_guild(interaction.guild_id, self.settings.guild_id):
+            await interaction.response.send_message("Wrong event server.", ephemeral=True)
+            return False
+        if practice_expired(self.settings, self.store):
+            await interaction.response.send_message("This registration menu has expired.",
+                                                    ephemeral=True)
+            return False
+        return await require_linked_discord(interaction)
 
 
 class Dashboard(discord.ui.View):
@@ -168,20 +202,8 @@ class Dashboard(discord.ui.View):
         if not permitted_guild(interaction.guild_id, self.settings.guild_id):
             await interaction.response.send_message("Wrong event server.", ephemeral=True)
             return False
-        # Persistent public buttons bypass slash-command tree checks, so they
-        # must also verify account linking before any canonical game write.
-        identity = getattr(interaction.client, "unified_identity", None)
-        if identity is not None:
-            from snowfall.platform.identity import IdentityError
-            try:
-                await asyncio.to_thread(
-                    identity.principal_for_discord, str(interaction.user.id))
-            except IdentityError:
-                await interaction.response.send_message(
-                    "🔗 Link your Discord account through Snowfall first. "
-                    "Use `/snowbridge link` to get started.", ephemeral=True)
-                return False
-        return True
+        # The persistent dashboard bypasses the slash-command tree check.
+        return await require_linked_discord(interaction)
 
     @discord.ui.button(label="Join", emoji="❄️", style=discord.ButtonStyle.primary,
                        custom_id="snowfall:v1:join")
@@ -203,7 +225,7 @@ class Dashboard(discord.ui.View):
     @discord.ui.button(label="Rules", style=discord.ButtonStyle.secondary,
                        custom_id="snowfall:v1:rules")
     async def rules_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message(rules_text(), ephemeral=True,
+        await interaction.response.send_message(rules_text(self.settings), ephemeral=True,
                                                 allowed_mentions=discord.AllowedMentions.none())
 
     @discord.ui.button(label="Throw", emoji="🎯", style=discord.ButtonStyle.success,

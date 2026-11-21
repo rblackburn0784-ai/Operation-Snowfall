@@ -186,7 +186,18 @@ class MappedConnection:
 
     def _one(self, value):
         if isinstance(value, int) and not isinstance(value, bool):
-            return self._linked.get(value, value)
+            if value in self._linked:
+                return self._linked[value]
+            # Legacy menus pass raw Discord snowflakes to the game engine.
+            # Losing an account link while a menu is open must not silently
+            # write a second, unlinked profile under that old snowflake.
+            # Canonical Underworld players start at 6e18; small counters,
+            # timestamps and database IDs are unaffected.
+            if 10**15 <= value < 6_000_000_000_000_000_000:
+                from snowfall.platform.identity import IdentityConflict
+                raise IdentityConflict(
+                    "Discord account is no longer linked. Reconnect through Underworld.")
+            return value
         return value
 
     def execute(self, statement, parameters=()):
