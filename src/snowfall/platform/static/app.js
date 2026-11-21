@@ -1,6 +1,6 @@
-/* Operation Snowfall v2.9.6g — atmosphere, verified Wire and event finale. */
+/* Operation Snowfall v2.9.6h — play-first usability. */
 "use strict";
-const S={session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
+const S={session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
 const txt=(id,v)=>{if(el(id))el(id).textContent=v==null?"—":String(v)};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -230,7 +230,7 @@ async function request(path,method,body,mutation,unique){
 }
 const get=path=>request(path);
 const post=(path,body,mutate,unique)=>request(path,"POST",body,mutate,unique);
-function section(name){
+function section(name,{record=true,focus=true}={}){
  if(!["home","combat","boss","shop","cities","wire"].includes(name))name="home";
  document.querySelectorAll(".panel").forEach(n=>n.classList.toggle("active",n.id==="page-"+name));
  document.querySelectorAll(".nav-item").forEach(n=>{
@@ -244,20 +244,135 @@ function section(name){
  if(name==="cities"){showCities();showBoard();if(!S.territoryPending&&!S.busy)void refreshTerritory()}
  if(name==="boss"){showBoss();if(!S.bossPending&&!S.busy)void refreshBossVisual()}
  if(name==="wire"){showWire();if(!S.wirePending&&!S.busy)void refreshWire()}
- window.scrollTo({top:document.querySelector(".page-grid").offsetTop,behavior:motionEnabled()?"smooth":"auto"});
+ if(record&&location.hash!=="#play-"+name)history.pushState(null,"",location.pathname+location.search+"#play-"+name);
+ const heading=document.querySelector("#page-"+name+" h2");
+ if(focus&&heading){heading.tabIndex=-1;heading.focus({preventScroll:true})}
+ document.querySelector(".page-grid").scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"});
+ updatePlayControls();
 }
-function authModal(){if(S.session)return notice("Already signed in.","success");el("authDialog").classList.remove("hidden")}
-function closeAuth(){el("authDialog").classList.add("hidden")}
+let authReturnFocus=null;
+function authModal(){
+ if(S.session)return notice("Already signed in.","success");
+ authReturnFocus=document.activeElement;el("authDialog").classList.remove("hidden");el("closeAuth").focus();
+}
+function closeAuth(){
+ if(el("authDialog").classList.contains("hidden"))return;
+ el("authDialog").classList.add("hidden");authReturnFocus?.focus({preventScroll:true});authReturnFocus=null;
+}
+function safeUnderworldUrl(raw){
+ if(typeof raw!=="string"||!raw)return "";
+ try{const u=new URL(raw);return u.protocol==="https:"&&!u.username&&!u.password&&!u.search&&!u.hash&&u.pathname==="/"?u.origin+"/":""}catch{return ""}
+}
+function configureUnderworld(raw){
+ const url=safeUnderworldUrl(raw);
+ for(const id of ["underworldLogin","underworldResume"]){
+  const n=el(id);n.classList.toggle("hidden",!url);if(url)n.href=url;else n.removeAttribute("href");
+ }
+}
+function hasPlayIdentity(session,config){return !!session&&(!config?.staging||session.links?.some(l=>l.provider==="underworld"))}
+function syncPlayIdentity(){
+ const id=S.session?String(S.session.player_id):null;
+ if(id===S.playIdentity)return;
+ S.playIdentity=id;S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
+ el("targetSelect").value="";el("combatOutcome").classList.add("hidden");
+}
+function timeLeft(value,now){const t=Date.parse(value);return Number.isFinite(t)?Math.max(0,Math.ceil((t-now)/1000)):0}
+function shortTime(seconds){const n=Math.max(0,Math.ceil(seconds||0));if(n<60)return n+"s";const m=Math.ceil(n/60);return m<60?m+" min":Math.floor(m/60)+"h "+(m%60)+"m"}
+function playBlock({session,me,hq,world,raid,progress,config,kind,style="standard",item,now,fresh=true,pending=false,busy=false}){
+ if(busy)return "Updating your game…";
+ if(!session)return "Sign in to play.";
+ if(!hasPlayIdentity(session,config))return "Continue through Underworld first.";
+ if(!me?.registered)return "Create your character at HQ.";
+ if(["flagged","disqualified"].includes(me.review_state))return "Your character requires host review.";
+ if(pending)return ""; // an exact idempotent replay may already have succeeded
+ if(!fresh)return "Refresh your character before playing.";
+ if(me.phase!=="live")return me.phase==="paused"?"Event paused.":["closed","finalized"].includes(me.phase)?"Event finished.":"Gameplay opens at kickoff.";
+ const rules=config?.play_rules||{},r=me.resources||{},timers=hq?.timers||{},ko=timeLeft(timers.knockout,now);
+ if(["throw","boss","siege","ready"].includes(kind)&&ko)return "Recovering from knockout · "+shortTime(ko)+".";
+ if(kind==="ready")return "";
+ if(kind==="craft"){
+  const base=rules.craft_costs?.[item],price=typeof base==="number"?base-(item==="fort"&&me.day===2?2:0):null;
+  const count=progress?.inventory?.[item],cap=rules.item_caps?.[item];
+  if(typeof count==="number"&&typeof cap==="number"&&count>=cap)return "You already hold the maximum of this item.";
+  if(price!=null&&typeof r.snowflakes==="number"&&r.snowflakes<price)return "Need "+price+" Snowflakes to craft.";
+  return "";
+ }
+ if(kind==="boss"&&(raid?.state==="disabled"||world?.boss_enabled===false))return "The Snow Don is disabled.";
+ if(kind==="boss"||kind==="siege"){
+  const limit=rules[kind+"_limit"],attempts=world?.[kind+"_attempts"],cap=rules[kind+"_cap"],points=world?.[kind+"_points"];
+  if(typeof limit==="number"&&typeof attempts==="number"&&attempts>=limit)return "Daily attack limit reached.";
+  if(typeof cap==="number"&&typeof points==="number"&&points>=cap)return "Daily score limit reached.";
+ }
+ if(kind==="throw"){
+  if(typeof rules.pvp_cap==="number"&&typeof r.today_pvp==="number"&&r.today_pvp>=rules.pvp_cap)return "Daily PvP score limit reached.";
+  if(style==="golden"&&progress?.inventory&&Number(progress.inventory.golden||0)<1)return "You need a Golden Snowball.";
+ }
+ if((kind!=="throw"||style!=="golden")&&typeof r.snowballs==="number"&&r.snowballs<1){
+  const regen=timeLeft(timers.snowball,now);return "Out of snowballs"+(regen?" · next in "+shortTime(regen):" · refresh for regeneration")+".";
+ }
+ const cooldown=timeLeft(timers.throw,now);
+ return cooldown?"Throw cooldown · "+shortTime(cooldown)+".":"";
+}
+function currentPlayBlock(kind,body={}){
+ return playBlock({session:S.session,me:S.me,hq:S.hq,world:S.world,raid:S.raid,progress:S.progress,config:S.config,kind,style:body.style,item:body.item,now:Date.now()+S.hqClock,fresh:S.privateFresh,busy:S.busy||S.privatePending,pending:S.pendingActions.has(requestKey("/v1/game/"+kind,body))});
+}
+function chooseQuickPlay({phase,bossBlocked,throwBlocked,targets,ammo}){
+ if(["closed","finalized"].includes(phase))return {route:"wire",label:"Event results",hint:"Review the final editions and standings."};
+ if(phase!=="live")return {route:"cities",label:"Explore City Wars",hint:phase==="paused"?"Event paused. Explore the standings while you wait.":"Explore the cities while waiting for kickoff."};
+ if(!throwBlocked&&targets)return {route:"combat",label:"Fight rivals",hint:"Choose an available rival and throw a snowball."};
+ if(!bossBlocked)return {route:"boss",label:"Join the boss raid",hint:"Attack the shared Snow Don. No rival selection needed."};
+ return {route:"shop",label:"Browse the market",hint:ammo===0?"Snowballs are regenerating. Browse the market while you wait.":"Check your resources and browse the market."};
+}
+function updatePlayControls(){
+ if(!el("playStatus"))return;
+ const r=S.me?.resources,registered=!!S.session&&!!S.me?.registered,linked=hasPlayIdentity(S.session,S.config);
+ el("playStatus").classList.toggle("hidden",!registered);
+ if(registered){
+  txt("playPlayer",S.me.mr_username);txt("playGreeting","Ready, "+S.me.mr_username+"?");
+  for(const [id,key] of [["playAmmo","snowballs"],["playWarmth","warmth"],["playFlakes","snowflakes"]])txt(id,r?.[key]);
+  txt("playPoints",S.me.score);
+ }
+ const body={target_player_id:el("targetSelect").value,style:el("throwStyle").value};
+ const throwBlock=currentPlayBlock("throw",body),bossBlock=currentPlayBlock("boss"),siegeBlock=currentPlayBlock("siege"),readyBlock=currentPlayBlock("ready"),craftBlock=currentPlayBlock("craft",{item:el("craftChoice").value});
+ const restrict=registered&&linked;
+ const disabled=(id,reason)=>{const n=el(id);n.disabled=!!(S.busy||S.privatePending||restrict&&reason);n.title=restrict&&reason?reason:""};
+ disabled("throwButton",throwBlock||(!body.target_player_id?"Choose an eligible rival.":""));
+ disabled("bossButton",bossBlock);disabled("siegeButton",siegeBlock);disabled("readyButton",readyBlock);disabled("craftButton",craftBlock);
+ el("findTargets").disabled=!!(S.busy||S.privatePending);el("playRefresh").disabled=!!(S.busy||S.privatePending);
+ txt("combatStatus",throwBlock||(!S.targetsReady?"Rival list unavailable — refresh.":S.targets.length?"Choose your rival and take a shot.":"No eligible rivals right now."));
+ txt("raidPlayStatus",bossBlock||"Ready to attack · 1 snowball per attempt.");
+ const rules=S.config?.play_rules||{},w=S.world;
+ txt("raidQuota",registered&&w&&typeof w.boss_attempts==="number"&&typeof rules.boss_limit==="number"&&typeof w.siege_attempts==="number"&&typeof rules.siege_limit==="number"?"Boss: "+Math.max(0,rules.boss_limit-w.boss_attempts)+" attempts left · Siege: "+Math.max(0,rules.siege_limit-w.siege_attempts)+" attempts left":"Daily attack limits apply.");
+ const arena=timeLeft(S.hq?.timers?.arena,Date.now()+S.hqClock);
+ txt("readyButton",arena?"Extend arena readiness":"Enter arena");
+ const price=rules.craft_costs?.[el("craftChoice").value],actual=typeof price==="number"?price-(el("craftChoice").value==="fort"&&S.me?.day===2?2:0):null;
+ txt("craftHint",(actual!=null?"Cost: "+actual+" Snowflakes. ":"")+(craftBlock||"Crafted items go into your shared inventory."));
+ const selected=S.targets.find(t=>String(t.player_id)===body.target_player_id);
+ txt("targetDetail",selected?selected.city+" · "+fmt(selected.warmth)+" warmth · "+fmt(selected.hits_remaining)+" scoring hits left today.":"");
+ const style=rules.styles?.[body.style];
+ txt("throwStyleHint",Array.isArray(style)?"Base accuracy "+Math.round(style[0]*100)+"% · "+style[1]+" damage · "+style[2]+" base points. Modifiers may apply.":"Choose a throwing style.");
+ el("noRivals").classList.toggle("hidden",!(registered&&linked&&S.me.phase==="live"&&S.targetsReady&&!S.targets.length));
+ const q=chooseQuickPlay({phase:S.me?.phase,bossBlocked:bossBlock,throwBlocked:throwBlock,targets:S.targets.length,ammo:r?.snowballs});
+ txt("playCoach",q.hint);txt("playPrimary",q.label);el("playPrimary").dataset.destination=q.route;
+ if(registered&&!linked){txt("playCoach","Continue through Underworld to play your linked character.");txt("playPrimary","Account settings");el("playPrimary").dataset.destination="account"}
+}
+function showCombatOutcome(result,target){
+ el("combatOutcome").classList.remove("hidden");
+ txt("combatOutcomeTitle",result.repeated?"Previously recorded throw":result.knocked_out?"Rival knocked out!":result.critical?"Critical hit!":result.hit?"Direct hit!":"Snowball missed");
+ txt("combatOutcomeText",(target?.mr_username?target.mr_username+" · ":"")+(result.hit?fmt(Number(result.warmth_damage||0)+Number(result.armour_damage||0))+" damage · +"+fmt(result.points_awarded)+" points.":"No points from this throw.")+" Your next action uses the normal game cooldown.");
+}
 function showMe(){
- const signed=!!S.session;
+ const signed=!!S.session,allowed=hasPlayIdentity(S.session,S.config);
+ syncPlayIdentity();
  el("authToggle").textContent=signed?"Sign out":"Sign in";
  txt("identityStatus",signed?"Signed in":"Guest");
  el("loggedOutNotice").classList.toggle("hidden",signed);
- el("registration").classList.toggle("hidden",!signed||!!S.me?.registered);
+ el("registration").classList.toggle("hidden",!signed||!allowed||!!S.me?.registered||!S.me);
+ el("underworldRequired").classList.toggle("hidden",!signed||allowed);
  el("playerDashboard").classList.toggle("hidden",!signed||!S.me?.registered);
  el("linkedIdentity").classList.toggle("hidden",!signed);
  el("accountTools").classList.toggle("hidden",!signed);
- if(signed&&!S.session?.links?.some(x=>x.provider==="discord"))el("accountTools").open=true;
+ if(signed&&!allowed)el("accountTools").open=true;
  showWardrobe();
  if(!signed){el("bossRecap").classList.add("hidden");showHq();}
  if(!signed||S.session?.links?.some(x=>x.provider==="discord")){
@@ -274,7 +389,7 @@ function showMe(){
       "Link Discord account":"Discord linking not configured";
  if(!S.me?.registered){
    txt("progressSummary","Register this character to compare your official game progress.");
-   showVerification();
+   showVerification();updatePlayControls();
    return;
  }
  renderProgress();
@@ -296,7 +411,7 @@ function showMe(){
  txt("ammoSub",S.me.resources?.next_snowball_at?"Regenerating snowballs":"Ready for action");
  txt("phaseValue",S.me.phase.toUpperCase());txt("sideStatus",S.me.phase.toUpperCase());
  txt("sideStatusDetail","Day "+(S.me.day||"—")+" of 7 · "+S.me.city);
- showHq();
+ showHq();updatePlayControls();
 }
 function showVerification(){
  const links=S.session?.links||[];
@@ -424,8 +539,15 @@ function showBossRecap(r){
 }
 function showTargets(){
  let node=el("targetSelect"),current=node.value;
- node.innerHTML="<option value=''>Select a rival</option>"+S.targets.map(t=>"<option value='"+esc(t.player_id)+"'>"+esc(t.mr_username)+" — "+esc(t.city)+" · "+fmt(t.warmth)+" warmth</option>").join("");
- if(S.targets.some(t=>t.player_id===current))node.value=current;
+ node.innerHTML="<option value=''>"+(!S.session?"Sign in to find rivals":!S.targetsReady?"Refresh to find rivals":S.targets.length?"Choose a rival":"No eligible rivals")+"</option>"+S.targets.map(t=>"<option value='"+esc(t.player_id)+"'>"+esc(t.mr_username)+" — "+esc(t.city)+" · "+fmt(t.hits_remaining)+" hits left</option>").join("");
+ if(S.targets.some(t=>String(t.player_id)===current))node.value=current;
+ else if(!S.chosenTarget&&S.targets.length){node.value=String(S.targets[0].player_id);S.chosenTarget=true}
+ if(S.lastThrow&&S.pendingActions.has(requestKey("/v1/game/throw",S.lastThrow.body))){
+  const key=S.lastThrow.body.target_player_id;
+  if(!S.targets.some(t=>String(t.player_id)===key))node.insertAdjacentHTML("beforeend","<option value='"+esc(key)+"'>"+esc(S.lastThrow.target?.mr_username||"Previous rival")+" · retry unconfirmed throw</option>");
+  node.value=key;el("throwStyle").value=S.lastThrow.body.style;
+ }
+ updatePlayControls();
 }
 function showBoard(){
  el("leaderboard").innerHTML=S.board.length?S.board.map((r,i)=>"<div class='score-row'><span class='rank'>"+(i+1)+"</span><div><strong>"+esc(r.mr_username)+"</strong><small>"+esc(r.city)+"</small></div><strong>"+fmt(r.score)+" pts</strong></div>").join(""):"<div class='empty'>The scoreboard is waiting for its first winner.</div>";
@@ -696,14 +818,21 @@ async function loadPublic(){
  showBoard();showCities();showBoss();showShop();
 }
 async function loadPrivate(){
- if(!S.session){S.me=null;S.world=null;S.hq=null;S.shop=null;S.targets=[];S.progress=null;S.verification=null;S.pendingActions.clear();showMe();showShop();return}
+ if(S.privatePending)return;
+ S.privatePending=true;
+ try{await readPrivate();S.privateFresh=!!S.session&&!!S.me}catch(e){S.privateFresh=false;throw e}finally{S.privatePending=false;updatePlayControls()}
+}
+async function readPrivate(){
+ syncPlayIdentity();
+ if(!S.session){S.me=null;S.world=null;S.hq=null;S.shop=null;S.targetsReady=false;S.targets=[];S.progress=null;S.verification=null;S.pendingActions.clear();showMe();showShop();showTargets();return}
  try{S.me=await get("/v1/game/me")}
- catch(e){if(e.status===401){S.session=null;S.me=null;S.world=null;S.hq=null;S.shop=null;S.progress=null;S.targets=[];S.verification=null;showMe();showShop();return}throw e}
+ catch(e){if(e.status===401){S.session=null;S.me=null;S.world=null;S.hq=null;S.shop=null;S.progress=null;S.targetsReady=false;S.targets=[];S.verification=null;showMe();showShop();showTargets();return}throw e}
  if(S.me.registered){
   const results=await Promise.allSettled([get("/v1/game/world"),get("/v1/game/wardrobe"),get("/v1/game/targets"),get("/v1/game/progress"),get("/v1/game/headquarters")]);
   S.world=results[0].status==="fulfilled"?results[0].value:null;
   S.shop=results[1].status==="fulfilled"?results[1].value:null;
-  S.targets=results[2].status==="fulfilled"?results[2].value.targets||[]:[];
+  S.targetsReady=results[2].status==="fulfilled"&&Array.isArray(results[2].value.targets);
+  S.targets=S.targetsReady?results[2].value.targets:[];
   S.progress=results[3].status==="fulfilled"?results[3].value:null;
   S.hq=results[4].status==="fulfilled"?results[4].value:null;
   S.hqClock=Number.isFinite(Date.parse(S.hq?.server_time))?Date.parse(S.hq.server_time)-Date.now():0;
@@ -713,7 +842,7 @@ async function loadPrivate(){
     try{S.verification=await get("/v1/verification/status")}
     catch{S.verification=null}
   }else S.verification=null;
- }else{S.shop=null;S.world=null;S.hq=null;S.progress=null;S.targets=[];S.verification=null;}
+ }else{S.shop=null;S.world=null;S.hq=null;S.progress=null;S.targetsReady=false;S.targets=[];S.verification=null;}
  showMe();showTargets();showBoss();showShop();showCities();
 }
 function updateDiscardSubmit(){
@@ -750,13 +879,18 @@ async function loadDiscardOffer(){
 async function refresh(){await Promise.all([loadPublic(),loadPrivate()]);await Promise.all([refreshBossVisual(),refreshTerritory(),refreshWire()]);showEvent()}
 async function resume(){try{S.session=await get("/v1/auth/session")}catch{S.session=null}await refresh()}
 async function act(fn){
- if(S.busy)return;
+ if(S.busy||S.privatePending)return;
  if(!S.session)return authModal();
- S.busy=true;document.querySelectorAll(".actions-inline button,.craft-card button").forEach(b=>b.disabled=true);
+ S.busy=true;document.querySelectorAll(".actions-inline button,.craft-card button").forEach(b=>b.disabled=true);updatePlayControls();
  try{await fn();await refresh()}catch(e){notice(e.message,"error")}
- finally{S.busy=false;document.querySelectorAll(".actions-inline button,.craft-card button").forEach(b=>b.disabled=false);showBoss();showShop()}
+ finally{S.busy=false;document.querySelectorAll(".actions-inline button,.craft-card button").forEach(b=>b.disabled=false);showBoss();showShop();updatePlayControls()}
 }
-function registered(){if(S.me?.registered)return true;section("home");notice("Register your player at Headquarters first.","error");return false}
+function registered(){
+ if(!S.session){authModal();return false}
+ if(!hasPlayIdentity(S.session,S.config)){section("home");notice("Continue through Underworld first.","error");return false}
+ if(S.me?.registered)return true;
+ section("home");notice("Create your character at Headquarters first.","error");return false;
+}
 // Local presentation preference only.
 function motionEnabled(){
  return document.documentElement?.dataset.atmosphere!=="off"&&!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
@@ -806,7 +940,8 @@ function showEvent(){
  el("raidCelebration").classList.toggle("hidden",!e.defeated);
  if(e.defeated)txt("raidCelebrationText","Day "+(S.raid.day||"—")+" · "+fmt(S.raid.contributors)+" contributors · "+fmt(S.raid.hit_count)+" shared hits. "+(e.ended?"Season archive.":"The frozen echo follows the existing game rules."));
  if(e.ended){txt("bossActionText","The event is closed. Raid results are available for review; no further attacks are allowed.");txt("heroPlay","View event records")}
- else txt("heroPlay","Enter the event ↗");
+ else txt("heroPlay",S.me?.registered?"Play now ↗":"Enter the event ↗");
+ updatePlayControls();
 }
 const WIRE_ART=Object.freeze({waiting:"front_page_template.png",live:"front_page_template.png",archive:"front_page_template.png",final:"final_day_edition.png"});
 function wireHeadlineMarkup(h){
@@ -844,6 +979,12 @@ async function refreshWire(){
 }
 function bind(){
  document.querySelectorAll("[data-nav]").forEach(b=>b.addEventListener("click",()=>section(b.dataset.nav)));
+ document.querySelectorAll("[data-jump]").forEach(b=>b.addEventListener("click",()=>el(b.dataset.jump)?.scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"})));
+ window.addEventListener("popstate",()=>section(location.hash.startsWith("#play-")?location.hash.slice(6):"home",{record:false}));
+ el("playPrimary").onclick=()=>{const dest=el("playPrimary").dataset.destination||"boss";if(dest==="account"){el("accountTools").open=true;el("accountTools").scrollIntoView({block:"start"})}else section(dest)};
+ el("playRefresh").onclick=()=>{if(!S.busy&&!S.privatePending)void loadPrivate().catch(e=>notice(e.message,"error"))};
+ el("targetSelect").onchange=()=>{S.chosenTarget=true;updatePlayControls()};
+ el("throwStyle").onchange=updatePlayControls;
  el("menuToggle").onclick=()=>{
   const open=el("primaryNav").classList.toggle("open");
   el("menuToggle").setAttribute("aria-expanded",String(open));
@@ -856,7 +997,16 @@ function bind(){
  el("hqRecommended").onclick=()=>{const dest=el("hqRecommended").dataset.destination;if(dest==="missions")el("hqMissions").scrollIntoView({block:"start"});else if(dest)section(dest)};
  el("loginCTA").onclick=authModal;el("closeAuth").onclick=closeAuth;
  el("authDialog").onclick=e=>{if(e.target===el("authDialog"))closeAuth()};
- document.addEventListener("keydown",e=>{if(e.key==="Escape")closeAuth()});
+ document.addEventListener("keydown",e=>{
+  if(el("authDialog").classList.contains("hidden"))return;
+  if(e.key==="Escape"){closeAuth();return}
+  if(e.key==="Tab"){
+   const items=Array.from(el("authDialog").querySelectorAll("button,a[href],input,select,textarea,summary")).filter(n=>!n.disabled&&n.getClientRects().length);
+   if(!items.length)return;
+   if(e.shiftKey&&document.activeElement===items[0]){e.preventDefault();items.at(-1).focus()}
+   else if(!e.shiftKey&&document.activeElement===items.at(-1)){e.preventDefault();items[0].focus()}
+  }
+ });
  el("authToggle").onclick=()=>{if(!S.session)return authModal();act(async()=>{await post("/v1/auth/logout",{},true);S.session=null;S.me=null;S.pendingActions.clear();notice("Signed out.","success")})};
  el("demoForm").onsubmit=async e=>{
   e.preventDefault();let b=e.target.querySelector("button");b.disabled=true;
@@ -929,18 +1079,21 @@ function bind(){
   catch(x){notice(x.message,"error")}
  };
  el("registerForm").onsubmit=e=>{
-  e.preventDefault();act(async()=>{
+  e.preventDefault();if(!hasPlayIdentity(S.session,S.config))return notice("Continue through Underworld first.","error");act(async()=>{
    const r=await post("/v1/game/register",{mr_username:el("characterName").value.trim(),city:el("cityChoice").value},true);
    notice("Welcome to "+r.city+", "+r.mr_username+"!","success");
   });
  };
  el("readyButton").onclick=()=>{if(registered())act(async()=>{await post("/v1/game/ready",{},true);notice("You are ready to be targeted.","success")})};
- el("findTargets").onclick=()=>{if(registered())act(async()=>{S.targets=(await get("/v1/game/targets")).targets||[];showTargets();notice("Rival list refreshed.")})};
+ el("findTargets").onclick=()=>{if(registered()&&!S.busy&&!S.privatePending)void loadPrivate().then(()=>notice(S.targetsReady?"Rival list refreshed.":"Rivals are unavailable right now.")).catch(e=>notice(e.message,"error"))};
  el("throwButton").onclick=()=>{
   if(!registered())return;
   let target=el("targetSelect").value;
   if(!target)return notice("Select a rival first.","error");
-  act(async()=>{const r=await post("/v1/game/throw",{target_player_id:target,style:el("throwStyle").value},true,true);notice(r.hit?"Direct hit! +"+r.points_awarded+" points.":"Snowball missed.",r.hit?"success":"")});
+  const body={target_player_id:target,style:el("throwStyle").value};
+  const chosen=S.targets.find(t=>String(t.player_id)===target)||S.lastThrow?.target;
+  S.lastThrow={body,target:chosen};
+  act(async()=>{const r=await post("/v1/game/throw",body,true,true);showCombatOutcome(r,chosen);notice(r.hit?"Direct hit! +"+r.points_awarded+" points.":"Snowball missed.",r.hit?"success":"")});
  };
  for(const kind of ["boss","siege"]){
   el(kind==="boss"?"bossButton":"siegeButton").onclick=()=>{
@@ -967,7 +1120,7 @@ function bind(){
   if(MARKET_SLOTS.includes(b.dataset.fitRemove)){delete S.market.preview[b.dataset.fitRemove];showShop();el("fittingTitle").focus()}
   else if(["buy","equip"].includes(b.dataset.fitAction))marketAction(b.dataset.item,b.dataset.fitAction);
  };
- el("craftChoice").onchange=updateCraftArtwork;
+ el("craftChoice").onchange=()=>{updateCraftArtwork();updatePlayControls()};
  el("catalog").onclick=e=>{
   const b=e.target.closest("button");if(!b||b.disabled)return;
   if(b.dataset.try){if(tryMarketItem(b.dataset.try))focusFitting();return}
@@ -987,14 +1140,15 @@ async function init(){
  bind();setupAtmosphere();
  try{
   let [cfg,health]=await Promise.all([get("/v1/web/config"),get("/v1/health")]);
-  S.config=cfg;configureBranding(cfg.branding);configureStreets(cfg.streets_url);el("discordLogin").disabled=!cfg.discord_oauth;
+  S.config=cfg;configureUnderworld(cfg.underworld_url);configureBranding(cfg.branding);configureStreets(cfg.streets_url);el("discordLogin").disabled=!cfg.discord_oauth;
   if(!cfg.discord_oauth)el("discordLogin").textContent="Discord login (not configured)";
   if(!cfg.underworld_assertions)el("underworldForm").querySelector("button").disabled=true;
   txt("sideStatus",(health.status||"unknown").toUpperCase());txt("sideStatusDetail","Isolated staging · "+cfg.season);
   await resume();S.connection="ready";showEvent();
+  if(!location.search.includes("discord=")){if(location.hash.startsWith("#play-"))section(location.hash.slice(6),{record:false,focus:false});else if(S.me?.registered)section("home",{record:false,focus:false})}
   const poll=()=>{if(document.hidden||S.busy)return;if(!S.bossPending)void refreshBossVisual();if(el("page-cities").classList.contains("active")&&!S.territoryPending&&S.territoryDay==="current")void Promise.all([refreshTerritory(),refreshCityStandings()]);if(!S.wirePending)void refreshWire()};
   setInterval(poll,30000);document.addEventListener("visibilitychange",poll);
-  setInterval(()=>{if(!document.hidden)updateHqTimers()},1000);
+  setInterval(()=>{if(!document.hidden){updateHqTimers();updatePlayControls()}},1000);
   if(location.search.includes("login=ok"))notice("Discord login successful.","success");
   if(location.search.includes("linked=discord"))notice("Discord account linked to this character.","success");
   if(location.search.includes("discord=discard-offer")){
@@ -1020,7 +1174,7 @@ async function init(){
     notice(explanation,"error");
   }
   if(location.search.includes("linked=discord")||location.search.includes("discord=conflict")||location.search.includes("discord=discard-offer"))
-    history.replaceState(null,"",location.pathname);
+    history.replaceState(null,"",location.pathname+location.hash);
  }catch(e){S.connection="offline";txt("eventConnectionText","Connection unavailable. Retry to reconnect.");el("eventRetry").classList.remove("hidden");txt("sideStatus","OFFLINE");txt("sideStatusDetail",e.message);notice("Staging service unavailable: "+e.message,"error")}
 }
 document.addEventListener("DOMContentLoaded",init);
