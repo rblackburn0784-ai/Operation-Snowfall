@@ -7,7 +7,7 @@ from urllib.parse import parse_qs, urlsplit
 import httpx
 from fastapi.testclient import TestClient
 
-from snowfall.platform.api import APISettings, create_app
+from snowfall.platform.api import APISettings, _link_conflict_code, create_app
 from snowfall.platform.discord_bridge import DiscordBridgeGateway
 from snowfall.platform.identity import IdentityConflict, IdentityError, Session
 
@@ -113,7 +113,7 @@ def test_browser_oauth_conflict_is_safe_redirect_without_account_merge():
             response = client.get("/v1/auth/discord/callback", params={
                 "state": args["state"][0], "code": "a-fake-code"})
             assert response.status_code == 303
-            assert response.headers["location"] == "https://qa.example/?discord=conflict"
+            assert response.headers["location"] == ("https://qa.example/"\n                "?discord=conflict&reason=linked-elsewhere")
             assert "fake-token" not in response.headers["location"]
             assert client.get("/v1/auth/session").json()["player_id"] == str(
                 identity.principal_id)
@@ -122,6 +122,22 @@ def test_browser_oauth_conflict_is_safe_redirect_without_account_merge():
                 "state": args["state"][0], "code": "a-fake-code"}).status_code == 401
     finally:
         asyncio.run(http.aclose())
+
+
+def test_oauth_conflict_diagnostics_are_fixed_and_do_not_expose_subjects():
+    reasons = {
+        "Discord has existing gameplay; manual review required": "gameplay",
+        "Discord has existing activity; manual review required": "activity",
+        "Discord account has another linked identity": "linked-elsewhere",
+        "Discord belongs to another player with linked progress": "linked-elsewhere",
+        "This Snowfall character already has a Discord account linked": "character-occupied",
+        "Discord ID already reserved by another principal": "reserved",
+        "Sign in through Underworld before linking Discord": "underworld-required",
+    }
+    for message, code in reasons.items():
+        assert _link_conflict_code(IdentityConflict(message)) == code
+    sensitive = "Unknown conflict for person 111111111111111111"
+    assert _link_conflict_code(IdentityConflict(sensitive)) == "manual-review"
 
 
 def test_discord_bridge_progress_is_canonical_and_rejects_unlinked_actor():
