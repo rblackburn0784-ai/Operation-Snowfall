@@ -40,7 +40,9 @@ function showMe(){
  el("authToggle").textContent=signed?"Sign out":"Sign in";
  txt("identityStatus",signed?"Signed in":"Guest");
  el("loggedOutNotice").classList.toggle("hidden",signed);
- el("registration").classList.toggle("hidden",!signed||!!S.me?.registered);
+ const hasUnderworld=(S.session?.links||[]).some(x=>x.provider==="underworld");
+ el("underworldRequired").classList.toggle("hidden",!signed||hasUnderworld||!!S.me?.registered);
+ el("registration").classList.toggle("hidden",!signed||!hasUnderworld||!!S.me?.registered);
  el("playerDashboard").classList.toggle("hidden",!signed||!S.me?.registered);
  el("linkedIdentity").classList.toggle("hidden",!signed);
  if(!signed||S.session?.links?.some(x=>x.provider==="discord")){
@@ -48,7 +50,6 @@ function showMe(){
  }
  const links=S.session?.links||[];
  const hasDiscord=links.some(x=>x.provider==="discord");
- const hasUnderworld=links.some(x=>x.provider==="underworld");
  txt("canonicalPlayerId",S.session?.player_id);
  txt("providerStatus",(hasUnderworld?"Underworld connected":"Underworld not linked")+
      " · "+(hasDiscord?"Discord connected":"Discord not linked"));
