@@ -127,6 +127,29 @@
             </div>
             <p class="subtle" style="margin-top:.8rem">This staging database is independent of the live Discord Christmas event. Only linked QA accounts can share its progress.</p>
           </div>
+          <div id="crossPlatformPanel" class="side-card hidden" style="margin-top:1.1rem">
+            <p class="eyebrow">v2.9.4e · CROSS-PLATFORM TEST LAB</p>
+            <h3>One character. One scoreboard. Verified gameplay.</h3>
+            <p>Check that Discord and Snowfall Web read and update the same official Snowfall character. Testing never awards extra points.</p>
+            <p id="verificationState" role="status"><strong>Not started</strong></p>
+            <div class="quick-actions">
+              <button id="verificationStart" type="button" class="button button-gold">Start 15-minute verification</button>
+              <button id="verificationCheck" type="button" class="button button-outline">Check shared progress ↻</button>
+            </div>
+            <div style="margin-top:.9rem;border:1px solid #46647b;padding:.9rem;border-radius:6px">
+              <p><strong>1. Verify your Discord login:</strong> Run <code>/snowbridge verify</code> in your existing Snowfall Discord server.</p>
+              <p><strong>2. Make a real Discord move:</strong> Try <code>/snowbridge craft</code> or <code>/snowbridge boss</code> (the original <code>/snow</code> game commands also count).</p>
+              <p><strong>3. Refresh here:</strong> Press <strong>Check shared progress</strong>. The new inventory, score or Snow Don HP will come from the same PostgreSQL game.</p>
+              <p><strong>4. Reverse test (optional):</strong> Craft an item on the website, then run <code>/snowbridge verify</code> again to confirm Discord can read the website's move.</p>
+            </div>
+            <p id="verificationIdentity">Underworld and Discord account links required.</p>
+            <p id="verificationDiscord">Discord confirmation: awaiting action.</p>
+            <p id="verificationGameplay">Discord gameplay: awaiting an actual move.</p>
+            <p id="verificationReverse">Website → Discord reverse check: optional.</p>
+            <p id="verificationCounts" class="subtle">Verified activity: no active test.</p>
+            <p id="verificationDelta" class="subtle">Progress changes since test started will appear here.</p>
+            <p class="subtle">The test expires after 15 minutes. If Discord isn't connected to the shared QA game yet, confirmation will remain pending instead of claiming success.</p>
+          </div>
           <div class="section-heading compact"><div><p class="eyebrow">THE DAILY BRIEFING</p><h2>Word on the street</h2></div></div>
           <div class="briefing">
             <article><span class="brief-num">01 / FIELD REPORT</span><h3>The snow war is on.</h3><p>Every successful move counts toward your official game ledger. The Discord and web engines use the same rules.</p></article>
