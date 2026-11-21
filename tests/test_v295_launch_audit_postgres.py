@@ -18,7 +18,8 @@ from snowfall.platform.api import APISettings, create_app
 from snowfall.platform.game import SharedGame
 from snowfall.platform.identity import IdentityRepository
 from snowfall.platform.launch_audit import ReadinessError, audit_qa_database
-from snowfall.platform.staging import QA_SEASON, STAGING_PROJECT, StagingGame, _source_snapshot
+from snowfall.platform.staging import STAGING_PROJECT, StagingGame, _source_snapshot
+from snowfall.platform.unified_discord import QA_SEASON
 
 
 def test_audit_rejects_other_season_database():
