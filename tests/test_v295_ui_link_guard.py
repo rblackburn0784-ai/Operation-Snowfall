@@ -23,8 +23,9 @@ GUILD = 987654321123456789
 
 
 class FakeIdentity:
-    def __init__(self, principal=None, failure=None):
+    def __init__(self, principal=None, failure=None, *, underworld=True):
         self.principal, self.failure = principal, failure
+        self.underworld = underworld
         self.lookups = []
 
     def principal_for_discord(self, subject):
@@ -32,6 +33,13 @@ class FakeIdentity:
         if self.failure:
             raise self.failure
         return self.principal
+
+    def links(self, principal):
+        assert principal == self.principal
+        return ([{"provider": "underworld", "subject": "trusted-character"},
+                 {"provider": "discord", "subject": str(ACTOR)}]
+                if self.underworld else
+                [{"provider": "discord", "subject": str(ACTOR)}])
 
 
 class FakeInteraction:
@@ -71,6 +79,20 @@ def test_linked_account_gate_handles_disconnect_unlinked_and_db_outage():
         linked = FakeIdentity(6_000_000_000_000_000_005)
         assert await require_linked_discord(FakeInteraction(linked))
         assert linked.lookups == [str(ACTOR)]
+
+        # A Discord-first browser OAuth login has a Discord identity but
+        # no Underworld character. It must not create a game profile.
+        temporary = FakeIdentity(ACTOR, underworld=False)
+        attempted = FakeInteraction(temporary)
+        assert not await require_linked_discord(attempted)
+        assert "Link your Discord login" in attempted.responded[0][0]
+        from snowfall.platform.discord_bridge import DiscordBridgeGateway
+        gateway = DiscordBridgeGateway(temporary, SimpleNamespace())
+        try:
+            gateway.register(ACTOR, "AccidentalSecondPlayer", "Detroit")
+            raise AssertionError("Discord-only identity bypassed Underworld linking")
+        except IdentityError:
+            pass
 
         old = FakeIdentity(failure=IdentityError("Link does not exist"))
         interaction = FakeInteraction(old)
@@ -119,6 +141,9 @@ def test_all_legacy_views_reject_unlinked_clicks_and_accept_linked_owner():
 
         picker = CityPicker(settings, store, ACTOR)
         city_option = next(c for c in picker.children if hasattr(c, "options"))
+        other = FakeInteraction(FakeIdentity(ACTOR), who=ACTOR + 1)
+        assert not await picker.interaction_check(other)
+        assert other.responded[0][1]["ephemeral"]
         unlinked = FakeInteraction(FakeIdentity(failure=IdentityError("not linked")))
         await city_option.callback(unlinked)
         assert unlinked.responded and unlinked.responded[0][1]["ephemeral"]
