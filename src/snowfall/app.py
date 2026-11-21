@@ -22,7 +22,8 @@ from snowfall.services.world import WorldEngine
 from snowfall.ui.broadcast import BroadcastPublisher
 from snowfall.ops import backup_sqlite, restore_sqlite
 from snowfall.practice import PracticeManager, ScopedSettings, ScopedStore
-from snowfall.platform.identity import IdentityError, IdentityRepository
+from snowfall.platform.identity import IdentityRepository
+from snowfall.ui.linked import require_linked_discord
 
 log = logging.getLogger(__name__)
 
@@ -39,17 +40,30 @@ class GuildCommandTree(app_commands.CommandTree):
             # administration. Gameplay cannot create an unlinked second profile.
             public = {"snow privacy", "snow rules", "snow guide", "snowbridge link"}
             if command not in public and not command.startswith("snowadmin "):
-                try:
-                    await asyncio.to_thread(
-                        self.client.unified_identity.principal_for_discord,
-                        str(interaction.user.id))
-                except IdentityError:
-                    await interaction.response.send_message(
-                        "🔗 Link your Discord account to your Underworld character "
-                        "before playing. Use `/snowbridge link` for instructions.",
-                        ephemeral=True)
+                if not await require_linked_discord(interaction):
                     return False
         return True
+
+    async def on_error(self, interaction: discord.Interaction,
+                       error: app_commands.AppCommandError) -> None:
+        """Prevent raw database exceptions or connection strings leaking in Discord.
+
+        CommandTree checks can already respond with a helpful link prompt.
+        Do not send a second message when that check rejects the request.
+        """
+        if isinstance(error, app_commands.CheckFailure):
+            return
+        log.warning("Discord interaction failed safely: %s", type(error).__name__)
+        message = ("⚠️ That Snowfall action could not be completed. "
+                   "No result has been confirmed. Check your connection "
+                   "and retry with a fresh command.")
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send(message, ephemeral=True)
+            else:
+                await interaction.response.send_message(message, ephemeral=True)
+        except discord.HTTPException:
+            log.warning("Could not deliver the private failure response")
 
 
 class SnowfallBot(discord.Client):
