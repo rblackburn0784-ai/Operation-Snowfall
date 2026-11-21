@@ -53,7 +53,7 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
             f"**Scheduled kickoff:** <t:{starts}:F>\n"
             f"**Projected end:** {f'<t:{int(ending.timestamp())}:F>' if ending else 'After host starts'}\n"
             f"**Current day:** {season.day(now) or '—'} / 7\n"
-            f"**Registered players:** {registered}\n"
+            f"**Registered players:** {registered}\n" +
             ("**Prizes:** NO REAL PRIZES in shared QA."
              if settings.season_key == "web-qa-2026" else
              "**Prizes:** Individual only. City standings = bragging rights.")
