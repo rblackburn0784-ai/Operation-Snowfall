@@ -54,7 +54,7 @@ class DemoLogin(BaseModel):
     slot: int = Field(ge=1, le=3)
 
 
-def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None) -> FastAPI:
+def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None, game=None) -> FastAPI:
     """Add client UI and temporary demo logins; callable with CI fakes."""
     env = dict(os.environ if env is None else env)
     require_staging(env)
@@ -67,7 +67,7 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None) -> Fa
     @app.get("/v1/web/config")
     def config():
         return {
-            "version": "2.9.6b", "staging": True,
+            "version": "2.9.6c", "staging": True,
             "branding": {"banner": (ASSETS / "snowfall-site-banner.webp").is_file(),
                          "icon": (ASSETS / "snowfall-site-icon.webp").is_file()},
             "season": cfg.season_key,
@@ -76,6 +76,14 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None) -> Fa
             "underworld_assertions": bool(cfg.underworld_secret),
             "streets_url": safe_streets_url(env.get("SNOWFALL_DISCORD_STREETS_URL", "")),
         }
+
+    @app.get("/v1/web/boss")
+    def boss_visual_status(response: Response):
+        from snowfall.platform.boss_visuals import current_boss
+        if game is None:
+            raise HTTPException(503, "Boss visual status unavailable")
+        response.headers["Cache-Control"] = "no-store"
+        return current_boss(game)
 
     @app.post("/v1/auth/demo")
     def demo_login(body: DemoLogin, request: Request, response: Response):
@@ -145,7 +153,7 @@ def create_staging_app(env=None) -> FastAPI:
     store = PostgresStore(qa_url, practice_root=Path.cwd())
     shared = StagingGame(SharedGame(store, cfg.season_key))
     return attach_web_ui(create_app(cfg, identity=identities, game=shared),
-                         identities, cfg, env=env)
+                         identities, cfg, env=env, game=shared)
 
 
 def main():

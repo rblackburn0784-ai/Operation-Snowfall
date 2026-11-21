@@ -36,7 +36,7 @@ def test_v296_web_uses_existing_artwork_without_changing_gameplay():
         assert 'id="bossPortrait"' in page.text
         assert 'id="hqCityArt"' in page.text
         assert 'id="hqPortraitWell"' in page.text
-        assert '<section class="hero">' in page.text
+        assert '<section class="hero" id="snowDonHero"' in page.text
         assert 'THE COLD<br><em>NEVER</em>' in page.text
         header = page.text.split("</header>", 1)[0]
         assert 'id="siteBanner"' in header
@@ -44,7 +44,7 @@ def test_v296_web_uses_existing_artwork_without_changing_gameplay():
         assert 'id="siteBanner"' not in page.text.split("</header>", 1)[1]
         assert 'id="streetsLink"' in page.text
         assert 'src="/art/v290/cities/map/six_city_territory_map.png"' in page.text
-        assert client.get("/v1/web/config").json()["version"] == "2.9.6b"
+        assert client.get("/v1/web/config").json()["version"] == "2.9.6c"
         assert client.get("/v1/web/config").json()["streets_url"] == ""
         for path, mime in (
             ("/art/v290/boss/phase_ice.webp", "image/webp"),
