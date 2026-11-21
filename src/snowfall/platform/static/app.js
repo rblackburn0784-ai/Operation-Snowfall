@@ -1,6 +1,6 @@
-/* Operation Snowfall v2.9.6d — illustrated headquarters and shared boss state. */
+/* Operation Snowfall v2.9.6e — winter market, fitting room and shared visual state. */
 "use strict";
-const S={session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],board:[],cities:[],targets:[],config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
+const S={session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],targets:[],config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
 const txt=(id,v)=>{if(el(id))el(id).textContent=v==null?"—":String(v)};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -51,25 +51,24 @@ function profileLayers(wardrobe){
 }
 function cosmeticName(key){return S.items.find(item=>item.key===key)?.name||
     (key?key.split("_").map(word=>word[0].toUpperCase()+word.slice(1)).join(" "):"None");}
-function showWardrobe(){
- const wardrobe=S.session&&S.me?.registered?S.shop:null;
- const layers=profileLayers(wardrobe);
- el("hqPortraitWell").classList.toggle("has-frame",!!layers.frame.key);
- el("hqBannerWell").classList.toggle("hidden",!layers.banner.key);
+function renderProfileLayers(prefix,layers){
+ el(prefix+"PortraitWell").classList.toggle("has-frame",!!layers.frame.key);
+ el(prefix+"BannerWell").classList.toggle("hidden",!layers.banner.key);
  for(const slot of Object.keys(layers)){
-  const id=slot[0].toUpperCase()+slot.slice(1),node=el("hq"+id),layer=layers[slot];
+  const id=slot[0].toUpperCase()+slot.slice(1),node=el(prefix+id),layer=layers[slot];
   if(layer.src){
    if(node.getAttribute("src")!==layer.src)node.setAttribute("src",layer.src);
    node.classList.remove("hidden");
-  }else{
-   node.classList.add("hidden");
-   node.removeAttribute("src");
-  }
+  }else{node.classList.add("hidden");node.removeAttribute("src")}
   node.dataset.cosmetic=layer.key||"";
   const name=layer.key?cosmeticName(layer.key):slot==="portrait"?"Recruit":"None";
   if(slot==="portrait")node.alt=name+" profile";
-  txt("hq"+id+"Name",name);
+  txt(prefix+id+"Name",name);
  }
+}
+function showWardrobe(){
+ const wardrobe=S.session&&S.me?.registered?S.shop:null;
+ renderProfileLayers("hq",profileLayers(wardrobe));
  txt("hqWardrobeStatus",wardrobe?
      fmt(wardrobe.unlocked?.length||0)+" cosmetics owned · shared with Discord":
      "Wardrobe not loaded — refresh to check equipped cosmetics.");
@@ -437,22 +436,151 @@ function showCities(){
   return "<div class='city-row'>"+crest+"<div><strong>"+esc(r.city)+"</strong><small>"+fmt(r.active_players)+" active · "+fmt(r.daily_wins)+" daily wins</small></div><strong>"+fmt(Math.round(r.score_x100/100))+" pts</strong></div>";
  }).join(""):"<div class='empty'>City standings are not available yet.</div>";
 }
+const MARKET_SLOTS=Object.freeze(["portrait","frame","banner","gear","trail"]);
+const MARKET_FIELDS={marketCategory:"category",marketOwnership:"ownership",marketRarity:"rarity",marketSort:"sort",marketSearch:"search"};
+function marketItem(key,items=S.items){return items.find(i=>i.key===key&&MARKET_SLOTS.includes(i.category))}
+function marketWardrobe(){
+ return S.session&&S.me?.registered&&String(S.session.player_id)===String(S.me.player_id)&&Array.isArray(S.shop?.unlocked)?S.shop:null;
+}
+function marketState(item,wardrobe){
+ if(!wardrobe)return "unknown";
+ if(ownedEquipped(wardrobe,item.category)===item.key)return "equipped";
+ return wardrobe.unlocked.includes(item.key)?"owned":"unowned";
+}
+function marketEligible(item,kind){
+ const w=marketWardrobe();
+ if(S.busy||!w||!S.catalogReady||!item||["flagged","disqualified"].includes(S.me?.review_state))return false;
+ if(S.config?.staging&&!S.session?.links?.some(x=>x.provider==="underworld"))return false;
+ const state=marketState(item,w);
+ return kind==="equip"?state==="owned":
+   kind==="buy"&&state==="unowned"&&S.me.phase==="live"&&Number.isFinite(item.cost)&&item.cost>=0&&Number(w.balance)>=item.cost;
+}
+function filterMarket(items,filters,wardrobe){
+ const search=String(filters.search||"").trim().toLowerCase();
+ const list=items.filter(i=>{
+  if(!MARKET_SLOTS.includes(i.category))return false;
+  if(filters.category!=="all"&&i.category!==filters.category)return false;
+  if(filters.rarity!=="all"&&i.rarity!==filters.rarity)return false;
+  const state=marketState(i,wardrobe);
+  if(filters.ownership==="owned"&&!["owned","equipped"].includes(state))return false;
+  if(["equipped","unowned"].includes(filters.ownership)&&state!==filters.ownership)return false;
+  if(filters.ownership==="affordable"&&!(state==="unowned"&&Number(wardrobe?.balance)>=i.cost))return false;
+  return !search||[i.name,i.detail,i.category,i.rarity].some(v=>String(v||"").toLowerCase().includes(search));
+ });
+ const cmp={low:(a,b)=>a.cost-b.cost,high:(a,b)=>b.cost-a.cost,rarity:(a,b)=>RARITIES.indexOf(b.rarity)-RARITIES.indexOf(a.rarity),name:(a,b)=>a.name.localeCompare(b.name)};
+ if(Object.hasOwn(cmp,filters.sort))list.sort(cmp[filters.sort]);
+ return list;
+}
+function fittingLayers(wardrobe,overrides,items){
+ const layers=profileLayers(wardrobe);
+ for(const slot of MARKET_SLOTS){
+  const key=overrides[slot],item=marketItem(key,items);
+  if(item?.category===slot&&HQ_SLOTS[slot].includes(key)&&Object.hasOwn(COSMETIC_ART,key))layers[slot]={key,src:COSMETIC_ART[key]};
+ }
+ return layers;
+}
+function syncMarketIdentity(){
+ const id=S.session?String(S.session.player_id):null;
+ if(S.market.identity!==id){
+  S.market.identity=id;S.market.preview={};S.market.ownership="all";
+  el("marketOwnership").value="all";
+ }
+}
+function showFitting(){
+ const w=marketWardrobe(),layers=fittingLayers(w,S.market.preview,S.items),actual=profileLayers(w);
+ renderProfileLayers("fit",layers);
+ const changed=MARKET_SLOTS.filter(slot=>layers[slot].key!==actual[slot].key);
+ // A preview becomes normal equipped state after an explicit successful equip.
+ for(const slot of MARKET_SLOTS)if(!changed.includes(slot))delete S.market.preview[slot];
+ const worn=Object.values(layers).map(layer=>marketItem(layer.key)).filter(Boolean);
+ const rarity=worn.reduce((r,i)=>RARITIES.indexOf(i.rarity)>RARITIES.indexOf(r)?i.rarity:r,"Common");
+ el("fitCollector").dataset.rarity=rarity;
+ txt("fitRarity",rarity+" style preview");
+ txt("fitPlayerName",w?S.me.mr_username:"Guest fitting model");
+ txt("fitStatus",changed.length?changed.length+" previewed slot"+(changed.length===1?"":"s")+" · Previewing never purchases or equips an item.":"Showing "+(w?"your currently equipped outfit":"the default recruit")+". Try any item for free.");
+ el("fitReset").disabled=!changed.length;
+ el("fitChanges").innerHTML=changed.map(slot=>{
+  const i=marketItem(layers[slot].key),state=marketState(i,w),owned=["owned","equipped"].includes(state);
+  const kind=owned?"equip":"buy",ready=marketEligible(i,kind);
+  const label=owned?"Equip":i.cost===0?"Unlock free":"Unlock · ✦ "+fmt(i.cost);
+  return "<div class='fit-change'><div><strong>"+esc(i.name)+"</strong><small>"+(owned?"Owned":state==="unknown"?"Preview only":"✦ "+fmt(i.cost)+" to unlock")+"</small></div><div class='fit-change-actions'><button data-fit-action='"+kind+"' data-item='"+esc(i.key)+"' class='button button-gold button-small' "+(!ready?"disabled":"")+">"+label+"</button><button data-fit-remove='"+slot+"' class='button button-outline button-small' aria-label='Remove "+esc(slot)+" preview'>✕</button></div></div>";
+ }).join("");
+ const cost=changed.reduce((total,slot)=>{const i=marketItem(layers[slot].key);return total+(w&&marketState(i,w)==="unowned"?i.cost:0)},0);
+ txt("fitCost",w?"Estimated cost for unowned preview items: "+fmt(cost)+" Snowflakes. No checkout or automatic spend.":"Sign in to see your owned items and actual purchase eligibility.");
+ txt("fitHint",w?"Unlock or equip individual preview items here or in the catalogue.":"Browsing and previewing are free.");
+}
+function tryMarketItem(key){
+ const i=marketItem(key);
+ if(!i||!HQ_SLOTS[i.category]?.includes(key)||!Object.hasOwn(COSMETIC_ART,key))return false;
+ S.market.preview[i.category]=key;
+ showShop();return true;
+}
+function focusFitting(){
+ el("marketFitting").scrollIntoView({block:"start"});
+ el("fittingTitle").focus({preventScroll:true});
+}
+function showFeatured(){
+ const items=S.items.filter(i=>MARKET_SLOTS.includes(i.category)&&Object.hasOwn(COSMETIC_ART,i.key))
+  .sort((a,b)=>RARITIES.indexOf(b.rarity)-RARITIES.indexOf(a.rarity)||a.name.localeCompare(b.name));
+ const chosen=items.length?items[((S.market.featured%items.length)+items.length)%items.length]:null;
+ const art=el("featuredArt"),button=el("featuredTry");
+ if(!chosen){art.classList.add("hidden");art.removeAttribute("src");button.disabled=true;el("featuredPrev").disabled=true;el("featuredNext").disabled=true;txt("featuredIndex","");txt("featuredTitle","Winter collection");txt("featuredDetail","Catalogue unavailable.");txt("featuredCost","");txt("featuredRarity","Featured selection");button.dataset.item="";return}
+ art.setAttribute("src",COSMETIC_ART[chosen.key]);art.classList.remove("hidden");art.alt=chosen.name;
+ txt("featuredTitle",chosen.name);txt("featuredDetail",chosen.detail);
+ txt("featuredRarity",chosen.rarity+" · "+chosen.category);el("featuredRarity").dataset.rarity=RARITIES.includes(chosen.rarity)?chosen.rarity:"Common";
+ txt("featuredCost",chosen.cost===0?"Free to unlock":"✦ "+fmt(chosen.cost)+" Snowflakes");
+ txt("featuredIndex",(((S.market.featured%items.length)+items.length)%items.length+1)+" / "+items.length+" · Curated display");
+ button.dataset.item=chosen.key;button.disabled=false;el("featuredPrev").disabled=items.length<2;el("featuredNext").disabled=items.length<2;
+}
+function marketCard(i,w){
+ const state=marketState(i,w),owned=["owned","equipped"].includes(state),art=Object.hasOwn(COSMETIC_ART,i.key)?COSMETIC_ART[i.key]:null;
+ const rarity=RARITIES.includes(i.rarity)?i.rarity:"Common";
+ const preview=S.market.preview[i.category]===i.key;
+ const label=state==="equipped"?"Equipped":state==="owned"?"Owned":state==="unowned"?"Not owned":"Browse";
+ const pending=owned?"equip":"buy",eligible=marketEligible(i,pending);
+ const action=state==="equipped"?"Equipped":state==="owned"?"Equip":i.cost===0?"Unlock free":"Purchase · ✦ "+fmt(i.cost);
+ const reason=eligible||state==="equipped"?"":!w?"Sign in or refresh your wardrobe":S.busy?"Action in progress":!S.catalogReady?"Refresh catalogue":pending==="buy"&&S.me.phase!=="live"?"Purchases open during the live event":pending==="buy"&&Number(w.balance)<i.cost?"Not enough Snowflakes":"Currently unavailable";
+ return "<article class='catalog-card market-item' data-rarity='"+rarity+"' data-market-key='"+esc(i.key)+"' data-item-state='"+state+"'>"+
+ "<div class='market-item-art'>"+(art?"<img class='catalog-thumb' src='"+art+"' loading='lazy' alt='"+esc(i.name)+" artwork'>":"<span>Artwork unavailable</span>")+"<span class='market-state'>"+label+"</span></div>"+
+ "<span class='market-rarity' data-rarity='"+rarity+"'>"+esc(rarity)+" · "+esc(i.category)+"</span><h3>"+esc(i.name)+"</h3><p>"+esc(i.detail)+"</p>"+
+ "<div class='catalog-row'><strong>"+(i.cost===0?"Free":"✦ "+fmt(i.cost))+"</strong></div><div class='market-card-actions'>"+
+ "<button class='button button-outline' data-try='"+esc(i.key)+"' aria-pressed='"+String(preview)+"' "+(!art?"disabled":"")+">"+(preview?"✓ Previewing":"Try on")+"</button>"+
+ "<button class='button button-gold' data-"+pending+"='"+esc(i.key)+"' "+(!eligible?"disabled":"")+">"+action+"</button></div>"+
+ (reason?"<small class='subtle'>"+esc(reason)+"</small>":"")+"</article>";
+}
 function showShop(){
- txt("shopBalance",S.shop?.balance??S.me?.resources?.snowflakes);
- const owned=new Set(S.shop?.unlocked||[]),wearing=S.shop?.equipped||{};
- el("catalog").innerHTML=S.items.length?S.items.map(i=>{
-  let has=owned.has(i.key),on=has&&wearing[i.category]===i.key;
-  let button=has?"<button class='button button-outline' data-equip='"+esc(i.key)+"' "+(on?"disabled":"")+">"+(on?"Equipped":"Equip")+"</button>":"<button class='button button-gold' data-buy='"+esc(i.key)+"' "+(!S.me?.registered?"disabled":"")+">Purchase</button>";
-  const art=COSMETIC_ART[i.key];
-   const preview=art?"<img class='catalog-thumb' src='"+art+"' loading='lazy' alt='"+esc(i.name)+" artwork preview'>":"";
-   return "<article class='catalog-card'>"+preview+"<span class='tag'>"+esc(i.rarity)+" · "+esc(i.category)+"</span><h3>"+esc(i.name)+"</h3><p>"+esc(i.detail)+"</p><div class='catalog-row'><strong>✦ "+fmt(i.cost)+"</strong>"+button+"</div></article>";
- }).join(""):"<p class='empty'>The market is currently unavailable.</p>";
+ syncMarketIdentity();
+ const w=marketWardrobe();
+ txt("shopBalance",w?fmt(w.balance):"—");
+ const total=S.items.filter(i=>MARKET_SLOTS.includes(i.category)).length;
+ const owned=w?S.items.filter(i=>["owned","equipped"].includes(marketState(i,w))).length:0;
+ txt("marketOwned",w?owned+" / "+total+" cosmetics owned · "+MARKET_SLOTS.filter(slot=>ownedEquipped(w,slot)).length+" / 5 equipped":"Sign in or refresh to load your wardrobe");
+ const filters=S.market,items=filterMarket(S.items,filters,w);
+ txt("marketCount",!S.catalogReady?"Catalogue unavailable — refresh to try again.":items.length+" of "+total+" items");
+ el("catalog").innerHTML=items.length?items.map(i=>marketCard(i,w)).join(""):"<p class='empty'>"+(!S.catalogReady?"Market unavailable.":filters.ownership!=="all"&&!w?"Sign in to view your personal collection.":"No items match these filters.")+"</p>";
+ showFeatured();showFitting();
+}
+function marketAction(key,kind){
+ const item=marketItem(key);
+ if(!marketEligible(item,kind))return;
+ if(kind==="buy"&&!window.confirm("Unlock "+item.name+" for "+item.cost+" Snowflakes? This does not equip the item."))return;
+ act(async()=>{
+  const path=kind==="buy"?"purchase":"equip";
+  const r=await post("/v1/game/wardrobe/"+path,{item:key},true,kind==="buy");
+  notice(r.message,"success");
+ });
+}
+function updateCraftArtwork(){
+ const key=el("craftChoice").value;
+ const names={cocoa:"Hot Chocolate",fort:"Fort Kit",mittens:"Mittens",bomb:"Blizzard Bomb"};
+ if(Object.hasOwn(names,key)){el("craftArtwork").src="/art/items/"+key+".png";el("craftArtwork").alt=names[key]+" artwork"}
 }
 async function loadPublic(){
  const results=await Promise.allSettled([get("/v1/game/leaderboard?limit=20"),get("/v1/game/cities"),get("/v1/game/catalog")]);
  if(results[0].status==="fulfilled")S.board=results[0].value.players||[];
  if(results[1].status==="fulfilled")S.cities=results[1].value.cities||[];
- if(results[2].status==="fulfilled")S.items=results[2].value.items||[];
+ S.catalogReady=results[2].status==="fulfilled"&&Array.isArray(results[2].value.items);
+ S.items=S.catalogReady?results[2].value.items:[];
  showBoard();showCities();showBoss();showShop();
 }
 async function loadPrivate(){
@@ -514,7 +642,7 @@ async function act(fn){
  if(!S.session)return authModal();
  S.busy=true;document.querySelectorAll(".actions-inline button,.craft-card button").forEach(b=>b.disabled=true);
  try{await fn();await refresh()}catch(e){notice(e.message,"error")}
- finally{S.busy=false;document.querySelectorAll(".actions-inline button,.craft-card button").forEach(b=>b.disabled=false);showBoss()}
+ finally{S.busy=false;document.querySelectorAll(".actions-inline button,.craft-card button").forEach(b=>b.disabled=false);showBoss();showShop()}
 }
 function registered(){if(S.me?.registered)return true;section("home");notice("Register your player at Headquarters first.","error");return false}
 function bind(){
@@ -621,10 +749,30 @@ function bind(){
   };
  }
  el("craftButton").onclick=()=>{if(registered())act(async()=>{let r=await post("/v1/game/craft",{item:el("craftChoice").value},true,true);notice(r.text||"Crafted.","success")})};
+ for(const [id,key] of Object.entries(MARKET_FIELDS)){
+  const control=el(id);
+  control.addEventListener(id==="marketSearch"?"input":"change",()=>{S.market[key]=control.value;showShop()});
+ }
+ el("marketClear").onclick=()=>{
+  for(const [id,key] of Object.entries(MARKET_FIELDS)){const value=key==="search"?"":key==="sort"?"catalogue":"all";S.market[key]=value;el(id).value=value}
+  showShop();
+ };
+ el("featuredPrev").onclick=()=>{S.market.featured--;showFeatured()};
+ el("featuredNext").onclick=()=>{S.market.featured++;showFeatured()};
+ el("featuredTry").onclick=()=>{if(tryMarketItem(el("featuredTry").dataset.item))focusFitting()};
+ el("fitReset").onclick=()=>{S.market.preview={};showShop()};
+ el("fitBrowse").onclick=()=>el("marketCatalogue").scrollIntoView({block:"start"});
+ el("fitChanges").onclick=e=>{
+  const b=e.target.closest("button");if(!b||b.disabled)return;
+  if(MARKET_SLOTS.includes(b.dataset.fitRemove)){delete S.market.preview[b.dataset.fitRemove];showShop();el("fittingTitle").focus()}
+  else if(["buy","equip"].includes(b.dataset.fitAction))marketAction(b.dataset.item,b.dataset.fitAction);
+ };
+ el("craftChoice").onchange=updateCraftArtwork;
  el("catalog").onclick=e=>{
-  const b=e.target.closest("button");if(!b||!registered())return;
-  if(b.dataset.buy)act(async()=>{let r=await post("/v1/game/wardrobe/purchase",{item:b.dataset.buy},true,true);notice(r.message,"success")});
-  if(b.dataset.equip)act(async()=>{let r=await post("/v1/game/wardrobe/equip",{item:b.dataset.equip},true);notice(r.message,"success")});
+  const b=e.target.closest("button");if(!b||b.disabled)return;
+  if(b.dataset.try){if(tryMarketItem(b.dataset.try))focusFitting();return}
+  if(b.dataset.buy)marketAction(b.dataset.buy,"buy");
+  else if(b.dataset.equip)marketAction(b.dataset.equip,"equip");
  };
  for(const id of ["refreshHome","refreshBoss","refreshShop"]){el(id).onclick=()=>refresh().then(()=>notice("Game state refreshed.")).catch(e=>notice(e.message,"error"))}
 }

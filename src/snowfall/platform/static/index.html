@@ -7,8 +7,8 @@
   <meta name="description" content="Operation Snowfall — the seven-day winter city showdown. Isolated staging preview.">
   <title>Operation Snowfall | The Winter Underworld</title>
   <link rel="icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/static/app.css?v=296d">
-  <script defer src="/static/app.js?v=296d"></script>
+  <link rel="stylesheet" href="/static/app.css?v=296e">
+  <script defer src="/static/app.js?v=296e"></script>
 </head>
 <body>
   <a class="skip-link" href="#mainContent">Skip to game content</a>
@@ -193,7 +193,7 @@
             <p class="subtle" style="margin-top:.8rem">This staging database is independent of the live Discord Christmas event. Only linked QA accounts can share its progress.</p>
           </div>
           <div id="crossPlatformPanel" class="side-card hidden" style="margin-top:1.1rem">
-            <p class="eyebrow">v2.9.6d · CROSS-PLATFORM TEST LAB</p>
+            <p class="eyebrow">v2.9.6e · CROSS-PLATFORM TEST LAB</p>
             <h3>One character. One scoreboard. Verified gameplay.</h3>
             <p>Check that Discord and Snowfall Web read and update the same official Snowfall character. Testing never awards extra points.</p>
             <p id="verificationState" role="status"><strong>Not started</strong></p>
@@ -261,9 +261,42 @@
           <div class="section-heading"><div><p class="eyebrow">FINE GOODS FOR QUESTIONABLE PEOPLE</p><h2 id="shopTitle">Winter Market</h2></div><span class="pill">COSMETICS & CRAFTING</span></div>
           <p class="section-desc">Spend Snowflakes on real inventory, cosmetic frames, banners and equipment. No additional paid rewards.</p>
           <div class="market-hero"><img src="/art/v290/cosmetics/backgrounds/shop.webp" alt="The illustrated winter market from the Snowfall Discord event" loading="lazy"><div><p class="eyebrow">FROSTED FINERY</p><h3>Dress like you own the winter streets.</h3><p>Your purchased cosmetics are shared with the Discord game.</p></div></div>
-          <div class="market-toolbar"><div>✦ Your balance <strong id="shopBalance">—</strong> Snowflakes</div><button class="tiny-link" id="refreshShop">↻ Refresh market</button></div>
-          <div id="catalog" class="catalog-grid"><p class="muted">Fetching inventory…</p></div>
-          <div class="action-card craft-card"><div class="action-emblem">⚒</div><div class="action-main"><h3>The workshop</h3><p>Craft useful items directly through the official economy.</p><div class="controls-grid"><label>Item<select id="craftChoice"><option value="cocoa">Hot Chocolate</option><option value="fort">Fort Kit</option><option value="mittens">Mittens</option><option value="bomb">Blizzard Bomb</option></select></label></div><button class="button button-gold" id="craftButton">Craft item</button></div></div>
+          <div class="market-toolbar market-wallet"><div><p class="eyebrow">YOUR WINTER WALLET</p><span>✦ <strong id="shopBalance">—</strong> Snowflakes</span><p id="marketOwned" class="subtle">Sign in to load your wardrobe</p></div><button class="button button-outline button-small" id="refreshShop">↻ Refresh market</button></div>
+          <section class="market-feature" aria-labelledby="featuredTitle">
+            <div class="market-feature-art"><img id="featuredArt" alt="" class="hidden"><span id="featuredRarity" class="market-rarity">Featured selection</span></div>
+            <div class="market-feature-content"><p class="eyebrow">THE WINDOW DISPLAY</p><h3 id="featuredTitle">Winter collection</h3><p id="featuredDetail">Browse the original collection.</p><strong id="featuredCost"></strong><div class="market-feature-controls"><button class="button button-outline button-small" id="featuredPrev" aria-label="Previous featured item">‹</button><button class="button button-outline button-small" id="featuredNext" aria-label="Next featured item">›</button><button id="featuredTry" class="button button-gold button-small" disabled>Try on</button></div><small id="featuredIndex" class="subtle"></small></div>
+          </section>
+          <section class="market-fitting" id="marketFitting" aria-labelledby="fittingTitle">
+            <div class="hq-section-head"><div><p class="eyebrow">THE PRIVATE FITTING ROOM</p><h3 id="fittingTitle" tabindex="-1">Style your winter alter ego</h3></div><button class="button button-outline button-small" id="fitReset">Reset preview</button></div>
+            <p class="section-desc" id="fitStatus" role="status">Preview any item for free. Your equipped outfit is unchanged.</p>
+            <div class="fitting-stage" id="fitCollector" data-rarity="Common">
+              <img class="collector-office" src="/art/v290/cosmetics/backgrounds/headquarters.webp" alt="" loading="lazy"><div class="collector-shade"></div>
+              <div id="fitBannerWell" class="collector-banner-well hidden"><img id="fitBanner" class="collector-banner hidden" alt=""></div>
+              <div class="fitting-layout">
+                <div class="collector-profile"><div class="portrait-well" id="fitPortraitWell">
+                  <img id="fitPortrait" class="portrait-layer" src="/art/v290/portraits/recruit_m.webp" alt="Recruit profile">
+                  <img id="fitTrail" class="trail-layer hidden" alt=""><img id="fitGear" class="gear-layer hidden" alt=""><img id="fitFrame" class="frame-layer hidden" alt="">
+                </div><p id="fitRarity" class="hq-rarity">Common style preview</p></div>
+                <div class="fit-outfit"><p class="eyebrow">PREVIEW ONLY · NOT EQUIPPED</p><h3 id="fitPlayerName">Guest fitting model</h3><dl class="equipped-list">
+                  <div><dt>Portrait</dt><dd id="fitPortraitName">Recruit</dd></div><div><dt>Frame</dt><dd id="fitFrameName">None</dd></div><div><dt>Banner</dt><dd id="fitBannerName">None</dd></div><div><dt>Gear</dt><dd id="fitGearName">None</dd></div><div><dt>Trail</dt><dd id="fitTrailName">None</dd></div>
+                </dl><div id="fitChanges" class="fit-changes"></div><p id="fitCost" class="subtle"></p><p id="fitHint" class="subtle">Unlock or equip individual preview items here or in the catalogue.</p></div>
+              </div>
+            </div>
+            <button class="tiny-link" id="fitBrowse">↓ Browse the collection</button>
+          </section>
+          <section class="market-catalogue" id="marketCatalogue" aria-labelledby="collectionTitle">
+            <div class="hq-section-head"><div><p class="eyebrow">THE WINTER COLLECTION</p><h3 id="collectionTitle">Browse the wardrobe</h3></div><button class="tiny-link" id="marketClear">Clear filters</button></div>
+            <div class="market-filters">
+              <label>Category<select id="marketCategory"><option value="all">All categories</option><option value="portrait">Portraits</option><option value="frame">Frames</option><option value="banner">Banners</option><option value="gear">Gear</option><option value="trail">Trails</option></select></label>
+              <label>Collection<select id="marketOwnership"><option value="all">All items</option><option value="owned">Owned</option><option value="equipped">Equipped</option><option value="unowned">Not owned</option><option value="affordable">Affordable to unlock</option></select></label>
+              <label>Rarity<select id="marketRarity"><option value="all">All rarities</option><option>Common</option><option>Rare</option><option>Epic</option><option>Legendary</option></select></label>
+              <label>Sort by<select id="marketSort"><option value="catalogue">Catalogue order</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option><option value="rarity">Highest rarity</option><option value="name">Name A–Z</option></select></label>
+              <label class="market-search">Find an item<input id="marketSearch" type="search" placeholder="Search names or descriptions" maxlength="80" autocomplete="off"></label>
+            </div>
+            <p id="marketCount" class="subtle" role="status">Fetching inventory…</p>
+            <div id="catalog" class="catalog-grid"><p class="muted">Fetching inventory…</p></div>
+          </section>
+          <div class="action-card craft-card"><img id="craftArtwork" class="mode-art" src="/art/items/cocoa.png" alt="Hot Chocolate artwork" loading="lazy"><div class="action-main"><h3>The workshop</h3><p>Craft useful items directly through the official economy.</p><div class="controls-grid"><label>Item<select id="craftChoice"><option value="cocoa">Hot Chocolate</option><option value="fort">Fort Kit</option><option value="mittens">Mittens</option><option value="bomb">Blizzard Bomb</option></select></label></div><button class="button button-gold" id="craftButton">Craft item</button></div></div>
         </section>
 
         <section id="page-cities" class="panel" aria-labelledby="citiesTitle">
