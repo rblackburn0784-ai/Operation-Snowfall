@@ -21,17 +21,17 @@ def rules_text(settings=None) -> str:
     shared_qa = getattr(settings, "season_key", "") == "web-qa-2026"
     introduction = (
         "• **Entry:** Use your verified Underworld character and link Discord. "
-        "Both platforms share one player, score and inventory.\\n"
-        "• **Prizes:** QA is fictional: no real prizes or official event awards.\\n"
+        "Both platforms share one player, score and inventory.\n"
+        "• **Prizes:** QA is fictional: no real prizes or official event awards.\n"
         if shared_qa else
-        "• **Entry:** Self-declare your MR username and city. No MR password required.\\n"
-        "• **Prizes:** Only individual awards receive prizes. City titles are for bragging rights.\\n"
+        "• **Entry:** Self-declare your MR username and city. No MR password required.\n"
+        "• **Prizes:** Only individual awards receive prizes. City titles are for bragging rights.\n"
     )
     return (
-        "**❄️ Operation Snowfall — Community Christmas Event**\\n"
+        "**❄️ Operation Snowfall — Community Christmas Event**\n"
         "Seven full days of snowball battles across six MafiaReturns city teams.\n"
         + introduction
-        + "• **Registration:** Opens 168 hours before scheduled kickoff; late entry is allowed.\\n"
+        + "• **Registration:** Opens 168 hours before scheduled kickoff; late entry is allowed.\n"
         "• **Fair play:** One MR name per Discord account; impersonation reports go to staff.\n"
         "• **Privacy:** Declared names, Discord IDs and scores are stored; see `/snow privacy`.\n"
         "• **Combat:** `/snow ready` opts in to being targeted for 36 effective hours.\n"
@@ -65,8 +65,9 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
         ),
         color=0x78B9EA,
     )
-    embed.set_footer(text="v0.2.8 • TEST — NO PRIZES" if settings.is_test else
-                     "v0.2.8 • Live event, individual prizes only")
+    embed.set_footer(text="v2.9.5 • Shared QA — NO PRIZES" if settings.season_key == "web-qa-2026" else
+                     "v2.9.5 • TEST — NO PRIZES" if settings.is_test else
+                     "v2.9.5 • Live event, individual prizes only")
     return embed
 
 
