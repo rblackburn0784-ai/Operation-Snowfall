@@ -82,6 +82,11 @@ def verify_qa_database(dsn: str, *, season: str = QA_SEASON) -> None:
             "SELECT version FROM snowfall_identity_meta WHERE singleton=1").fetchone()
         if identity != (1,):
             raise UnifiedConfigurationError("Verified identity schema is required")
+        receipt_table = conn.execute(
+            "SELECT to_regclass('public.snowfall_identity_platform_checks')").fetchone()[0]
+        if receipt_table is None:
+            raise UnifiedConfigurationError(
+                "Cross-platform verification schema missing: deploy Snowfall-Web-QA first")
 
 
 # Only gameplay ownership fields may be displayed as Discord snowflakes.
