@@ -91,6 +91,40 @@
               <button id="linkDiscord" class="button button-outline" type="button">Link Discord account</button>
               <button id="refreshShared" class="button button-outline" type="button">Verify progress ↻</button>
             </div>
+            <div id="discordDiscardPanel" class="hidden" role="region" aria-label="Discord character replacement confirmation" style="margin-top:1.2rem;padding:1.1rem;border:1px solid #bf8956;border-radius:8px">
+              <p class="eyebrow">ACCOUNT RECOVERY · OPTIONAL</p>
+              <h3>Keep Underworld. Retire the other character.</h3>
+              <p>These are two different Snowfall characters. <strong>No points, items, currencies, titles or purchases will be combined.</strong></p>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin:.9rem 0">
+                <div style="padding:.8rem;background:rgba(27,61,78,.65);border:1px solid #55848c;border-radius:6px">
+                  <p class="eyebrow">YOU KEEP</p>
+                  <h4 id="discardKeepName">Underworld character</h4>
+                  <p id="discardKeepDetails">Your existing Underworld progress remains unchanged.</p>
+                </div>
+                <div style="padding:.8rem;background:rgba(79,43,27,.38);border:1px solid #bd875a;border-radius:6px">
+                  <p class="eyebrow">YOU PERMANENTLY LOSE ACCESS TO</p>
+                  <h4 id="discardOldName">Discord-only character</h4>
+                  <p id="discardOldDetails">Loading its game progress…</p>
+                  <p id="discardInventory"></p>
+                </div>
+              </div>
+              <p id="discardWarning" role="alert" style="color:#ffcc8f;font-weight:600">This action is permanent. The discarded character and its progress cannot be recovered through Discord sign-in.</p>
+              <p class="subtle">Historical game records are retained for audit, and previous damage to shared bosses is not reversed. The Discord login will open your Underworld character instead.</p>
+              <form id="discardForm">
+                <label style="display:flex;gap:.55rem;align-items:flex-start;margin:.85rem 0">
+                  <input id="discardAcknowledge" type="checkbox" required style="width:auto;margin-top:.25rem"/>
+                  <span>I understand I will permanently lose access to the Discord-only character and all of its separate progress, with no transfer or automatic undo.</span>
+                </label>
+                <label style="display:block;margin-bottom:.8rem">
+                  To confirm, type <strong>DISCARD DISCORD CHARACTER</strong>:
+                  <input id="discardPhrase" type="text" autocomplete="off" spellcheck="false" placeholder="DISCARD DISCORD CHARACTER" required maxlength="32"/>
+                </label>
+                <div class="quick-actions">
+                  <button id="discardConfirm" type="submit" class="button button-gold" disabled>Retire Discord Character &amp; Link</button>
+                  <button id="discardCancel" type="button" class="button button-outline">Cancel — Keep Both Characters</button>
+                </div>
+              </form>
+            </div>
             <p class="subtle" style="margin-top:.8rem">This staging database is independent of the live Discord Christmas event. Only linked QA accounts can share its progress.</p>
           </div>
           <div class="section-heading compact"><div><p class="eyebrow">THE DAILY BRIEFING</p><h2>Word on the street</h2></div></div>
