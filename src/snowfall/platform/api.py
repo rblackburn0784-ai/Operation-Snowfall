@@ -28,9 +28,11 @@ from snowfall.platform.assertions import AssertionError as UnderworldAssertionEr
 from snowfall.platform.assertions import parse_underworld_assertion
 from snowfall.platform.game import SharedGame
 from snowfall.platform.identity import IdentityConflict, IdentityError, IdentityRepository
+from snowfall.platform.discard import CONFIRM_PHRASE, DiscardService, QA_SEASON
 
 
 COOKIE = "snowfall_session"
+DISCARD_COOKIE = "snowfall_discard_challenge"
 IDEMPOTENCY = re.compile(r"^[a-zA-Z0-9_-]{12,100}$")
 
 
@@ -121,6 +123,12 @@ class OAuthStart(BaseModel):
     mode: Literal["login", "link"] = "login"
 
 
+class DiscardConsent(BaseModel):
+    acknowledged_loss: Literal[True]
+    confirmation: Literal["DISCARD DISCORD CHARACTER"]
+
+
+
 def _idempotency(principal_id: int, operation: str, key: str | None) -> str:
     if not key or not IDEMPOTENCY.fullmatch(key):
         raise HTTPException(400, "Idempotency-Key must be 12–100 alphanumeric/_/- characters")
@@ -172,7 +180,7 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         shared.store.season(cfg.season_key)
         yield
 
-    app = FastAPI(title="Operation Snowfall Shared API", version="2.9.4c1",
+    app = FastAPI(title="Operation Snowfall Shared API", version="2.9.4d",
                   lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
     if cfg.cors_origins:
         app.add_middleware(CORSMiddleware, allow_origins=list(cfg.cors_origins),
@@ -293,6 +301,8 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         identities.revoke(request.cookies.get(COOKIE, ""))
         response.delete_cookie(COOKIE, path="/", secure=cfg.cookie_secure, httponly=True,
                                samesite="lax")
+        response.delete_cookie(DISCARD_COOKIE, path="/", secure=cfg.cookie_secure,
+                               httponly=True, samesite="lax")
         return {"logged_out": True}
 
     @app.post("/v1/auth/discord/start")
@@ -341,6 +351,25 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
                 reason = _link_conflict_code(exc)
                 logging.getLogger(__name__).warning(
                     "Discord account-link denied: category=%s", reason)
+                if reason == "gameplay" and cfg.season_key == QA_SEASON:
+                    # The signed-in Underworld player and a freshly OAuth-
+                    # verified Discord ID may offer an explicit replacement.
+                    # No game data or identity is changed at this stage.
+                    try:
+                        challenge = DiscardService(identities, cfg.season_key).begin(
+                            principal, user_id, request.cookies.get(COOKIE, ""))
+                    except IdentityError:
+                        # Prize awards, another linked character, finalised
+                        # seasons and unforeseen profiles remain blocked.
+                        pass
+                    else:
+                        response = RedirectResponse(
+                            cfg.public_base_url + "/?discord=discard-offer",
+                            status_code=303)
+                        response.set_cookie(
+                            DISCARD_COOKIE, challenge, max_age=600, httponly=True,
+                            secure=cfg.cookie_secure, samesite="lax", path="/")
+                        return response
                 return RedirectResponse(
                     cfg.public_base_url + "/?discord=conflict&reason=" + reason,
                     status_code=303)
@@ -351,6 +380,43 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         response = RedirectResponse(cfg.public_base_url + "/?login=ok", status_code=303)
         cookie(response, token)
         return response
+
+    @app.get("/v1/auth/discord/discard/preview")
+    def discard_preview(request: Request, principal: int = Depends(player)):
+        """No user-provided identity: a session-bound, OAuth-confirmed cookie."""
+        if cfg.season_key != QA_SEASON:
+            raise HTTPException(404, "Not available")
+        return DiscardService(identities, cfg.season_key).preview(
+            principal, request.cookies.get(COOKIE, ""),
+            request.cookies.get(DISCARD_COOKIE, ""))
+
+    @app.post("/v1/auth/discord/discard/confirm")
+    def discard_confirm(body: DiscardConsent, request: Request, response: Response,
+                        principal: int = Depends(writer)):
+        """Explicit irreversible retirement; game records retained for audit."""
+        if cfg.season_key != QA_SEASON:
+            raise HTTPException(404, "Not available")
+        if body.confirmation != CONFIRM_PHRASE or body.acknowledged_loss is not True:
+            raise HTTPException(400, "Explicit consent required")
+        result = DiscardService(identities, cfg.season_key).confirm(
+            principal, request.cookies.get(COOKIE, ""),
+            request.cookies.get(DISCARD_COOKIE, ""),
+            acknowledged=body.acknowledged_loss, phrase=body.confirmation)
+        response.delete_cookie(DISCARD_COOKIE, path="/", secure=cfg.cookie_secure,
+                               httponly=True, samesite="lax")
+        return result
+
+    @app.post("/v1/auth/discord/discard/cancel")
+    def discard_cancel(request: Request, response: Response,
+                       principal: int = Depends(writer)):
+        if cfg.season_key != QA_SEASON:
+            raise HTTPException(404, "Not available")
+        DiscardService(identities, cfg.season_key).cancel(
+            principal, request.cookies.get(COOKIE, ""),
+            request.cookies.get(DISCARD_COOKIE, ""))
+        response.delete_cookie(DISCARD_COOKIE, path="/", secure=cfg.cookie_secure,
+                               httponly=True, samesite="lax")
+        return {"cancelled": True}
 
     @app.get("/v1/game/leaderboard")
     def leaderboard(limit: int = Query(default=25, ge=1, le=50)):
