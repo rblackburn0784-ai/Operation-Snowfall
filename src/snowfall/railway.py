@@ -1,10 +1,9 @@
-"""Railway worker entry point for Operation Snowfall v2.9.1.
+"""One existing Discord bot: guarded shared-QA cutover and SQLite rollback backup.
 
-The live bot keeps its existing SQLite/gameplay implementation.  This adapter
-builds a temporary non-secret config from Railway variables, refuses ephemeral
-storage, checks the database, makes a WAL-safe backup, and starts one bot.
-
-No public HTTP port or website is created in this release.
+Defaults to original production SQLite game. Opt-in shared QA first validates
+canonical staging PostgreSQL, securely backs up the unchanged SQLite volume,
+and starts the *same* Discord bot/token against the web QA game database.
+No second Discord worker is launched and no public HTTP listener is created.
 """
 from __future__ import annotations
 
@@ -92,9 +91,15 @@ def configuration(env: Mapping[str, str]) -> tuple[str, Path, Path, str]:
         raise RailwayConfigurationError("SNOWFALL_DB_BACKEND must be sqlite or postgres")
     if backend == "postgres" and not env.get("SNOWFALL_DATABASE_URL", "").strip():
         raise RailwayConfigurationError("PostgreSQL cutover needs SNOWFALL_DATABASE_URL")
-    if env.get("SNOWFALL_SHARED_MODE", "").strip():
+    shared_mode = env.get("SNOWFALL_SHARED_MODE", "").strip().lower()
+    if shared_mode:
         from snowfall.platform.unified_discord import validate_unified_environment
         validate_unified_environment(env)
+    elif backend == "postgres" and (
+        env.get("RAILWAY_SERVICE_ID") == "39d25075-0fb8-498a-b32c-7a982b7b38c1"
+    ):
+        raise RailwayConfigurationError(
+            "The original bot cannot use PostgreSQL without guarded shared QA mode")
     guild = _positive_id(_required(env, "SNOWFALL_GUILD_ID"), "SNOWFALL_GUILD_ID")
     admins = _ids(env, "SNOWFALL_ADMIN_USER_IDS", required=True)
     staff = _ids(env, "SNOWFALL_STAFF_ROLE_IDS")
@@ -179,6 +184,73 @@ def backup_before_start(db: Path, backup_dir: Path) -> Path | None:
     return saved
 
 
+def cutover_backup(db: Path, backup_dir: Path) -> Path:
+    """Create and verify a durable, never-overwritten copy of original SQLite.
+
+    A write-once marker proves the *same* pre-cutover snapshot is available
+    even after Railway redeploys. Refuse activation if any marker, backup,
+    SQLite integrity, or write operation cannot be verified on /data.
+    """
+    from snowfall.ops import backup_sqlite, check_backup
+
+    if not db.is_file() or not db.stat().st_size:
+        raise RailwayConfigurationError(
+            "Existing SQLite game database is missing; refusing shared QA cutover")
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    marker = backup_dir / "v294e1-original-sqlite-backup.txt"
+    if marker.exists():
+        if not marker.is_file():
+            raise RailwayConfigurationError("Stored cutover backup marker is not a file")
+        filename = marker.read_text(encoding="utf-8").strip()
+        if not filename or Path(filename).name != filename or not filename.endswith(".sqlite3"):
+            raise RailwayConfigurationError("Original SQLite backup marker is invalid")
+        previous = backup_dir / filename
+        if not previous.is_file():
+            raise RailwayConfigurationError(
+                "Previously verified cutover backup is missing; refusing launch")
+        check_backup(previous)
+        LOG.info("Original pre-cutover SQLite snapshot remains verified: %s", filename)
+        return previous
+
+    snapshot = backup_sqlite(db, backup_dir)
+    check_backup(snapshot)
+    filename = snapshot.name
+    if Path(filename).name != filename or not filename.endswith(".sqlite3"):
+        raise RailwayConfigurationError("Backup output is not a valid SQLite file")
+    # Atomic write in the *same* attached volume.
+    with tempfile.NamedTemporaryFile(
+        mode="w", prefix=".v294e1-backup-", suffix=".tmp",
+        dir=backup_dir, encoding="utf-8", delete=False
+    ) as tmp:
+        tmp.write(filename + "\n")
+        tmp.flush()
+        os.fsync(tmp.fileno())
+        temp_name = tmp.name
+    os.replace(temp_name, marker)
+    LOG.info("Original SQLite game backed up and verified before QA cutover: %s", filename)
+    return snapshot
+
+
+def verify_shared_qa_preflight(env: Mapping[str, str]) -> None:
+    """Refuse a token connection unless staging ownership & schema are correct.
+
+    Exception details from the remote database may contain a connection URL;
+    print a stable, non-sensitive error rather than revealing credentials.
+    """
+    from snowfall.platform.unified_discord import (
+        validate_unified_environment, verify_qa_database,
+    )
+
+    dsn = validate_unified_environment(env)
+    try:
+        verify_qa_database(dsn, season=env["SNOWFALL_SEASON_KEY"])
+    except Exception:
+        raise RailwayConfigurationError(
+            "Shared QA PostgreSQL connection or schema verification failed. "
+            "Check the public TCP endpoint, SSL mode, database and stage marker."
+        ) from None
+
+
 @contextmanager
 def one_instance(data: Path):
     """Linux advisory lock guards against accidental duplicate workers on one mount."""
@@ -200,22 +272,34 @@ def one_instance(data: Path):
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Operation Snowfall v2.9.1 Railway worker")
+    parser = argparse.ArgumentParser(description="Operation Snowfall v2.9.4e1 Railway worker")
     parser.add_argument("--check", action="store_true", help="Verify Railway variables and mounted storage without starting Discord")
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     try:
         config_text, db, backup_dir, season = configuration(os.environ)
         check_storage(db)
+        shared_qa = os.environ.get("SNOWFALL_SHARED_MODE", "").strip().lower() == "qa"
         if args.check:
+            if shared_qa:
+                verify_shared_qa_preflight(os.environ)
+                # A check does not write a backup, but refuses missing SQLite.
+                if not db.is_file():
+                    raise RailwayConfigurationError(
+                        "Cannot cut over without the existing /data/snowfall.sqlite3")
             print(f"OK: Railway worker configured; season={season}; data={db.parent}; "
-                  f"database={'existing' if db.exists() else 'new'}; token=present (hidden)")
+                  f"database={'existing' if db.exists() else 'new'}; "
+                  f"shared_qa={'ready' if shared_qa else 'off'}; token=present (hidden)")
             return 0
         with one_instance(db.parent), tempfile.TemporaryDirectory(prefix="snowfall-railway-") as temp:
-            if os.environ.get("SNOWFALL_DB_BACKEND", "sqlite").lower() != "postgres":
-                backup_before_start(db, backup_dir)
+            if shared_qa:
+                # Fail closed BEFORE opening the Discord gateway or touching
+                # any real scoreboard; the original on-volume SQLite file is
+                # kept unchanged and a verified rollback snapshot is retained.
+                verify_shared_qa_preflight(os.environ)
+                cutover_backup(db, backup_dir)
             else:
-                LOG.info("PostgreSQL selected; configure Railway database backups separately")
+                backup_before_start(db, backup_dir)
             config_file = Path(temp) / "config.toml"
             config_file.write_text(config_text, encoding="utf-8")
             config_file.chmod(0o600)
