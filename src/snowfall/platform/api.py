@@ -257,7 +257,7 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
             if row is None or row[0] != 1:
                 raise RuntimeError("Staging game database did not respond")
         except Exception:
-            logging.getLogger(__name__).exception("Snowfall QA readiness check failed")
+            logging.getLogger(__name__).error("Snowfall QA readiness check failed")
             raise HTTPException(503, "Shared gameplay is temporarily unavailable") from None
         return {"status": "ready", "season": cfg.season_key,
                 "backend": "postgres", "version": "2.9.5"}
