@@ -1,4 +1,4 @@
-/* Operation Snowfall v2.9.6a — branded HQ with shared cosmetic layers. */
+/* Operation Snowfall v2.9.6b — restored splash, header branding and larger HQ. */
 "use strict";
 const S={session:null,me:null,world:null,raid:null,shop:null,items:[],board:[],cities:[],targets:[],config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
@@ -54,6 +54,7 @@ function cosmeticName(key){return S.items.find(item=>item.key===key)?.name||
 function showWardrobe(){
  const wardrobe=S.session&&S.me?.registered?S.shop:null;
  const layers=profileLayers(wardrobe);
+ el("hqPortraitWell").classList.toggle("has-frame",!!layers.frame.key);
  for(const slot of Object.keys(layers)){
   const id=slot[0].toUpperCase()+slot.slice(1),node=el("hq"+id),layer=layers[slot];
   if(layer.src){

@@ -34,3 +34,16 @@ test("branding and collector controls are present and account tools remain acces
  assert.ok(html.includes('width="2048" height="682"'));
  assert.ok(html.includes('data-nav="shop">Edit appearance'));
 });
+
+test("v2.9.6b header branding does not displace the original Snow Don splash",()=>{
+ const header=html.split("</header>")[0],main=html.split("</header>")[1];
+ assert.ok(header.includes('id="siteBanner"'));
+ assert.ok(header.includes('id="brandIcon"'));
+ assert.ok(!main.includes('id="siteBanner"'));
+ assert.ok(main.includes('src="/art/v290/boss/phase_ice.webp"'));
+ assert.ok(main.includes('THE COLD<br><em>NEVER</em>'));
+ assert.ok(main.includes('id="hqPortraitWell"'));
+ const css=readFileSync(path.join(root,"platform/static/app.css"),"utf8");
+ assert.match(css,/\.portrait-well\{aspect-ratio:1;overflow:hidden/);
+ assert.match(css,/\.collector-profile\{width:100%;max-width:340px/);
+});
