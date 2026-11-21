@@ -1,3 +1,9 @@
+# v2.9.5b — Live QA Smoke Repair
+
+Live Railway checks on 21 November 2026 confirmed both platforms online, the shared SQLite rollback snapshot intact, and no HTTP 5xx failures. They also uncovered one Discord `Unknown interaction (10062)` error when selecting the legacy **Attack Snow Don** button. This bot-only QA patch acknowledges boss/siege button clicks before slow cross-project Underworld identity checks. It does not affect the canonical game ledger, scoring, rewards, browser site or real-prize season.
+
+[Full smoke report and operator checklist](docs/RELEASE_v2.9.5b.md). The staff `/snowadmin launch-check` and SnowDude's new in-guild action are still required before final acceptance.
+
 # Operation Snowfall v2.9.5a — Release Consolidation & QA Deployment
 
 The isolated shared PostgreSQL game is now guarded by the combined v2.9.5 QA release: strict Underworld + Discord identity verification, read-only host launch audit, duplicate-action and browser retry safety, original Discord UI link checks, and multi-client PostgreSQL replay tests.

@@ -22,6 +22,28 @@ def now():
     return datetime.now(timezone.utc)
 
 
+async def _ack_slow_qa_button(interaction, view, labels):
+    """Acknowledge before cross-project PostgreSQL identity checks.
+
+    Discord invalidates a button interaction after roughly three seconds.
+    Cross-project account verification requires two DB roundtrips; acknowledging
+    *before* those reads avoids 404 Unknown interaction. Only target known
+    attack/confirmation buttons; leave navigation and raid callbacks using
+    their existing one-response workflow.
+    """
+    if getattr(interaction.client, "unified_identity", None) is None:
+        return
+    if interaction.response.is_done():
+        return
+    payload = getattr(interaction, "data", None) or {}
+    custom_id = payload.get("custom_id")
+    for item in view.children:
+        if (getattr(item, "label", None) in labels
+                and getattr(item, "custom_id", None) == custom_id):
+            await interaction.response.defer()
+            return
+
+
 def status_text(state):
     if state.day is None:
         return f"❄️ World events are not open (phase: **{state.phase}**)."
@@ -106,14 +128,21 @@ class WorldView(discord.ui.View):
         if interaction.guild_id != self.settings.guild_id or interaction.user.id != self.owner_id:
             await interaction.response.send_message('This is another player’s private menu.', ephemeral=True)
             return False
+        await _ack_slow_qa_button(
+            interaction, self, frozenset({"Attack Snow Don", "Attack City Fortress"}))
         return await require_linked_discord(interaction)
 
     async def _attack(self, interaction, kind):
-        await interaction.response.edit_message(
-            content=f'Confirm one **{kind.title()}** attack? Costs 1 snowball, '
-                    'uses the shared 30-second cooldown and counts as a legal NPC attempt.',
-            view=WorldConfirm(self.settings, self.store, self.owner_id, kind),
-            embed=None, attachments=[])
+        kwargs = {
+            "content": f"Confirm one **{kind.title()}** attack? Costs 1 snowball, "
+                       "uses the shared 30-second cooldown and counts as a legal NPC attempt.",
+            "view": WorldConfirm(self.settings, self.store, self.owner_id, kind),
+            "embed": None, "attachments": [],
+        }
+        if interaction.response.is_done():
+            await interaction.edit_original_response(**kwargs)
+        else:
+            await interaction.response.edit_message(**kwargs)
 
     @discord.ui.button(label='Attack Snow Don', emoji='☃️', style=discord.ButtonStyle.primary)
     async def boss(self, interaction, _):
@@ -161,11 +190,14 @@ class WorldConfirm(discord.ui.View):
         if interaction.guild_id != self.settings.guild_id or interaction.user.id != self.owner_id:
             await interaction.response.send_message('Not your attack confirmation.', ephemeral=True)
             return False
+        await _ack_slow_qa_button(
+            interaction, self, frozenset({"Confirm Attack", "Cancel"}))
         return await require_linked_discord(interaction)
 
     @discord.ui.button(label='Confirm Attack', style=discord.ButtonStyle.danger)
     async def confirm(self, interaction, _):
-        await interaction.response.defer()
+        if not interaction.response.is_done():
+            await interaction.response.defer()
         try:
             result = await asyncio.to_thread(WorldEngine(self.store).attack,
                                              self.settings.season_key, self.owner_id,
@@ -206,7 +238,8 @@ class WorldConfirm(discord.ui.View):
 
     @discord.ui.button(label='Cancel', style=discord.ButtonStyle.secondary)
     async def cancel(self, interaction, _):
-        await interaction.response.defer()
+        if not interaction.response.is_done():
+            await interaction.response.defer()
         state = await asyncio.to_thread(WorldEngine(self.store).status,
                                         self.settings.season_key, self.owner_id, now())
         await delivery.edit_result(interaction, status_text(state),
