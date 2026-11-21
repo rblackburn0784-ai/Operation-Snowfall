@@ -1,3 +1,9 @@
+# v2.9.4b — One Discord Bot, Shared Underworld Progress (QA)
+
+The existing Operation Snowfall Discord application can now run the original `/snow` menus against the verified cross-platform staging PostgreSQL game, while `/snowbridge` checks linked progress **in the same process and guild**. No second bot or token is needed. This is an opt-in QA feature branch: the live Railway bot remains on its original SQLite configuration until a controlled cutover. Real Discord linking requires enabling OAuth on the **existing** application.
+
+[See v2.9.4b activation and OAuth instructions](docs/RELEASE_v2.9.4b.md).
+
 # v2.9.2a — PostgreSQL Compatibility Fix
 
 Psycopg non-returning statements now work with Snowfall's sqlite-style row adapter. See [release notes](docs/RELEASE_v2.9.2a.md). PostgreSQL remains opt-in; the live Railway bot is unaffected until explicitly redeployed and cut over.
