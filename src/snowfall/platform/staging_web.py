@@ -67,7 +67,7 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None, game=
     @app.get("/v1/web/config")
     def config():
         return {
-            "version": "2.9.6f", "staging": True,
+            "version": "2.9.6g", "staging": True,
             "branding": {"banner": (ASSETS / "snowfall-site-banner.webp").is_file(),
                          "icon": (ASSETS / "snowfall-site-icon.webp").is_file()},
             "season": cfg.season_key,
@@ -101,6 +101,19 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None, game=
                 "matches": [asdict(m) for m in board.matches],
                 "districts": [asdict(d) for d in board.districts],
                 "honorary_only": True}
+
+    @app.get("/v1/web/wire")
+    def wire_status(response: Response, day: int | None = Query(default=None, ge=1, le=7)):
+        from snowfall.platform.wire_view import wire_view
+        from snowfall.services.wire import WireError
+        if game is None:
+            raise HTTPException(503, "Snowfall Wire unavailable")
+        try:
+            result = wire_view(game, day=day)
+        except WireError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        response.headers["Cache-Control"] = "no-store"
+        return result
 
     @app.post("/v1/auth/demo")
     def demo_login(body: DemoLogin, request: Request, response: Response):
