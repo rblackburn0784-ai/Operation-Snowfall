@@ -147,4 +147,4 @@ def test_original_bot_registers_shared_commands_in_same_single_client():
     assert "self.tree.add_command(SnowBridgeGroup(" in src
     assert "self.unified_gateway" in src
     from snowfall.platform.discord_bridge import SnowBridgeGroup
-    assert "verify" in {cmd.name for cmd in SnowBridgeGroup.__discord_app_commands__}
+    assert "verify" in {cmd.name for cmd in SnowBridgeGroup(None, 123456789123456789).commands}
