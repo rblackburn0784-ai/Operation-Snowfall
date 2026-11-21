@@ -465,3 +465,32 @@ html[data-atmosphere="off"] .button:hover:not(:disabled){transform:none}
  #marketCatalogue,#marketFitting,#marketWorkshop,#hqMissions,#accountTools{scroll-margin-top:6rem}
 }
 @media(max-width:360px){.play-dock .nav-item{font-size:.59rem}.play-status{font-size:.66rem}.play-status strong{font-size:.75rem}.market-jumps .button{font-size:.66rem;padding:.5rem .3rem}.play-details{padding:.45rem}}
+
+/* v2.9.6i — face/neck-aligned original cosmetics, with trails beside the portrait. */
+.portrait-well{container-type:inline-size}
+.portrait-well .gear-layer,.portrait-well .trail-layer{object-fit:contain;max-width:none;max-height:none;pointer-events:none;aspect-ratio:1;opacity:1}
+.portrait-well .trail-layer{opacity:.94;z-index:2}
+.portrait-well .gear-layer{z-index:3}
+.portrait-well .frame-layer{z-index:4}
+.city-siege{margin:0 0 1.2rem;border:1px solid #9a8154;background:#142c39;overflow:hidden;scroll-margin-top:6rem}
+.siege-hero{position:relative;isolation:isolate;background:#102b3a;min-height:215px;display:flex;align-items:flex-end}
+.siege-skyline,.siege-shade{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
+.siege-shade{background:linear-gradient(90deg,#081521ed,#08152188),linear-gradient(0deg,#081521a8,transparent);z-index:-1}
+.siege-hero-content{padding:clamp(.85rem,2.5vw,1.4rem);width:100%;min-width:0}
+.siege-hero h3{font:700 clamp(1.45rem,3vw,2.15rem) Georgia,serif;color:#f0d5a1;margin:.25rem 0 .55rem}
+.siege-hero p:not(.eyebrow){color:#d1dee4;font-size:.78rem;margin:.45rem 0 0}
+.siege-matchup{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;text-align:center;gap:.65rem;max-width:440px;background:#0c202bb5;border:1px solid #82929a55;padding:.55rem}
+.siege-matchup img{width:62px;height:62px;object-fit:contain;display:block;margin:0 auto .15rem}
+.siege-matchup strong,.siege-matchup small{display:block;overflow-wrap:anywhere}
+.siege-matchup strong{color:#f1dbb2;font-size:.88rem}
+.siege-matchup small,.siege-vs{font-size:.65rem;letter-spacing:.07em;color:#e7c58c}.siege-vs{font-weight:800}
+.siege-main{display:grid;grid-template-columns:minmax(0,32%) minmax(0,1fr);align-items:center;gap:1rem;padding:clamp(.7rem,2vw,1.1rem)}
+.siege-fort-art{width:100%;max-height:230px;object-fit:contain}
+.siege-health{min-width:0}.siege-health h4{font-size:1.15rem;margin:.35rem 0;color:#edd4a3}
+.siege-hp-row{display:flex;justify-content:space-between;align-items:center;gap:.35rem;flex-wrap:wrap;margin:.6rem 0 .35rem}.siege-hp-row strong{font-size:1.3rem;color:#e7d0a8}.siege-hp-row span{font-size:.72rem;color:#c5dbe4}
+#siegeHpBar{background:linear-gradient(90deg,#8ac1d8,#e5bf7b)}
+.city-siege[data-siege-state="cleared"] .siege-health h4{color:#9edbc4}
+.siege-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.4rem;margin:.7rem 0}.siege-kpis>div{background:#102330;border:1px solid #4e6978;padding:.65rem}.siege-kpis small,.siege-kpis strong{display:block}.siege-kpis small{font-size:.68rem;color:#b9d4df}.siege-kpis strong{font-size:1.35rem;color:#eed4a6}
+#siegeRuleNote{font-size:.75rem;line-height:1.55;margin:.65rem 0 0}
+.siege-outcome{padding:.75rem 1rem;background:#203b3d;border-top:1px solid #83b5a5;color:#e2efe8}.siege-outcome strong{color:#f1d4a0}.siege-outcome p{margin:.3rem 0;font-size:.83rem}
+@media(max-width:560px){.siege-main{grid-template-columns:1fr;gap:.5rem}.siege-fort-art{height:145px}.siege-hero{min-height:190px}.siege-matchup img{width:52px;height:52px}.siege-health .button{flex:1 1 120px}.siege-hero-content{padding:.75rem}}
