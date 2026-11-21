@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import asyncio
+import os
 import argparse
 from datetime import datetime, timezone
 import discord
@@ -21,6 +22,7 @@ from snowfall.services.world import WorldEngine
 from snowfall.ui.broadcast import BroadcastPublisher
 from snowfall.ops import backup_sqlite, restore_sqlite
 from snowfall.practice import PracticeManager, ScopedSettings, ScopedStore
+from snowfall.platform.identity import IdentityError, IdentityRepository
 
 log = logging.getLogger(__name__)
 
@@ -31,6 +33,22 @@ class GuildCommandTree(app_commands.CommandTree):
             await interaction.response.send_message(
                 "Operation Snowfall only works in its dedicated event server.", ephemeral=True)
             return False
+        if self.client.unified_identity is not None:
+            command = getattr(interaction.command, "qualified_name", "")
+            # Preserve public help, the account-link instructions and host
+            # administration. Gameplay cannot create an unlinked second profile.
+            public = {"snow privacy", "snow rules", "snow guide", "snowbridge link"}
+            if command not in public and not command.startswith("snowadmin "):
+                try:
+                    await asyncio.to_thread(
+                        self.client.unified_identity.principal_for_discord,
+                        str(interaction.user.id))
+                except IdentityError:
+                    await interaction.response.send_message(
+                        "🔗 Link your Discord account to your Underworld character "
+                        "before playing. Use `/snowbridge link` for instructions.",
+                        ephemeral=True)
+                    return False
         return True
 
 
@@ -44,6 +62,19 @@ class SnowfallBot(discord.Client):
         self.practice.clean_orphans()
         self.tree = GuildCommandTree(self)
         self.broadcast = BroadcastPublisher(self, settings, store)
+        self.unified_identity = None
+        self.unified_gateway = None
+        if getattr(store, "unified_discord", False):
+            # No second bot is started: these commands are registered on the
+            # existing Discord Client using the already configured guild/token.
+            from snowfall.platform.discord_bridge import DiscordBridgeGateway
+            from snowfall.platform.game import SharedGame
+            from snowfall.platform.staging import StagingGame
+            self.unified_identity = IdentityRepository(store.dsn)
+            self.unified_identity.check()
+            raw = PostgresStore(store.dsn, practice_root=store.path.parent)
+            self.unified_gateway = DiscordBridgeGateway(
+                self.unified_identity, StagingGame(SharedGame(raw, settings.season_key)))
 
     async def setup_hook(self):
         guild = discord.Object(id=self.settings.guild_id)
@@ -51,6 +82,10 @@ class SnowfallBot(discord.Client):
         self.tree.add_command(SnowGroup(*routes, practice=self.practice), guild=guild)
         self.tree.add_command(SnowAdminGroup(*routes, practice=self.practice), guild=guild)
         self.tree.add_command(SnowFunGroup(*routes, practice=self.practice), guild=guild)
+        if self.unified_gateway is not None:
+            from snowfall.platform.discord_bridge import SnowBridgeGroup
+            self.tree.add_command(SnowBridgeGroup(
+                self.unified_gateway, self.settings.guild_id), guild=guild)
 
         # /snow already has 25 commands, so this separate shortcut preserves all aliases.
         @app_commands.command(name="cityhq", description="Your city HQ, co-op mission, rivalries and Snowfall Wire")
@@ -149,6 +184,16 @@ def main(argv: list[str] | None = None):
     load_dotenv()
     settings = load_settings()
     store = make_store(settings.database_path)
+    mode = os.getenv("SNOWFALL_SHARED_MODE", "").strip().lower()
+    if mode:
+        from snowfall.platform.unified_discord import (
+            UnifiedDiscordStore, validate_unified_environment, verify_qa_database,
+        )
+        # Direct python bot.py invocations must obey the same safety gates
+        # as the Railway entry point.
+        dsn = validate_unified_environment(os.environ)
+        verify_qa_database(dsn, season=settings.season_key)
+        store = UnifiedDiscordStore(dsn, practice_root=settings.database_path.parent)
     if getattr(store, "backend", "sqlite") == "postgres" and (args.restore or args.backup_now):
         parser.error("SQLite backup/restore flags are unavailable for PostgreSQL; use managed PG backups")
     if args.restore:
