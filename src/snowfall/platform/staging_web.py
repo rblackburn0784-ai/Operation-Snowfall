@@ -66,12 +66,20 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None, game=
 
     @app.get("/v1/web/config")
     def config():
+        from snowfall.services.combat import ATTACKS, DAILY_PVP_CAP
+        from snowfall.services.economy import ITEM_COSTS, ITEM_CAPS
+        from snowfall.services.world import BOSS_LIMIT, SIEGE_LIMIT, BOSS_CAP, SIEGE_CAP
         return {
-            "version": "2.9.6g", "staging": True,
+            "version": "2.9.6h", "staging": True,
             "branding": {"banner": (ASSETS / "snowfall-site-banner.webp").is_file(),
                          "icon": (ASSETS / "snowfall-site-icon.webp").is_file()},
             "season": cfg.season_key,
             "demo_enabled": True,
+            "underworld_url": cfg.underworld_origin,
+            "play_rules": {"pvp_cap": DAILY_PVP_CAP, "boss_limit": BOSS_LIMIT,
+                           "siege_limit": SIEGE_LIMIT, "boss_cap": BOSS_CAP,
+                           "siege_cap": SIEGE_CAP, "styles": ATTACKS,
+                           "craft_costs": ITEM_COSTS, "item_caps": ITEM_CAPS},
             "discord_oauth": bool(cfg.discord_client_id),
             "underworld_assertions": bool(cfg.underworld_secret),
             "streets_url": safe_streets_url(env.get("SNOWFALL_DISCORD_STREETS_URL", "")),
