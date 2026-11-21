@@ -14,6 +14,7 @@ import sqlite3
 import discord
 
 from snowfall.core.permissions import is_host, permitted_guild
+from snowfall.ui.linked import require_linked_discord
 from snowfall.practice import pin, practice_expired, PracticeError
 from snowfall.services.combat import CombatEngine, CombatError
 from snowfall.services.economy import EconomyEngine, EconomyError
@@ -63,6 +64,8 @@ class MenuView(discord.ui.View):
                 interaction.guild_id, self.settings.guild_id):
             await interaction.response.send_message("This menu belongs to a different player or server.",
                                                     ephemeral=True)
+            return False
+        if not await require_linked_discord(interaction):
             return False
         if self.host_only and not _host(self.settings, interaction.user.id):
             await interaction.response.send_message("Only configured hosts can use this panel.", ephemeral=True)
