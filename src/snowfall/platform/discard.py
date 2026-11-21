@@ -10,8 +10,6 @@ from __future__ import annotations
 from hashlib import sha256
 import secrets
 
-from psycopg import sql
-
 from snowfall.db.migrate_postgres import EXPECTED_TABLES
 from snowfall.db.postgres import LOCK_KEY as GAME_LOCK
 from snowfall.platform.identity import IdentityConflict, IdentityError, LOCK, PLAYER_START, digest
@@ -88,6 +86,7 @@ class DiscardService:
         Invalidates consent if points, inventory, actions or incoming attacks
         change between the preview and the irreversible confirmation.
         """
+        from psycopg import sql  # Optional PostgreSQL extra: only required in QA runtime.
         cur.execute("""SELECT table_name,column_name FROM information_schema.columns
                        WHERE table_schema='public'
                          AND table_name NOT LIKE 'snowfall_identity_%%'
