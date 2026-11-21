@@ -1,0 +1,120 @@
+name: v2.9.6d deployed headquarters smoke
+on:
+  push:
+    branches: [qa/v2.9.6d-live-hq-smoke]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deployed-hq-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify live configuration and private route
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,time,urllib.request,urllib.error,hashlib,pathlib
+          base="https://snowfall-web-qa-staging.up.railway.app"
+          def get(path):
+              with urllib.request.urlopen(base+path,timeout=20) as r:
+                  return r.read(),r.headers
+          for i in range(60):
+              try:
+                  cfg=json.loads(get("/v1/web/config")[0])
+                  assert cfg["version"]=="2.9.6d",cfg["version"]
+                  assert cfg["staging"] is True and cfg["branding"]=={"banner":True,"icon":True}
+                  get("/v1/ready")
+                  boss=json.loads(get("/v1/web/boss")[0])
+                  assert boss["state"] in ("healthy","cracked","wounded","critical","waiting","disabled","defeated")
+                  try:
+                      get("/v1/game/headquarters")
+                  except urllib.error.HTTPError as e:
+                      assert e.code==401,e.code
+                  else:
+                      raise AssertionError("Private HQ returned data without authentication")
+                  break
+              except Exception:
+                  if i==59: raise
+                  time.sleep(5)
+          print("LIVE config",cfg["version"],"staging",cfg["staging"],"HQ anonymous request: 401","boss:",boss["state"])
+          for asset in ("v290/cosmetics/backgrounds/headquarters.webp","v290/trophies/backgrounds/trophy_cabinet.png","v290/cities/crests/chicago_crest.png","v290/trophies/medals/first_flurry.png"):
+              data,headers=get("/art/"+asset)
+              assert headers.get("Content-Type","").startswith("image/")
+              assert hashlib.sha256(data).digest()==hashlib.sha256(pathlib.Path("src/snowfall/graphics/art",asset).read_bytes()).digest()
+              print("PASS exact artwork",asset)
+          PY
+      - name: Install browser
+        run: |
+          python -m pip install playwright
+          python -m playwright install chromium
+      - name: Render fictional private HQ, wardrobe, trophies and timers
+        shell: bash
+        run: |
+          mkdir -p qa-screenshots
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright, expect
+          from urllib.parse import urlsplit
+          from datetime import datetime,timedelta,timezone
+          import json
+          base="https://snowfall-web-qa-staging.up.railway.app"
+          fake="999999999999999999"
+          equipment={"portrait":"noir_detective","frame":"gold_frame","banner":"midnight_banner","gear":"goggles","trail":"snow_trail"}
+          now=datetime.now(timezone.utc)
+          trophies=[{"key":"first_flurry","badge":"First Flurry","title":"Snowball Rookie","description":"First PvP hit","progress":1,"target":1,"unlocked":True,"rarity":"Common"},{"key":"deadeye","badge":"Deadeye","title":"Frostbite Marksman","description":"Land 25 PvP hits","progress":5,"target":25,"unlocked":False,"rarity":"Rare"}]
+          hq={"registered":True,"phase":"live","day":2,"server_time":now.isoformat(),"daily_points":12,"rank":3,"season_points":42,"caps":{"snowballs":12,"warmth":100,"pvp":300},"today_pvp":12,"timers":{"snowball":(now+timedelta(minutes=5)).isoformat(),"arena":(now+timedelta(hours=1)).isoformat()},"next_action":"Find a rival","next_action_route":"fight","daily_gift":"Opened","bonus_gift":"Not today","quests":[{"key":"example","name":"Test daily quest","progress":2,"target":3,"claimed":False}],"title":"Snowball Rookie","rarity":"Rare","owned_count":5,"cosmetic_total":17,"trophies":trophies,"records":{"pvp_throws":8,"accuracy":50.0,"critical_hits":2,"knockouts":1,"best_hit":40,"boss_damage":76,"siege_damage":12,"active_days":2}}
+          fixtures={"/v1/auth/session":{"player_id":fake,"csrf":"fixture-no-real-session","links":[{"provider":"discord"},{"provider":"underworld"}]},"/v1/game/me":{"registered":True,"player_id":fake,"mr_username":"QA Collector - fictional","city":"Chicago","phase":"live","day":2,"score":42,"resources":{"snowballs":10,"warmth":80,"snowflakes":53}},"/v1/game/wardrobe":{"balance":53,"unlocked":list(equipment.values()),"equipped":equipment},"/v1/game/world":{"boss_hp":76,"boss_max_hp":150},"/v1/game/targets":{"targets":[]},"/v1/game/progress":{"registered":True,"score":42,"snowballs":10,"snowflakes":53,"boss_hp":76,"boss_max_hp":150},"/v1/verification/status":{"state":"not_started"},"/v1/game/headquarters":hq}
+          def loaded(page,id):
+              expect(page.locator("#"+id)).to_be_visible(timeout=30000)
+              page.wait_for_function("(id)=>{const i=document.getElementById(id);return i.complete&&i.naturalWidth>0;}",arg=id,timeout=30000)
+          with sync_playwright() as p:
+              browser=p.chromium.launch(headless=True,args=["--no-sandbox"])
+              for label,w,h in [("desktop",1440,1000),("mobile",390,844),("small-mobile",320,740)]:
+                  page=browser.new_page(viewport={"width":w,"height":h},device_scale_factor=1)
+                  errors=[];page.on("pageerror",lambda e:errors.append(str(e)))
+                  def route_request(route):
+                      req=route.request
+                      path=urlsplit(req.url).path
+                      if req.method not in ("GET","HEAD"): route.abort()
+                      elif path in fixtures: route.fulfill(status=200,content_type="application/json",body=json.dumps(fixtures[path]))
+                      else: route.continue_()
+                  page.route("**/*",route_request)
+                  page.goto(base,wait_until="domcontentloaded",timeout=45000)
+                  expect(page.locator("#welcomeName")).to_have_text("QA Collector - fictional",timeout=30000)
+                  expect(page.locator("#hqPlayerTitle")).to_have_text("Snowball Rookie")
+                  expect(page.locator("#hqRank")).to_have_text("#3")
+                  expect(page.locator("#hqDailyPoints")).to_have_text("12")
+                  expect(page.locator("#hqTrophyCount")).to_have_text("1 / 2 collected")
+                  expect(page.locator("#hqTrophyGrid .earned")).to_have_count(1)
+                  expect(page.locator("#hqTrophyGrid .locked")).to_have_count(1)
+                  expect(page.locator("#hqQuestList")).to_contain_text("Test daily quest")
+                  for slot,key in equipment.items():
+                      id="hq"+slot.capitalize()
+                      loaded(page,id)
+                      expect(page.locator("#"+id)).to_have_attribute("data-cosmetic",key)
+                  loaded(page,"hqCityCrest")
+                  loaded(page,"heroBossArt")
+                  page.locator("#hqTrophies").scroll_into_view_if_needed()
+                  page.wait_for_function("()=>Array.from(document.querySelectorAll('#hqTrophyGrid img')).every(i=>i.complete&&i.naturalWidth>0)")
+                  expect(page.locator("#hqTimerSnowball")).not_to_have_text("—")
+                  well=page.locator("#hqPortraitWell").bounding_box()
+                  assert abs(well["width"]-well["height"])<2,well
+                  assert page.evaluate("document.documentElement.scrollWidth-innerWidth")<=2
+                  page.screenshot(path=f"qa-screenshots/{label}-hq-fixture.png",full_page=True)
+                  assert not errors,errors
+                  print(label,"portrait",well["width"],"all five layers, trophies, timers, boss hero and layout PASS")
+                  page.close()
+              browser.close()
+          print("PASS fictional HQ on three viewports; zero game writes allowed.")
+          PY
+      - name: Save screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snowfall-v296d-hq-screenshots
+          path: qa-screenshots/
+          if-no-files-found: ignore
