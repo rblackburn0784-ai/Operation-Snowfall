@@ -32,6 +32,12 @@ migration or a claim that every winter game has a browser UI.
   **Discord-only first-login** principal until its verified Underworld
   character is linked; this specifically prevents accidentally creating
   a second prize-bearing character before the user links Underworld.
+- The website's **nine gameplay write routes** (registration, ready,
+  PvP throw, boss, siege, quest claiming, crafting, purchasing and
+  equipping) also require a verified Underworld identity. A Discord-first
+  login can still browse, log out and link accounts, but cannot create
+  a second standalone game profile. Previously created Discord-only
+  profiles remain eligible for the explicit, audited discard/relink flow.
 - Stale menus opened **before** a link changed cannot be used as a
   backdoor to registration, spending or combat. Recheck is server-side,
   using the trusted interaction.user.id and identity repository, never a
