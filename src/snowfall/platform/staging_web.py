@@ -9,7 +9,9 @@ from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from threading import Lock
+from urllib.parse import urlsplit
 import os
+import re
 import secrets
 import time
 
@@ -25,6 +27,25 @@ from snowfall.platform.identity import IdentityRepository
 from snowfall.platform.staging import StagingGame, prepare_web_qa, require_staging
 
 ASSETS = Path(__file__).resolve().parent / "static"
+ART = Path(__file__).resolve().parents[1] / "graphics" / "art"
+
+
+def safe_streets_url(value: str) -> str:
+    """Allow links to a specific Discord guild text channel, not arbitrary URLs.
+
+    This is a read-only external link, never a Discord chat relay or bot token.
+    """
+    raw = (value or "").strip()
+    try:
+        url = urlsplit(raw)
+    except ValueError:
+        return ""
+    if (url.scheme != "https" or url.netloc != "discord.com" or
+            url.query or url.fragment or
+            not re.fullmatch(r"/channels/[0-9]{15,25}/[0-9]{15,25}", url.path)):
+        return ""
+    return raw
+
 
 
 class DemoLogin(BaseModel):
@@ -45,11 +66,12 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None) -> Fa
     @app.get("/v1/web/config")
     def config():
         return {
-            "version": "2.9.5", "staging": True,
+            "version": "2.9.6", "staging": True,
             "season": cfg.season_key,
             "demo_enabled": True,
             "discord_oauth": bool(cfg.discord_client_id),
             "underworld_assertions": bool(cfg.underworld_secret),
+            "streets_url": safe_streets_url(env.get("SNOWFALL_DISCORD_STREETS_URL", "")),
         }
 
     @app.post("/v1/auth/demo")
@@ -82,7 +104,14 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None) -> Fa
         return {"authenticated": True, "player_id": str(player), "csrf": csrf,
                 "demo_slot": slot}
 
+    # Reuse the artwork already bundled with the existing Discord bot. Mount
+    # only the public art directory; no user data or game-write endpoint.
+    app.mount("/art", StaticFiles(directory=str(ART)), name="snowfall-art")
     app.mount("/static", StaticFiles(directory=str(ASSETS)), name="snowfall-static")
+
+    @app.get("/favicon.ico", include_in_schema=False)
+    def favicon():
+        return FileResponse(ASSETS / "favicon.svg", media_type="image/svg+xml")
 
     @app.get("/")
     def index():
