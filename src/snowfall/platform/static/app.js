@@ -1,6 +1,6 @@
 /* Operation Snowfall v2.9.4d — verified Discord character replacement. */
 "use strict";
-const S={session:null,me:null,world:null,raid:null,shop:null,items:[],board:[],cities:[],targets:[],config:null,progress:null,discard:null,busy:false};
+const S={session:null,me:null,world:null,raid:null,shop:null,items:[],board:[],cities:[],targets:[],config:null,progress:null,discard:null,verification:null,busy:false};
 const el=id=>document.getElementById(id);
 const txt=(id,v)=>{if(el(id))el(id).textContent=v==null?"—":String(v)};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -57,9 +57,11 @@ function showMe(){
       "Link Discord account":"Discord linking not configured";
  if(!S.me?.registered){
    txt("progressSummary","Register this character to compare your official game progress.");
+   showVerification();
    return;
  }
  renderProgress();
+ showVerification();
  txt("welcomeName",S.me.mr_username);txt("welcomeCity",S.me.city+" · Day "+(S.me.day||"—"));
  txt("ammoValue",S.me.resources?.snowballs);txt("warmthValue",S.me.resources?.warmth);
  txt("flakeValue",S.me.resources?.snowflakes);txt("scoreValue",fmt(S.me.score));
@@ -67,6 +69,59 @@ function showMe(){
  txt("ammoSub",S.me.resources?.next_snowball_at?"Regenerating snowballs":"Ready for action");
  txt("phaseValue",S.me.phase.toUpperCase());txt("sideStatus",S.me.phase.toUpperCase());
  txt("sideStatusDetail","Day "+(S.me.day||"—")+" of 7 · "+S.me.city);
+}
+function showVerification(){
+ const links=S.session?.links||[];
+ const linked=!!S.session&&!!S.me?.registered&&
+    links.some(x=>x.provider==="discord")&&links.some(x=>x.provider==="underworld");
+ el("crossPlatformPanel").classList.toggle("hidden",!linked);
+ if(!linked)return;
+ const v=S.verification;
+ txt("verificationIdentity","✓ Underworld and Discord linked to player "+S.session.player_id+".");
+ if(!v||v.state==="not_started"){
+   txt("verificationState","Not started. Save a baseline before your Discord move.");
+   txt("verificationDiscord","Discord confirmation: waiting for verification.");
+   txt("verificationGameplay","Discord gameplay: waiting for an actual game action.");
+   txt("verificationReverse","Website → Discord reverse check: optional.");
+   txt("verificationCounts","No activity in the current check.");
+   txt("verificationDelta","Official progress will be compared after verification starts.");
+   return;
+ }
+ if(v.state==="expired"){
+   txt("verificationState","Verification expired after 15 minutes. Start a fresh test.");
+   txt("verificationDiscord","No current Discord proof.");
+   txt("verificationGameplay","No current gameplay proof.");
+   txt("verificationReverse","Reverse check: not completed.");
+   txt("verificationCounts","The previous test has expired.");
+   txt("verificationDelta","Start a new check to record a fresh baseline.");
+   return;
+ }
+ txt("verificationState",v.discord_gameplay_verified?
+     "✓ Discord action recorded in the same official game database.":
+     v.discord_confirmed?"✓ Same player verified on Discord. Now perform a game action.":
+     "Awaiting the /snowbridge verify Discord command.");
+ txt("verificationDiscord",v.discord_confirmed?
+     "✓ Discord interaction authenticated as this canonical player.":
+     "○ Discord confirmation pending. Run /snowbridge verify.");
+ txt("verificationGameplay",v.discord_gameplay_verified?
+     "✓ A real Discord crafting, PvP or boss action was recorded after this test started.":
+     "○ No verified Discord gameplay yet. Use /snowbridge craft or /snowbridge boss.");
+ txt("verificationReverse",v.web_gameplay_seen_by_discord?
+     "✓ Discord re-read progress after a website action.":
+     "○ Optional: act on this website, then run /snowbridge verify again.");
+ txt("verificationCounts","Official events since baseline: Discord "+fmt(v.discord_action_count)+
+     " · Website "+fmt(v.web_action_count));
+ const d=v.delta||{},pieces=[];
+ for(const [key,name] of [["score","points"],["snowballs","snowballs"],["snowflakes","Snowflakes"],
+                           ["warmth","warmth"],["boss_hp","Snow Don HP"]]){
+   const value=Number(d[key]||0);
+   if(value)pieces.push((value>0?"+":"")+fmt(value)+" "+name);
+ }
+ for(const [item,count] of Object.entries(d.inventory||{})){
+   if(count)pieces.push((count>0?"+":"")+fmt(count)+" "+item);
+ }
+ txt("verificationDelta","Changes from website baseline: "+(
+     pieces.length?pieces.join(" · "):"No stable game values changed yet."));
 }
 function renderProgress(){
  const p=S.progress;
@@ -112,7 +167,7 @@ async function loadPublic(){
  showBoard();showCities();showBoss();showShop();
 }
 async function loadPrivate(){
- if(!S.session){S.me=null;S.world=null;S.shop=null;S.targets=[];S.progress=null;showMe();return}
+ if(!S.session){S.me=null;S.world=null;S.shop=null;S.targets=[];S.progress=null;S.verification=null;showMe();return}
  try{S.me=await get("/v1/game/me")}
  catch(e){if(e.status===401){S.session=null;S.me=null;S.progress=null;showMe();return}throw e}
  if(S.me.registered){
@@ -121,6 +176,12 @@ async function loadPrivate(){
   if(results[1].status==="fulfilled")S.shop=results[1].value;
   if(results[2].status==="fulfilled")S.targets=results[2].value.targets||[];
   if(results[3].status==="fulfilled")S.progress=results[3].value;
+  const linked=(S.session.links||[]).some(x=>x.provider==="discord")&&
+               (S.session.links||[]).some(x=>x.provider==="underworld");
+  if(linked){
+    try{S.verification=await get("/v1/verification/status")}
+    catch{S.verification=null}
+  }else S.verification=null;
  }
  showMe();showTargets();showBoss();showShop();
 }
@@ -192,6 +253,18 @@ function bind(){
    showMe();
    notice("Progress verified against the authoritative PostgreSQL game.","success");
   }catch(e){notice(e.message,"error")}
+ };
+ el("verificationStart").onclick=()=>{
+   if(!registered())return;
+   act(async()=>{
+     S.verification=await post("/v1/verification/start",{},true);
+     showVerification();
+     notice("Baseline saved. Now run /snowbridge verify in Discord.","success");
+   });
+ };
+ el("verificationCheck").onclick=async()=>{
+   try{await refresh();notice("Checked canonical progress and Discord receipts.","success")}
+   catch(e){notice(e.message,"error")}
  };
  el("discardAcknowledge").onchange=updateDiscardSubmit;
  el("discardPhrase").oninput=updateDiscardSubmit;
