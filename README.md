@@ -1,3 +1,9 @@
+# v2.9.4d — Keep Underworld, Retire the Discord-Only Snowfall Character (QA)
+
+If Discord login and Underworld login created separate Snowfall characters, players can optionally **keep the verified Underworld character and permanently retire the separate Discord-only character**. A verified Discord OAuth login, detailed loss preview, checkbox, typed confirmation, ten-minute one-use challenge and server-side account locks are required. **Nothing transfers** from the discarded character; immutable historical game records are preserved for audit and the retired player is excluded from active rankings. This feature is QA-only, not an automatic merge or production account deletion.
+
+[Release notes and safety conditions](docs/RELEASE_v2.9.4d.md).
+
 # v2.9.4c1 — Discord Link Conflict Diagnostics (QA only)
 
 The Linked Identities panel now explains whether OAuth linking was blocked by registered Discord gameplay, recorded activity, or a Discord account bound to a different character. No identifiers or tokens are included in the diagnostic redirect or logs, and all existing account-protection rules remain enforced. This is diagnostics only — it does not merge or overwrite profiles.
