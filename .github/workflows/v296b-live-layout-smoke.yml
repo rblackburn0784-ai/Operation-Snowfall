@@ -26,7 +26,7 @@ jobs:
           for i in range(36):
               try:
                   config=json.loads(get("/v1/web/config")[0])
-                  assert config["version"]=="2.9.6a", config.get("version")
+                  assert config["version"]=="2.9.6b", config.get("version")
                   assert config["staging"] is True
                   assert config["branding"]=={"banner":True,"icon":True},config["branding"]
                   break
