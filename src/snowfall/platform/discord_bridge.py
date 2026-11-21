@@ -213,16 +213,16 @@ class SnowBridgeGroup(app_commands.Group):
             return
         current = result.get("current", {})
         await interaction.followup.send(
-            "✅ **Verified Discord ↔ Web character**\\n" +
-            "Canonical player: `" + result["player_id"] + "`\\n" +
+            "✅ **Verified Discord ↔ Web character**\n" +
+            "Canonical player: `" + result["player_id"] + "`\n" +
             "Points: **" + str(current.get("score", 0)) +
             "** · Snowflakes: **" + str(current.get("snowflakes", 0)) +
             "** · Snowballs: **" + str(current.get("snowballs", 0)) +
-            "**\\nSnow Don: **" + str(current.get("boss_hp", 0)) + "/" +
-            str(current.get("boss_max_hp", 0)) + "** HP\\n" +
+            "**\nSnow Don: **" + str(current.get("boss_hp", 0)) + "/" +
+            str(current.get("boss_max_hp", 0)) + "** HP\n" +
             "Discord gameplay events in this check: **" +
-            str(result["discord_action_count"]) + "**.\\n" +
-            ("Website activity has also been read by Discord.\\n"
+            str(result["discord_action_count"]) + "**.\n" +
+            ("Website activity has also been read by Discord.\n"
              if result["web_gameplay_seen_by_discord"] else "") +
             "Return to Snowfall Web and press **Check shared progress**. "
             "Only actual game actions will count as gameplay proof.",
