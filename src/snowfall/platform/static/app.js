@@ -292,7 +292,7 @@ function showBoss(){
  const hp=known?Number(raid.hp):0,max=known?Number(raid.max_hp):0;
  const state=raid?.state||"waiting",defeated=state==="defeated",disabled=state==="disabled";
  const visibleHealth=known&&!disabled,percent=visibleHealth?Math.max(0,Math.min(100,100*hp/max)):0;
- const tier=visibleHealth?bossArtTier(hp,max):null;
+ const tier=visibleHealth?raid.tier:null;
  for(const id of ["snowDonHero","bossScene"])el(id).dataset.bossState=state;
  const art=el("heroBossArt"),portrait=el("bossPortrait");
  const splash=raid?.splash||"/art/v290/boss/phase_ice.webp";
@@ -321,7 +321,7 @@ function showBoss(){
  for(const [id,key] of [["raidHits","hit_count"],["raidContributors","contributors"],["raidMisses","misses"]])
   txt(id,raid?.[key]==null?"—":fmt(raid[key]));
  txt("raidSummary",raid?.echo_attacks==null?"Raid statistics will appear once the boss spawns.":fmt(raid.echo_attacks)+" frozen-echo attempts · shared raid totals exclude echo damage.");
- txt("bossFreshness",S.bossStale?"Last known raid status — refresh pending.":raid?"Synced with the shared raid · refreshes every 30 seconds while this page is visible.":"Waiting for the shared raid.");
+ txt("bossFreshness",S.bossStale?(raid?"Last known raid status — refresh pending.":"Raid unavailable — refresh pending."):raid?"Synced with the shared raid · refreshes every 30 seconds while this page is visible.":"Waiting for the shared raid.");
  txt("bossActionTitle",defeated?"The Don is down.": "Put the heat on him.");
  txt("bossActionText",defeated?"The real Don is defeated. The existing frozen-echo action remains available under the normal game rules; it cannot defeat him again.":"Attack the shared boss or defend your city’s siege. Daily limits, ammo costs and rewards are enforced in PostgreSQL.");
  txt("bossButton",defeated?"Attack frozen echo":"Attack the Snow Don");

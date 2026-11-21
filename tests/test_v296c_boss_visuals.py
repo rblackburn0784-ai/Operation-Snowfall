@@ -1,7 +1,7 @@
 """Visual state follows the Discord engine and never mutates the raid."""
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -72,3 +72,23 @@ def test_not_spawned_and_prestart_wait():
     season.phase.return_value = "ready"
     season.day.return_value = None
     assert current_boss(game)["hp"] is None
+
+
+def test_closed_uses_last_persisted_day():
+    store = Mock()
+    season = store.season.return_value
+    season.phase.return_value = "finalized"
+    season.day.return_value = None
+    store.connect.return_value = MagicMock()
+    con = store.connect.return_value.__enter__.return_value
+    con.execute.return_value.fetchone.return_value = (7,)
+    game = SimpleNamespace(store=store, season="isolated-test")
+    report = SimpleNamespace(remaining_hp=0, max_hp=150, enabled=True,
+                             hit_count=10, misses=2, contributors=3, echo_attacks=5)
+    with patch("snowfall.platform.boss_visuals.RaidEngine") as raid:
+        raid.return_value.report.return_value = report
+        result = current_boss(game)
+        raid.return_value.report.assert_called_once_with("isolated-test", 7)
+    assert result["state"] == "defeated"
+    assert result["season_phase"] == "finalized"
+    assert con.execute.call_count == 1
