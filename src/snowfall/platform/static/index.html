@@ -7,8 +7,8 @@
   <meta name="description" content="Operation Snowfall — the seven-day winter city showdown. Isolated staging preview.">
   <title>Operation Snowfall | The Winter Underworld</title>
   <link rel="icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/static/app.css?v=297c">
-  <script defer src="/static/app.js?v=297c"></script>
+  <link rel="stylesheet" href="/static/app.css?v=297c-full">
+  <script defer src="/static/app.js?v=297c-full"></script>
 </head>
 <body>
   <a class="skip-link" href="#mainContent">Skip to game content</a>
@@ -370,11 +370,13 @@
         <section id="page-wire" class="panel" aria-labelledby="wireTitle">
           <div class="section-heading"><div><p class="eyebrow">AMERICA'S COLDEST UNDERWORLD DISPATCH</p><h2 id="wireTitle">The Snowfall Wire</h2></div><span class="pill">VERIFIED GAME EVENTS</span></div>
           <div class="wire-toolbar"><label>Read an edition<select id="wireDay"><option value="current">Latest edition</option></select></label><button id="refreshWire" class="button button-outline button-small">↻ Refresh edition</button></div>
-          <article class="wire-paper" id="wirePaper" data-edition="waiting">
+          <article class="wire-paper" id="wirePaper" data-edition="waiting" aria-label="The Snowfall Wire newspaper">
+            <div class="wire-frontpage">
             <img class="wire-masthead" src="/art/v290/wire/banners/snowfall_wire_masthead.png" alt="The Snowfall Wire" loading="lazy">
             <div class="wire-edition-line"><span id="wireEdition">AWAITING KICKOFF</span><span>QA · NO PRIZES</span></div>
             <div class="wire-edition-body">
             <div class="wire-editorial"><div class="wire-lead-block"><p class="wire-byline" id="wireTheme">THE WINTER UNDERWORLD</p><h3 id="wireLead">The streets are waiting</h3><p id="wireLeadDetail">Verified dispatches appear once the event opens.</p></div><div id="wireHeadlines" class="wire-headlines"></div></div>
+            </div>
             </div>
             <p id="wireNotice" class="wire-notice" role="status">Connecting to verified game events…</p>
           </article>

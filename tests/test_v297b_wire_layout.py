@@ -28,7 +28,13 @@ def test_wire_v297c_uses_calibrated_art_and_dynamic_issue():
     css = (STATIC / "app.css").read_text(encoding="utf-8")
     assert 'class="wire-lead-block"' in html
     assert 'snowfall-wire-frontpage.webp' in css
-    assert 'aspect-ratio:1197/1051' in css
+    assert 'aspect-ratio:4/5' in css
+    assert 'class="wire-frontpage"' in html
+    assert '.wire-paper.has-wire-template .wire-frontpage' in css
+    assert 'top:12.95%' in css
+    assert 'top:27.5%' in css
+    assert 'top:55.8%' in css
+    assert 'clip-path:inset(50%)' in css
     assert 'wireSlots(heads).map(wireHeadlineMarkup)' in js
     assert 'has-wire-template' in js
     assert 'id="wireEdition"' in html

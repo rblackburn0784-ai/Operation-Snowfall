@@ -1,9 +1,11 @@
-# v2.9.7c — Five-box newspaper edition
+# v2.9.7c — Full-page five-box newspaper edition
 
-The original Snowfall Wire masthead and live issue strip remain unchanged. New body artwork is cropped to 1197 × 1051 to remove the generated fixed Day 2 strip and duplicate masthead.
+Use the supplied complete 4:5 artwork, including its existing masthead. Do not crop the image or add a second visible masthead.
 
-Upload the supplied snowfall-wire-frontpage.webp to src/snowfall/platform/static/. The branding config detects the asset and activates calibrated overlays. Without it, a readable five-box parchment layout remains available.
+Upload the supplied snowfall-wire-frontpage.webp to src/snowfall/platform/static/. The existing branding config activates the full-page layout when the asset is present. Without it, the original masthead and readable five-box parchment layout remain available.
 
-Slots are keyed, not dependent on response order: lead (full width), streets/combat (upper left), boss (upper right), cities (lower left), community (lower right). Missing data remains explicitly unavailable. All text is escaped; editions retain their dynamic day/status. Notice is below the artwork to avoid the illustrated footer. Mobile preserves the same mapping with extra height. Final edition retains dynamic archive labels and border treatment.
+The live issue data sits in the blank strip immediately beneath the masthead. Theme and headline sit in the large frame above its printed rule, and the main detail sits below that rule. The four small framed boxes retain stable keys: streets/combat, boss, cities and community. Missing reports remain explicitly unavailable. The update/verification notice is below the artwork, leaving its illustrated footer clear.
 
-No changes to verified ledgers, shared gameplay, database or Discord. Inspect artwork alignment on desktop and narrow viewports after asset upload.
+The full page uses calibrated percentage coordinates, responsive typography and extra minimum height for narrow displays. Forced colors uses normal document flow. Existing archive selection, refresh and verified-only text escaping remain unchanged. No database, bot, or gameplay changes.
+
+Inspect the deployed page at desktop and mobile widths with waiting, live, archived and final editions. Confirm the new static image returns HTTP 200 and config branding.wire_template is true.
