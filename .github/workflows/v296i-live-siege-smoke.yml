@@ -1,0 +1,170 @@
+name: v2.9.6i deployed siege and cosmetic placement smoke
+on:
+  push:
+    branches: [qa/v2.9.6i-live-siege-cosmetics]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deployed-siege-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify live version and original artwork
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,time,urllib.request,hashlib,pathlib
+          root="https://snowfall-web-qa-staging.up.railway.app"
+          def get(path):
+              with urllib.request.urlopen(root+path,timeout=20) as r:
+                  return r.read()
+          for i in range(84):
+              try:
+                  cfg=json.loads(get("/v1/web/config"))
+                  assert cfg["version"]=="2.9.6i",cfg["version"]
+                  assert cfg["staging"] is True
+                  assert len(cfg["rival_schedule"])==7
+                  for day,pairs in cfg["rival_schedule"].items():
+                      assert len(pairs)==3 and len(set(c for p in pairs for c in p))==6
+                  get("/v1/ready");get("/v1/web/boss");get("/v1/web/territory");get("/v1/web/wire")
+                  break
+              except Exception:
+                  if i==83: raise
+                  time.sleep(5)
+          assets=pathlib.Path("src/snowfall/graphics/art")
+          paths=list((assets/"v290/portraits").glob("*.webp"))+list((assets/"v290/cosmetics/gear").glob("*.png"))+list((assets/"v290/cosmetics/trails").glob("*.png"))+list((assets/"v290/cities/crests").glob("*.png"))+list((assets/"cities").glob("*.webp"))+[assets/"v290/items/siege.png"]
+          for file in paths:
+              assert hashlib.sha256(get("/art/"+str(file.relative_to(assets)))).digest()==hashlib.sha256(file.read_bytes()).digest(),file
+          print("PASS original artwork bytes",len(paths))
+          pathlib.Path("live-config.json").write_text(json.dumps(cfg))
+          PY
+      - name: Install browser
+        run: |
+          python -m pip install playwright pillow
+          python -m playwright install chromium
+      - name: Verify siege placement, daily rival and cosmetic geometry
+        shell: bash
+        run: |
+          mkdir -p qa-screenshots
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright,expect
+          from datetime import datetime,timezone
+          from urllib.parse import urlsplit,parse_qs
+          from PIL import Image,ImageDraw
+          import json,pathlib
+          root="https://snowfall-web-qa-staging.up.railway.app"
+          config=json.loads(pathlib.Path("live-config.json").read_text())
+          rival=next(c for pair in config["rival_schedule"]["2"] if "Chicago" in pair for c in pair if c!="Chicago")
+          keys=["recruit","recruit_f","noir_detective","noir_detective_f","winter_enforcer","winter_enforcer_f","frost_spectre","frost_spectre_f"]
+          fake="999999999999999999"
+          with sync_playwright() as p:
+              browser=p.chromium.launch(headless=True,args=["--no-sandbox"])
+              for label,w,h in [("desktop",1440,1000),("mobile",390,844),("small-mobile",320,740)]:
+                  state={"guest":False,"hp":42,"attempts":1,"points":8,"ammo":10,"score":42,"equipped":{"frame":"gold_frame","gear":"goggles","trail":"snow_trail","portrait":"frost_spectre_f"}}
+                  page=browser.new_page(viewport={"width":w,"height":h},device_scale_factor=1,reduced_motion="reduce")
+                  errors=[];writes=[];page.on("pageerror",lambda e:errors.append(str(e)))
+                  def route_request(route):
+                      req=route.request;url=urlsplit(req.url);path=url.path
+                      def reply(data,status=200):route.fulfill(status=status,content_type="application/json",body=json.dumps(data))
+                      if req.method not in ("GET","HEAD"):
+                          if path!="/v1/game/siege":route.abort();return
+                          assert req.post_data_json=={} and req.headers.get("x-snowfall-csrf")=="fixture-csrf" and req.headers.get("idempotency-key")
+                          writes.append(path);state.update(hp=28,attempts=2,points=16,ammo=9,score=50)
+                          reply({"kind":"siege","city":"Chicago","day":2,"hit":True,"damage":14,"points":8,"hp_after":28,"max_hp":72,"echo":False,"final_blow":False})
+                          return
+                      if path=="/v1/auth/session":
+                          if state["guest"]:reply({"detail":"Not authenticated"},401)
+                          else:reply({"player_id":fake,"csrf":"fixture-csrf","links":[{"provider":"underworld"}]})
+                      elif path=="/v1/game/me":reply({"registered":True,"player_id":fake,"mr_username":"QA Siege Player","city":"Chicago","phase":"live","day":2,"score":state["score"],"resources":{"snowballs":state["ammo"],"warmth":80,"snowflakes":53,"today_pvp":0}})
+                      elif path=="/v1/game/targets":reply({"targets":[]})
+                      elif path=="/v1/game/wardrobe":reply({"balance":53,"unlocked":list(set(state["equipped"].values())|set(keys[1:])), "equipped":state["equipped"]})
+                      elif path=="/v1/game/world":reply({"day":2,"city":"Chicago","boss_hp":76,"boss_max_hp":150,"boss_attempts":1,"boss_points":5,"siege_hp":state["hp"],"siege_max_hp":72,"siege_attempts":state["attempts"],"siege_points":state["points"],"boss_enabled":True})
+                      elif path=="/v1/game/progress":reply({"registered":True,"score":state["score"],"snowballs":state["ammo"],"snowflakes":53,"boss_hp":76,"boss_max_hp":150,"inventory":{}})
+                      elif path=="/v1/game/headquarters":reply({"registered":True,"phase":"live","day":2,"server_time":datetime.now(timezone.utc).isoformat(),"daily_points":12,"rank":3,"season_points":state["score"],"caps":{"snowballs":12,"warmth":100,"pvp":300},"today_pvp":0,"timers":{},"title":"Snowball Recruit","rarity":"Common","quests":[],"trophies":[],"records":{},"next_action":"Find a rival","next_action_route":"fight","daily_gift":"Opened","bonus_gift":"Not today"})
+                      elif path=="/v1/web/territory":
+                          d=int(parse_qs(url.query).get("day",[2])[0])
+                          reply({"day":d,"current_day":2,"phase":"live","banners":[],"matches":[],"districts":[],"honorary_only":True})
+                      else:route.continue_()
+                  page.route("**/*",route_request)
+                  def nav(dest):
+                      selector=".play-dock" if w<=780 else ".topnav"
+                      page.locator(selector+' [data-nav="'+dest+'"]').click()
+                      expect(page.locator("#page-"+dest)).to_have_class("panel active")
+                  page.goto(root,wait_until="domcontentloaded",timeout=45000)
+                  expect(page.locator("#eventConnectionText")).to_contain_text("Connected",timeout=30000)
+                  nav("boss")
+                  assert page.locator("#page-boss #siegeButton").count()==0
+                  expect(page.locator("#bossCityLink")).to_be_visible()
+                  page.locator("#bossCityLink").click()
+                  expect(page.locator("#page-cities")).to_have_class("panel active")
+                  expect(page.locator("#siegeTitle")).to_have_text("Chicago vs "+rival,timeout=30000)
+                  expect(page.locator("#siegeHpText")).to_have_text("42 / 72 HP")
+                  expect(page.locator("#siegeAttempts")).to_have_text("3")
+                  expect(page.locator("#siegeRivalSkyline")).to_have_attribute("src","/art/cities/"+rival.lower().replace(" ","_")+".webp")
+                  page.locator("#territoryDay").select_option("1")
+                  expect(page.locator("#territoryDayLabel")).to_contain_text("Historical")
+                  page.locator("#citySelectors [data-city='New York']").click()
+                  expect(page.locator("#siegeTitle")).to_have_text("Chicago vs "+rival)
+                  expect(page.locator("#siegeButton")).to_be_enabled()
+                  assert writes==[]
+                  page.locator("#siegeButton").click()
+                  expect(page.locator("#siegeOutcomeTitle")).to_have_text("Direct hit!",timeout=30000)
+                  expect(page.locator("#siegeHpText")).to_have_text("28 / 72 HP")
+                  expect(page.locator("#siegeAttempts")).to_have_text("2")
+                  assert writes==["/v1/game/siege"]
+                  page.locator("#citySiege").screenshot(path=f"qa-screenshots/{label}-siege.png")
+                  nav("home")
+                  expect(page.locator("#hqGear")).to_have_attribute("data-cosmetic","goggles")
+                  def bounds(prefix,kind):
+                      return page.locator("#"+prefix+kind).evaluate("(n)=>{const p=n.parentElement.getBoundingClientRect(),b=n.getBoundingClientRect();return {x:(b.left-p.left)/p.width,y:(b.top-p.top)/p.height,w:b.width/p.width,h:b.height/p.height}}")
+                  def ready(prefix):
+                      page.locator("#"+prefix+"PortraitWell").scroll_into_view_if_needed()
+                      page.wait_for_function("(p)=>['Portrait','Gear','Trail'].every(k=>{const n=document.getElementById(p+k);return n.complete&&n.naturalWidth>0})",arg=prefix)
+                  ready("hq")
+                  b=bounds("hq","Gear");assert .15<b["y"]<.28 and .25<b["x"]<.50,b
+                  b=bounds("hq","Trail");assert b["x"]>.6 and b["x"]+b["w"]<=1.01,b
+                  page.locator("#hqPortraitWell").screenshot(path=f"qa-screenshots/{label}-hq-fit.png")
+                  nav("shop")
+                  expect(page.locator("#fitGear")).to_have_attribute("data-cosmetic","goggles")
+                  ready("fit")
+                  for kind in ("Gear","Trail"):
+                      a,b=bounds("hq",kind) if page.locator("#page-home").is_visible() else (None,None),bounds("fit",kind)
+                      assert b["w"]>0
+                  # All eight actual artworks and both gear selections are rendered using the same fitting renderer.
+                  for portrait in keys:
+                      for gear in ("goggles","scarf"):
+                          page.evaluate("([portrait,gear])=>{S.market.preview={frame:'gold_frame',gear:gear,trail:'candy_trail',...(portrait==='recruit'?{}:{portrait:portrait})}; if(portrait==='recruit'){S.shop.equipped={...S.shop.equipped};delete S.shop.equipped.portrait;} showShop()}",[portrait,gear])
+                          ready("fit")
+                          b=bounds("fit","Gear");t=bounds("fit","Trail")
+                          assert .1<b["y"]<.54 and .2<b["x"]<.6,(portrait,gear,b)
+                          assert t["x"]>.6 and t["x"]+t["w"]<=1.01,t
+                          if label=="desktop":
+                              page.locator("#fitPortraitWell").screenshot(path=f"qa-screenshots/{portrait}-{gear}.png")
+                  assert page.evaluate("document.documentElement.scrollWidth-innerWidth")<=2
+                  assert not errors,errors
+                  print(label,"PASS siege, historical isolation, artwork geometry and fictional single attack")
+                  page.close()
+              browser.close()
+          # Collect actual browser-rendered portrait crops for visual review.
+          sheet=Image.new("RGB",(8*170,2*194),"#112735")
+          draw=ImageDraw.Draw(sheet)
+          for i,key in enumerate(keys):
+              for j,gear in enumerate(("goggles","scarf")):
+                  im=Image.open(f"qa-screenshots/{key}-{gear}.png").convert("RGB")
+                  im.thumbnail((162,162))
+                  sheet.paste(im,(i*170+4,j*194+4));draw.text((i*170+4,j*194+168),key+" "+gear,fill="#f3dba7")
+          sheet.save("qa-screenshots/cosmetic-contact-sheet.jpg",quality=90)
+          print("PASS all writes intercepted; live game unchanged")
+          PY
+      - name: Save screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snowfall-v296i-siege-cosmetic-screenshots
+          path: qa-screenshots/
+          if-no-files-found: ignore
