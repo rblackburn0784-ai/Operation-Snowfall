@@ -7,8 +7,8 @@
   <meta name="description" content="Operation Snowfall — the seven-day winter city showdown. Isolated staging preview.">
   <title>Operation Snowfall | The Winter Underworld</title>
   <link rel="icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/static/app.css?v=296g">
-  <script defer src="/static/app.js?v=296g"></script>
+  <link rel="stylesheet" href="/static/app.css?v=296h">
+  <script defer src="/static/app.js?v=296h"></script>
 </head>
 <body>
   <a class="skip-link" href="#mainContent">Skip to game content</a>
@@ -33,6 +33,9 @@
       <button id="authToggle" class="button button-outline button-small">Sign in</button>
     </div>
   </header>
+  <nav class="play-dock" aria-label="Quick game navigation">
+    <button class="nav-item active" data-nav="home"><span aria-hidden="true">⌂</span>HQ</button><button class="nav-item" data-nav="combat"><span aria-hidden="true">❄</span>Fight</button><button class="nav-item" data-nav="boss"><span aria-hidden="true">◎</span>Boss</button><button class="nav-item" data-nav="shop"><span aria-hidden="true">✦</span>Market</button><button class="nav-item" data-nav="cities"><span aria-hidden="true">⚑</span>Cities</button><button class="nav-item" data-nav="wire"><span aria-hidden="true">▤</span>News</button>
+  </nav>
   <main id="mainContent">
     <div class="staging-flag"><span class="pulse-dot"></span> STAGING PLAYGROUND <span class="sep">/</span> FICTIONAL PLAYERS ONLY <span class="sep">/</span> NO PRIZES OR LIVE PROGRESS</div>
     <section class="hero" id="snowDonHero" data-boss-state="waiting">
@@ -61,28 +64,53 @@
       <img id="finaleArt" alt="" loading="lazy">
       <div class="event-finale-copy"><p class="eyebrow" id="finaleKicker">THE WINTER UNDERWORLD</p><h2 id="eventFinaleTitle"></h2><p id="finaleText"></p><div class="finale-actions"><button class="button button-gold" data-nav="wire">Read the Wire</button><button class="button button-outline" data-nav="cities">View standings</button></div></div>
     </section>
+    <div class="play-status hidden" id="playStatus" aria-label="Your current resources"><strong id="playPlayer">Your character</strong><span>❄ <b id="playAmmo">—</b> snowballs</span><span>◈ <b id="playWarmth">—</b> warmth</span><span>✦ <b id="playFlakes">—</b> flakes</span><span>★ <b id="playPoints">—</b> pts</span><button id="playRefresh" class="tiny-link">↻ Refresh</button></div>
     <div class="page-grid">
       <div class="main-column">
         <section id="page-home" class="panel active" aria-labelledby="homeTitle">
           <div class="section-heading"><div><p class="eyebrow">YOUR CORNER OF THE CITY</p><h2 id="homeTitle">Winter Headquarters</h2></div><button class="tiny-link" id="refreshHome">↻ Refresh</button></div>
           <div id="loggedOutNotice" class="welcome-card">
             <div class="welcome-icon">✦</div>
-            <div><h3>Your story starts with a snowball.</h3><p>Sign in through Underworld, then link Discord to play as one character on both platforms. This QA game is fictional and does not award real prizes.</p></div>
-            <button class="button button-gold" id="loginCTA">Get started</button>
+            <div><h3>Ready to play?</h3><p>Use your Underworld character. Linking Discord is optional; your progress stays shared.</p></div>
+            <button class="button button-gold" id="loginCTA">Sign in to play</button>
           </div>
-          <div id="underworldRequired" class="welcome-card hidden" role="status"><div class="registration-inner"><h3>Continue through Underworld to play</h3><p>Your Discord login is recognised, but it has not been linked to an Underworld character. Sign out and enter Snowfall through your Underworld account first. This avoids creating a second player; your current Discord account can be linked afterwards.</p></div></div>
+          <div id="underworldRequired" class="welcome-card hidden" role="status"><div class="registration-inner"><h3>Continue through Underworld to play</h3><p>Your Discord account is recognised. Enter through Underworld to keep one character, then link Discord in Account settings.</p><a id="underworldResume" class="button button-gold hidden">Open Underworld ↗</a></div></div>
           <div id="registration" class="welcome-card hidden">
             <div class="welcome-icon">✍</div>
             <div class="registration-inner">
-              <h3>Register your winter alter ego</h3><p>Choose your MafiaReturns-style nickname and a home city. One player per staging account.</p>
+              <h3>Choose your character and city</h3><p>One quick setup, then you can play. Your city determines your rivals.</p>
               <form id="registerForm" class="inline-form">
                 <label>Character name<input id="characterName" maxlength="28" minlength="2" required placeholder="e.g. TheSnowDude" autocomplete="off"></label>
-                <label>Home city<select id="cityChoice" required><option>Chicago</option><option>New York</option><option>Detroit</option><option>Philadelphia</option><option>Las Vegas</option><option>Los Angeles</option></select></label>
-                <button type="submit" class="button button-gold">Join the snow war</button>
+                <label>Home city<select id="cityChoice" required><option value="" selected disabled>Choose your city</option><option>Chicago</option><option>New York</option><option>Detroit</option><option>Philadelphia</option><option>Las Vegas</option><option>Los Angeles</option></select></label>
+                <button type="submit" class="button button-gold">Create character &amp; play</button>
               </form>
             </div>
           </div>
           <div id="playerDashboard" class="hidden">
+            <div class="quick-play-heading"><div><p class="eyebrow">READY FOR THE STREETS</p><h3 id="playGreeting">Your next move</h3><p id="playCoach">Choose an activity to get started.</p></div><button class="button button-gold" id="playPrimary">Play now</button></div>
+            <div class="stat-cards">
+              <div class="stat"><span>❄ SNOWBALLS</span><strong id="ammoValue">—</strong><div class="hq-meter"><span id="hqAmmoMeter"></span></div><small id="ammoSub">Regenerates over time</small></div>
+              <div class="stat"><span>◈ WARMTH</span><strong id="warmthValue">—</strong><div class="hq-meter warmth-meter"><span id="hqWarmthMeter"></span></div><small id="hqWarmthSub">Stay out of the cold</small></div>
+              <div class="stat"><span>✦ SNOWFLAKES</span><strong id="flakeValue">—</strong><small>Spend in the winter market</small></div>
+              <div class="stat"><span>★ TOTAL POINTS</span><strong id="scoreValue">—</strong><small>Official shared score</small></div>
+            </div>
+            <div class="hq-next">
+              <div><p class="eyebrow">YOUR NEXT MOVE</p><p id="hqNextMove">Choose your next action.</p></div>
+              <button class="button button-outline button-small hidden" id="hqRecommended">Open</button>
+            </div>
+            <div class="quick-actions"><button class="button button-gold" data-nav="combat">❄ Throw a snowball</button><button class="button button-outline" id="hqBossLink" data-nav="boss">🎯 Attack Snow Don</button><button class="button button-outline" data-nav="shop">✦ Winter Market</button><button class="button button-outline" data-nav="cities">★ City standings</button></div>
+            <section class="hq-missions" aria-labelledby="hqMissionsTitle" id="hqMissions">
+              <div class="hq-section-head"><div><p class="eyebrow">FROM THE DESK OF THE DON</p><h3 id="hqMissionsTitle">Daily assignments</h3></div><span id="hqQuestCount" class="subtle">—</span></div>
+              <div id="hqQuestList" class="hq-quest-list"></div>
+              <p id="hqGiftStatus" class="subtle">Gift status unavailable.</p>
+            </section>
+            <details class="play-details"><summary>Cooldowns &amp; daily limits</summary>
+            <div class="hq-field-grid">
+              <div class="hq-field-card"><p class="eyebrow">FIELD READINESS</p><h3>Daily PvP progress</h3><strong id="hqPvpValue">—</strong><div class="hq-meter"><span id="hqPvpMeter"></span></div><p id="hqArenaState" class="subtle">Checking arena status…</p></div>
+              <div class="hq-field-card"><p class="eyebrow">THE CLOCK IS TICKING</p><h3>Regeneration &amp; recovery</h3><dl class="hq-timers"><div><dt>Next snowball</dt><dd id="hqTimerSnowball">—</dd></div><div><dt>Next warmth</dt><dd id="hqTimerWarmth">—</dd></div><div><dt>Throw cooldown</dt><dd id="hqTimerThrow">—</dd></div><div><dt>Daily reset</dt><dd id="hqTimerReset">—</dd></div><div><dt>Knockout recovery</dt><dd id="hqTimerKnockout">—</dd></div><div><dt>Shield</dt><dd id="hqTimerShield">—</dd></div></dl></div>
+            </div>
+            </details>
+            <div class="section-heading compact"><div><p class="eyebrow">YOUR CHARACTER</p><h2>Profile &amp; collection</h2></div></div>
             <div class="hq-city-intro">
               <img id="hqCityArt" src="/art/cities/chicago.webp" alt="" loading="lazy">
               <div class="hq-city-identity"><img id="hqCityCrest" src="/art/v290/cities/crests/chicago_crest.png" alt="" loading="lazy"><div><p class="eyebrow">YOUR CITY HEADQUARTERS</p><h3 id="hqCityName">Winter headquarters</h3><span id="hqPhase">Awaiting event</span></div></div>
@@ -120,26 +148,7 @@
                 </div>
               </div>
             </div>
-            <div class="stat-cards">
-              <div class="stat"><span>❄ SNOWBALLS</span><strong id="ammoValue">—</strong><div class="hq-meter"><span id="hqAmmoMeter"></span></div><small id="ammoSub">Regenerates over time</small></div>
-              <div class="stat"><span>◈ WARMTH</span><strong id="warmthValue">—</strong><div class="hq-meter warmth-meter"><span id="hqWarmthMeter"></span></div><small id="hqWarmthSub">Stay out of the cold</small></div>
-              <div class="stat"><span>✦ SNOWFLAKES</span><strong id="flakeValue">—</strong><small>Spend in the winter market</small></div>
-              <div class="stat"><span>★ TOTAL POINTS</span><strong id="scoreValue">—</strong><small>Official shared score</small></div>
-            </div>
-            <div class="hq-next">
-              <div><p class="eyebrow">YOUR NEXT MOVE</p><p id="hqNextMove">Choose your next action.</p></div>
-              <button class="button button-outline button-small hidden" id="hqRecommended">Open</button>
-            </div>
-            <div class="hq-field-grid">
-              <div class="hq-field-card"><p class="eyebrow">FIELD READINESS</p><h3>Daily PvP progress</h3><strong id="hqPvpValue">—</strong><div class="hq-meter"><span id="hqPvpMeter"></span></div><p id="hqArenaState" class="subtle">Checking arena status…</p></div>
-              <div class="hq-field-card"><p class="eyebrow">THE CLOCK IS TICKING</p><h3>Regeneration &amp; recovery</h3><dl class="hq-timers"><div><dt>Next snowball</dt><dd id="hqTimerSnowball">—</dd></div><div><dt>Next warmth</dt><dd id="hqTimerWarmth">—</dd></div><div><dt>Throw cooldown</dt><dd id="hqTimerThrow">—</dd></div><div><dt>Daily reset</dt><dd id="hqTimerReset">—</dd></div><div><dt>Knockout recovery</dt><dd id="hqTimerKnockout">—</dd></div><div><dt>Shield</dt><dd id="hqTimerShield">—</dd></div></dl></div>
-            </div>
-            <div class="quick-actions"><button class="button button-gold" data-nav="combat">❄ Throw a snowball</button><button class="button button-outline" id="hqBossLink" data-nav="boss">🎯 Attack Snow Don</button><button class="button button-outline" data-nav="shop">✦ Winter Market</button><button class="button button-outline" data-nav="cities">★ City standings</button></div>
-            <section class="hq-missions" aria-labelledby="hqMissionsTitle" id="hqMissions">
-              <div class="hq-section-head"><div><p class="eyebrow">FROM THE DESK OF THE DON</p><h3 id="hqMissionsTitle">Daily assignments</h3></div><span id="hqQuestCount" class="subtle">—</span></div>
-              <div id="hqQuestList" class="hq-quest-list"></div>
-              <p id="hqGiftStatus" class="subtle">Gift status unavailable.</p>
-            </section>
+            <details class="play-details"><summary>Achievements &amp; combat records</summary>
             <section class="hq-trophy-room" id="hqTrophies" aria-labelledby="hqTrophyTitle">
               <div class="hq-trophy-heading"><p class="eyebrow">THE COLLECTOR'S ROOM</p><h3 id="hqTrophyTitle">Trophy Cabinet</h3><p id="hqTrophyCount">Loading achievements…</p></div>
               <div id="hqTrophyGrid" class="hq-trophy-grid"></div>
@@ -148,9 +157,10 @@
             <section class="hq-records" aria-labelledby="hqRecordsTitle"><div class="hq-section-head"><div><p class="eyebrow">YOUR WINTER DOSSIER</p><h3 id="hqRecordsTitle">Personal combat records</h3></div></div>
               <div class="hq-record-grid" id="hqRecordGrid"></div>
             </section>
+            </details>
           </div>
           <details id="accountTools" class="account-tools hidden">
-            <summary>Connected accounts &amp; QA verification</summary>
+            <summary>Account settings &amp; connected accounts</summary>
           <div id="linkedIdentity" class="side-card hidden" style="margin-top:1.2rem">
             <p class="eyebrow">YOUR CONNECTED IDENTITIES</p>
             <h3>One character. Two platforms.</h3>
@@ -198,8 +208,8 @@
             </div>
             <p class="subtle" style="margin-top:.8rem">This staging database is independent of the live Discord Christmas event. Only linked QA accounts can share its progress.</p>
           </div>
-          <div id="crossPlatformPanel" class="side-card hidden" style="margin-top:1.1rem">
-            <p class="eyebrow">v2.9.6g · CROSS-PLATFORM TEST LAB</p>
+          <details id="crossPlatformPanel" class="side-card hidden" style="margin-top:1.1rem"><summary>Advanced QA verification</summary>
+            <p class="eyebrow">v2.9.6h · CROSS-PLATFORM TEST LAB</p>
             <h3>One character. One scoreboard. Verified gameplay.</h3>
             <p>Check that Discord and Snowfall Web read and update the same official Snowfall character. Testing never awards extra points.</p>
             <p id="verificationState" role="status"><strong>Not started</strong></p>
@@ -220,7 +230,7 @@
             <p id="verificationCounts" class="subtle">Verified activity: no active test.</p>
             <p id="verificationDelta" class="subtle">Progress changes since test started will appear here.</p>
             <p class="subtle">The test expires after 15 minutes. If Discord isn't connected to the shared QA game yet, confirmation will remain pending instead of claiming success.</p>
-          </div>
+          </details>
           </details>
           <div class="section-heading compact"><div><p class="eyebrow">THE DAILY BRIEFING</p><h2>Word on the street</h2></div></div>
           <div class="briefing">
@@ -231,18 +241,19 @@
 
         <section id="page-combat" class="panel" aria-labelledby="combatTitle">
           <div class="section-heading"><div><p class="eyebrow">THE STREETS ARE GETTING SLIPPERY</p><h2 id="combatTitle">Snowball Alley</h2></div><span class="pill">PvP / REAL GAME RULES</span></div>
-          <p class="section-desc">Find a rival from another city. No friendly fire, no cheap double scores and no bypassing cooldowns.</p>
+          <p class="section-desc">Choose a rival and throw. Standard is a balanced shot; the game handles the rules.</p><div class="play-action-status" id="combatStatus" role="status">Sign in to find rivals.</div>
           <div class="action-card">
             <img class="mode-art" src="/art/v290/combat/snowball_volley.png" alt="Illustrated snowball volley" loading="lazy">
-            <div class="action-main"><h3>Suit up. Take aim.</h3><p>Mark yourself ready so rivals can challenge you, then select a target and throwing style.</p>
+            <div class="action-main"><h3>Choose your rival</h3><p>Only currently eligible opponents appear. Entering the arena allows rivals to challenge you.</p>
               <div class="controls-grid">
                 <label>Rival<select id="targetSelect"><option value="">Sign in to discover rivals</option></select></label>
                 <label>Throwing style<select id="throwStyle"><option value="quick">Quick Shot</option><option value="standard" selected>Standard Throw</option><option value="power">Power Shot</option><option value="golden">Golden Snowball</option></select></label>
               </div>
-              <div class="actions-inline"><button class="button button-gold" id="throwButton">❄ Throw snowball</button><button class="button button-outline" id="readyButton">Mark me ready</button><button class="button button-ghost" id="findTargets">Find rivals ↻</button></div>
+              <p id="targetDetail" class="subtle" role="status"></p><p id="throwStyleHint" class="subtle"></p>
+              <div class="actions-inline"><button class="button button-gold" id="throwButton">❄ Throw snowball</button><button class="button button-outline" id="readyButton">Enter arena</button><button class="button button-ghost" id="findTargets">Find rivals ↻</button></div>
             </div>
           </div>
-          <p class="help">Target list in staging is refreshed with fictional opponents. Duplicate requests use unique action IDs.</p>
+          <div id="combatOutcome" class="play-outcome hidden" role="status"><strong id="combatOutcomeTitle"></strong><p id="combatOutcomeText"></p></div><div id="noRivals" class="welcome-card hidden"><div><h3>No rivals available</h3><p>Attack the Snow Don while waiting for rivals to enter the arena.</p></div><button class="button button-outline" data-nav="boss">Go to boss</button></div>
         </section>
 
         <section id="page-boss" class="panel" aria-labelledby="bossTitle">
@@ -259,7 +270,7 @@
               <p id="bossFreshness" class="subtle" role="status">Connecting to the shared raid…</p>
             </div>
           </div>
-          <div class="action-card"><div class="action-emblem">🎯</div><div class="action-main"><h3 id="bossActionTitle">Put the heat on him.</h3><p id="bossActionText">Attack the shared boss or defend your city’s siege. Daily limits, ammo costs and rewards are enforced in PostgreSQL.</p><div class="actions-inline"><button class="button button-gold" id="bossButton">Attack the Snow Don</button><button class="button button-outline" id="siegeButton">Fight city siege</button><button class="button button-ghost" id="refreshBoss">Refresh ↻</button></div></div></div>
+          <div id="raidPlayStatus" class="play-action-status" role="status">Sign in to join the raid.</div><div class="action-card"><div class="action-emblem">🎯</div><div class="action-main"><h3 id="bossActionTitle">Put the heat on him.</h3><p id="bossActionText">Attack the shared boss or defend your city’s siege. Daily limits, ammo costs and rewards are enforced in PostgreSQL.</p><p id="raidQuota" class="subtle"></p><div class="actions-inline"><button class="button button-gold" id="bossButton">Attack the Snow Don</button><button class="button button-outline" id="siegeButton">Fight city siege</button><button class="button button-ghost" id="refreshBoss">Refresh ↻</button></div></div></div>
           <section id="raidCelebration" class="raid-celebration hidden" aria-labelledby="raidCelebrationTitle"><img src="/art/v290/boss/raid_celebration.webp" alt="Original Discord raid celebration artwork" loading="lazy"><div><p class="eyebrow">SHARED RAID AFTERMATH</p><h3 id="raidCelebrationTitle">The Don has fallen</h3><p id="raidCelebrationText"></p></div></section>
           <div id="raidSummary" class="mini-stats" role="status"></div><div id="bossRecap" class="boss-recap hidden" role="status"><img id="bossRecapArt" class="boss-recap-art" alt=""><div><p class="eyebrow">YOUR LATEST BOSS ENCOUNTER</p><h3 id="bossRecapTitle"></h3><p id="bossRecapText"></p></div></div>
         </section>
@@ -269,6 +280,7 @@
           <p class="section-desc">Spend Snowflakes on real inventory, cosmetic frames, banners and equipment. No additional paid rewards.</p>
           <div class="market-hero"><img src="/art/v290/cosmetics/backgrounds/shop.webp" alt="The illustrated winter market from the Snowfall Discord event" loading="lazy"><div><p class="eyebrow">FROSTED FINERY</p><h3>Dress like you own the winter streets.</h3><p>Your purchased cosmetics are shared with the Discord game.</p></div></div>
           <div class="market-toolbar market-wallet"><div><p class="eyebrow">YOUR WINTER WALLET</p><span>✦ <strong id="shopBalance">—</strong> Snowflakes</span><p id="marketOwned" class="subtle">Sign in to load your wardrobe</p></div><button class="button button-outline button-small" id="refreshShop">↻ Refresh market</button></div>
+          <div class="market-jumps"><button class="button button-gold" data-jump="marketCatalogue">Browse items</button><button class="button button-outline" data-jump="marketFitting">Try on</button><button class="button button-outline" data-jump="marketWorkshop">Workshop</button></div>
           <section class="market-feature" aria-labelledby="featuredTitle">
             <div class="market-feature-art"><img id="featuredArt" alt="" class="hidden"><span id="featuredRarity" class="market-rarity">Featured selection</span></div>
             <div class="market-feature-content"><p class="eyebrow">THE WINDOW DISPLAY</p><h3 id="featuredTitle">Winter collection</h3><p id="featuredDetail">Browse the original collection.</p><strong id="featuredCost"></strong><div class="market-feature-controls"><button class="button button-outline button-small" id="featuredPrev" aria-label="Previous featured item">‹</button><button class="button button-outline button-small" id="featuredNext" aria-label="Next featured item">›</button><button id="featuredTry" class="button button-gold button-small" disabled>Try on</button></div><small id="featuredIndex" class="subtle"></small></div>
@@ -303,7 +315,7 @@
             <p id="marketCount" class="subtle" role="status">Fetching inventory…</p>
             <div id="catalog" class="catalog-grid"><p class="muted">Fetching inventory…</p></div>
           </section>
-          <div class="action-card craft-card"><img id="craftArtwork" class="mode-art" src="/art/items/cocoa.png" alt="Hot Chocolate artwork" loading="lazy"><div class="action-main"><h3>The workshop</h3><p>Craft useful items directly through the official economy.</p><div class="controls-grid"><label>Item<select id="craftChoice"><option value="cocoa">Hot Chocolate</option><option value="fort">Fort Kit</option><option value="mittens">Mittens</option><option value="bomb">Blizzard Bomb</option></select></label></div><button class="button button-gold" id="craftButton">Craft item</button></div></div>
+          <div class="action-card craft-card" id="marketWorkshop"><img id="craftArtwork" class="mode-art" src="/art/items/cocoa.png" alt="Hot Chocolate artwork" loading="lazy"><div class="action-main"><h3>The workshop</h3><p>Craft useful items directly through the official economy.</p><div class="controls-grid"><label>Item<select id="craftChoice"><option value="cocoa">Hot Chocolate</option><option value="fort">Fort Kit</option><option value="mittens">Mittens</option><option value="bomb">Blizzard Bomb</option></select></label></div><p id="craftHint" class="subtle" role="status"></p><button class="button button-gold" id="craftButton">Craft item</button></div></div>
         </section>
 
         <section id="page-cities" class="panel" aria-labelledby="citiesTitle">
@@ -355,15 +367,16 @@
     </div>
   </main>
 
-  <footer><div class="footer-logo">❄ OPERATION SNOWFALL</div><p>STAGING EXPERIENCE · FICTITIOUS GAMEPLAY · NO LIVE UNDERWORLD ACCOUNT ACCESS</p><div class="footer-preferences"><button id="atmosphereToggle" type="button" class="button button-outline button-small" aria-pressed="true">Atmosphere on</button><button class="tiny-link" data-nav="wire">Newspaper archive</button></div><span>© Winter Operations Bureau · v2.9.6g</span></footer>
+  <footer><div class="footer-logo">❄ OPERATION SNOWFALL</div><p>STAGING EXPERIENCE · FICTITIOUS GAMEPLAY · NO LIVE UNDERWORLD ACCOUNT ACCESS</p><div class="footer-preferences"><button id="atmosphereToggle" type="button" class="button button-outline button-small" aria-pressed="true">Atmosphere on</button><button class="tiny-link" data-nav="wire">Newspaper archive</button></div><span>© Winter Operations Bureau · v2.9.6h</span></footer>
 
   <div id="authDialog" class="dialog-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="authTitle">
     <div class="dialog"><button class="dialog-close" id="closeAuth" aria-label="Close sign-in">×</button>
-      <p class="eyebrow">WELCOME TO THE STREETS</p><h2 id="authTitle">Enter the snowfall.</h2><p class="muted">This is the separate staging game. Choose a fictional account slot to test progress across browser sessions.</p>
-      <form id="demoForm"><label>Staging access code<input id="demoCode" type="password" autocomplete="off" minlength="28" required placeholder="Private QA code"></label><label>Test player<select id="demoSlot"><option value="1">Test Player One</option><option value="2">Test Player Two</option><option value="3">Test Player Three</option></select></label><button type="submit" class="button button-gold full">Sign in to staging</button></form>
-      <div class="auth-separator">OR CONNECT AN IDENTITY</div>
+      <p class="eyebrow">WELCOME TO THE STREETS</p><h2 id="authTitle">Enter the snowfall.</h2><p class="muted">Continue with your existing Underworld character, or use Discord if already linked.</p><a id="underworldLogin" class="button button-gold full hidden">Open Underworld ↗</a><p id="underworldLoginHelp" class="subtle">In Underworld, sign in and select the ❄ Snowfall button.</p>
+      <div class="auth-separator">ALREADY LINKED?</div>
       <button id="discordLogin" class="button button-outline full">Continue with Discord</button>
-      <details class="underworld-auth"><summary>Use your existing Underworld character</summary><p>Sign in to Underworld and select the ❄ Snowfall button. The sites connect without sharing passwords. For development only, a signed test assertion can be submitted here.</p><form id="underworldForm"><textarea id="underworldAssertion" rows="3" placeholder="Paste a trusted backend-signed assertion only"></textarea><button class="button button-outline full" type="submit">Verify assertion</button></form></details>
+      <details class="underworld-auth"><summary>Advanced test assertion</summary><p>Sign in to Underworld and select the ❄ Snowfall button. The sites connect without sharing passwords. For development only, a signed test assertion can be submitted here.</p><form id="underworldForm"><textarea id="underworldAssertion" rows="3" placeholder="Paste a trusted backend-signed assertion only"></textarea><button class="button button-outline full" type="submit">Verify assertion</button></form></details>
+      <details class="underworld-auth" id="qaLoginTools"><summary>QA test access</summary>      <form id="demoForm"><label>Staging access code<input id="demoCode" type="password" autocomplete="off" minlength="28" required placeholder="Private QA code"></label><label>Test player<select id="demoSlot"><option value="1">Test Player One</option><option value="2">Test Player Two</option><option value="3">Test Player Three</option></select></label><button type="submit" class="button button-gold full">Sign in to staging</button></form>
+</details>
       <p id="authHelp" class="subtle">No real Underworld passwords are accepted or stored here.</p>
     </div>
   </div>
