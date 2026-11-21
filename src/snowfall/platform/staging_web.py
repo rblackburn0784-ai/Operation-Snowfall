@@ -10,6 +10,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from threading import Lock
 from urllib.parse import urlsplit
+import json
+import logging
 import mimetypes
 import os
 import re
@@ -25,7 +27,7 @@ from snowfall.db.postgres import PostgresStore
 from snowfall.platform.api import APISettings, create_app
 from snowfall.platform.game import SharedGame
 from snowfall.platform.identity import IdentityRepository
-from snowfall.platform.release import VERSION
+from snowfall.platform.release import VERSION, WEB_RELEASE
 from snowfall.platform.staging import StagingGame, prepare_web_qa, require_staging
 
 ASSETS = Path(__file__).resolve().parent / "static"
@@ -79,7 +81,7 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None, game=
                          "city_header": (ASSETS / "snowfall-header-city.webp").is_file(),
                          "wallpaper": (ASSETS / "snowfall-city-wallpaper.webp").is_file(),
                          "wire_template": (ASSETS / "snowfall-wire-frontpage.webp").is_file()},
-            "web_artwork_version": "2.9.7c",
+            "web_artwork_version": WEB_RELEASE,
             "season": cfg.season_key,
             "demo_enabled": True,
             "underworld_url": cfg.underworld_origin,
@@ -204,6 +206,22 @@ def create_staging_app(env=None) -> FastAPI:
     identities = IdentityRepository(qa_url)
     store = PostgresStore(qa_url, practice_root=Path.cwd())
     shared = StagingGame(SharedGame(store, cfg.season_key))
+    # An aggregate, isolated-QA-only check. Never expose DSNs, player names,
+    # IDs or exceptions. Keep readiness independent from audit reporting.
+    from snowfall.platform.launch_audit import audit_qa_database
+
+    logger = logging.getLogger(__name__)
+    try:
+        result = audit_qa_database(qa_url)
+        logger.warning("QA_RELEASE_AUDIT %s", json.dumps({
+            key: result[key] for key in (
+                "scope", "season", "status", "linked_registered_players",
+                "orphan_resources", "bad_resources", "prize_awards",
+                "blockers", "warnings",
+            )
+        }, sort_keys=True))
+    except Exception:
+        logger.error("QA_RELEASE_AUDIT unavailable; no credentials logged")
     return attach_web_ui(create_app(cfg, identity=identities, game=shared),
                          identities, cfg, env=env, game=shared)
 

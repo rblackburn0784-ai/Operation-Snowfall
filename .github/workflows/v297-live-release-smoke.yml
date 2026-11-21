@@ -1,4 +1,4 @@
-name: v2.9.7 deployed siege and cosmetic placement smoke
+name: v2.9.7d live release and browser smoke
 on:
   push:
     branches: [qa/v2.9.7-live-release-smoke]
@@ -8,7 +8,7 @@ permissions:
 jobs:
   deployed-siege-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -18,20 +18,30 @@ jobs:
         shell: bash
         run: |
           python - <<'PY'
-          import json,time,urllib.request,hashlib,pathlib
+          import json,time,urllib.request,hashlib,pathlib,runpy
           root="https://snowfall-web-qa-staging.up.railway.app"
           def get(path):
               with urllib.request.urlopen(root+path,timeout=20) as r:
                   return r.read()
+          expected=runpy.run_path("src/snowfall/platform/release.py")
+          static=pathlib.Path("src/snowfall/platform/static")
           for i in range(84):
               try:
                   cfg=json.loads(get("/v1/web/config"))
-                  assert cfg["version"]=="2.9.6i",cfg["version"]
+                  assert cfg["version"]==expected["VERSION"],cfg["version"]
+                  assert cfg["web_artwork_version"]==expected["WEB_RELEASE"],cfg.get("web_artwork_version")
+                  assert all(cfg["branding"].get(k) is True for k in ("banner","icon","title","city_header","wallpaper","wire_template"))
                   assert cfg["staging"] is True
                   assert len(cfg["rival_schedule"])==7
                   for day,pairs in cfg["rival_schedule"].items():
                       assert len(pairs)==3 and len(set(c for p in pairs for c in p))==6
-                  assert json.loads(get("/v1/health"))["version"]=="2.9.7"
+                  assert json.loads(get("/v1/health"))["version"]==expected["VERSION"]
+                  ready=json.loads(get("/v1/ready"))
+                  assert ready=={"status":"ready","backend":"postgres","season":"web-qa-2026"},ready
+                  assert cfg["season"]==ready["season"]
+                  for name in ("app.css","app.js"):
+                      assert get("/static/"+name)==(static/name).read_bytes(),name
+                  assert get("/")== (static/"index.html").read_bytes()
                   get("/v1/ready");get("/v1/web/boss");get("/v1/web/territory");get("/v1/web/wire")
                   with urllib.request.urlopen(root+"/",timeout=20) as r:
                       assert "script-src 'self'" in r.headers["Content-Security-Policy"]
@@ -45,7 +55,10 @@ jobs:
           paths=list((assets/"v290/portraits").glob("*.webp"))+list((assets/"v290/cosmetics/gear").glob("*.png"))+list((assets/"v290/cosmetics/trails").glob("*.png"))+list((assets/"v290/cities/crests").glob("*.png"))+list((assets/"cities").glob("*.webp"))+[assets/"v290/items/siege.png"]
           for file in paths:
               assert hashlib.sha256(get("/art/"+str(file.relative_to(assets)))).digest()==hashlib.sha256(file.read_bytes()).digest(),file
-          print("PASS original artwork bytes",len(paths))
+          for file in sorted(static.iterdir()):
+              if file.suffix in (".png",".webp"):
+                  assert hashlib.sha256(get("/static/"+file.name)).digest()==hashlib.sha256(file.read_bytes()).digest(),file
+          print("PASS original artwork and all new web branding bytes",len(paths))
           pathlib.Path("live-config.json").write_text(json.dumps(cfg))
           PY
       - name: Install browser
@@ -97,6 +110,16 @@ jobs:
                       elif path=="/v1/game/world":reply({"day":2,"city":"Chicago","boss_hp":76,"boss_max_hp":150,"boss_attempts":1,"boss_points":5,"siege_hp":state["hp"],"siege_max_hp":72,"siege_attempts":state["attempts"],"siege_points":state["points"],"boss_enabled":True})
                       elif path=="/v1/game/progress":reply({"registered":True,"score":state["score"],"snowballs":state["ammo"],"snowflakes":53,"boss_hp":76,"boss_max_hp":150,"inventory":{}})
                       elif path=="/v1/game/headquarters":reply({"registered":True,"phase":"live","day":2,"server_time":datetime.now(timezone.utc).isoformat(),"daily_points":12,"rank":3,"season_points":state["score"],"caps":{"snowballs":12,"warmth":100,"pvp":300},"today_pvp":0,"timers":{},"title":"Snowball Recruit","rarity":"Common","quests":[],"trophies":[],"records":{},"next_action":"Find a rival","next_action_route":"fight","daily_gift":"Opened","bonus_gift":"Not today"})
+                      elif path=="/v1/web/wire":
+                          day=int(parse_qs(url.query).get("day",[2])[0])
+                          reply({"phase":"live","current_day":2,"day":day,"complete":day==1,
+                                 "available_days":[1,2],"verified_only":True,"theme":"Fortification frenzy",
+                                 "headlines":[
+                                     {"key":"community","category":"Community","title":"The community noticeboard","detail":"0 quests claimed • 0 casual arcade runs"},
+                                     {"key":"boss","category":"Boss","title":"The Snow Don's icy resistance","detail":"74 verified damage by 1 raider"},
+                                     {"key":"lead","category":"Championship","title":"QA Winter Player leads the snowball racket","detail":"93 verified individual points • Chicago"},
+                                     {"key":"cities","category":"Cities","title":"Fortresses under siege","detail":"0 of six city forts cleared"},
+                                     {"key":"streets","category":"Combat","title":"Snowball skirmishes across six cities","detail":"5 throws • 3 hits • 0 knockouts"}]})
                       elif path=="/v1/web/territory":
                           d=int(parse_qs(url.query).get("day",[2])[0])
                           reply({"day":d,"current_day":2,"phase":"live","banners":[],"matches":[],"districts":[],"honorary_only":True})
@@ -167,6 +190,39 @@ jobs:
                               page.locator("#fitPortraitWell").screenshot(path=f"qa-screenshots/{portrait}-{gear}.png")
                   nav("combat");expect(page.locator("#noRivals")).to_be_visible()
                   nav("wire");expect(page.locator("#wirePaper")).to_be_visible()
+                  expect(page.locator("#wirePaper")).to_have_class("wire-paper has-wire-template")
+                  expect(page.locator("#wireEdition")).to_contain_text("DAY 2 / 7")
+                  expect(page.locator("#wireHeadlines .wire-story")).to_have_count(4)
+                  assert page.locator("#wireHeadlines .wire-story .wire-byline").all_text_contents()==["Combat","Boss","Cities","Community"]
+                  page.locator("#wireDay").select_option("1")
+                  expect(page.locator("#wireEdition")).to_contain_text("DAY 1 / 7")
+                  expect(page.locator("#wireEdition")).to_contain_text("ARCHIVE")
+                  page.locator("#refreshWire").click()
+                  expect(page.locator("#wireDay")).to_be_enabled()
+                  expect(page.locator("#wireLead")).to_contain_text("QA Winter Player")
+                  page.locator("#wireDay").select_option("current")
+                  expect(page.locator("#wireEdition")).to_contain_text("DAY 2 / 7")
+                  geometry=page.locator(".wire-frontpage").evaluate("""n=>{
+                      const box=n.getBoundingClientRect();
+                      return [...n.querySelectorAll('.wire-edition-line,.wire-lead-block,.wire-story')].map(e=>{
+                          const r=e.getBoundingClientRect();return {x:(r.x-box.x)/box.width,y:(r.y-box.y)/box.height,w:r.width/box.width,h:r.height/box.height,overflow:e.scrollHeight-e.clientHeight};
+                      });
+                  }""")
+                  assert len(geometry)==6,geometry
+                  for b in geometry:
+                      assert b["x"]>=0 and b["y"]>=0 and b["x"]+b["w"]<=1.001 and b["y"]+b["h"]<=1.001,b
+                      assert b["overflow"]<=3,b
+                  assert .12<geometry[0]["y"]<.16 and .25<geometry[1]["y"]<.31,geometry
+                  assert geometry[2]["x"]<geometry[3]["x"] and geometry[2]["y"]<geometry[4]["y"],geometry
+                  page.locator("#wirePaper").screenshot(path=f"qa-screenshots/{label}-newspaper.png")
+                  expect(page.locator("#siteBanner")).to_be_visible()
+                  assert page.locator("#siteBanner").evaluate("n=>n.complete&&n.naturalWidth>0")
+                  assert page.locator(".topbar").evaluate("n=>getComputedStyle(n).backgroundImage.includes('snowfall-header-city.webp')")
+                  if w<=780:
+                      page.locator("#menuToggle").click()
+                      expect(page.locator("#menuToggle")).to_have_attribute("aria-expanded","true")
+                      page.locator("#primaryNav [data-nav='wire']").click()
+                      expect(page.locator("#menuToggle")).to_have_attribute("aria-expanded","false")
                   nav("cities");expect(page.locator("#citySiege")).to_be_visible()
                   assert page.evaluate("document.documentElement.scrollWidth-innerWidth")<=2
                   assert not errors,errors
@@ -188,6 +244,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: snowfall-v297-siege-cosmetic-screenshots
+          name: snowfall-v297d-release-screenshots
           path: qa-screenshots/
           if-no-files-found: ignore
