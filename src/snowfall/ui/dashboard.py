@@ -9,6 +9,7 @@ import discord
 from snowfall.practice import pin, practice_expired
 
 from snowfall.core.permissions import permitted_guild
+from snowfall.ui.linked import require_linked_discord
 from snowfall.db.store import CITIES, RegistrationError
 
 
@@ -78,6 +79,8 @@ class JoinModal(discord.ui.Modal, title="Operation Snowfall — Register"):
         if self.declaration.value.strip().upper() != "I AGREE":
             await interaction.response.send_message("Type I AGREE to confirm your own MR identity.", ephemeral=True)
             return
+        if not await require_linked_discord(interaction):
+            return
         # The database re-checks the time inside the write transaction.
         await interaction.response.defer(ephemeral=True)
         try:
@@ -125,6 +128,8 @@ class CityPicker(discord.ui.View):
             options=[discord.SelectOption(label=c, value=c) for c in CITIES])
 
         async def selected(interaction: discord.Interaction):
+            if not await require_linked_discord(interaction):
+                return
             if practice_expired(settings, store):
                 await interaction.response.send_message("This test day has ended.", ephemeral=True)
                 return
@@ -168,20 +173,8 @@ class Dashboard(discord.ui.View):
         if not permitted_guild(interaction.guild_id, self.settings.guild_id):
             await interaction.response.send_message("Wrong event server.", ephemeral=True)
             return False
-        # Persistent public buttons bypass slash-command tree checks, so they
-        # must also verify account linking before any canonical game write.
-        identity = getattr(interaction.client, "unified_identity", None)
-        if identity is not None:
-            from snowfall.platform.identity import IdentityError
-            try:
-                await asyncio.to_thread(
-                    identity.principal_for_discord, str(interaction.user.id))
-            except IdentityError:
-                await interaction.response.send_message(
-                    "🔗 Link your Discord account through Snowfall first. "
-                    "Use `/snowbridge link` to get started.", ephemeral=True)
-                return False
-        return True
+        # The persistent dashboard bypasses the slash-command tree check.
+        return await require_linked_discord(interaction)
 
     @discord.ui.button(label="Join", emoji="❄️", style=discord.ButtonStyle.primary,
                        custom_id="snowfall:v1:join")
