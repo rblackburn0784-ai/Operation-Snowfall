@@ -195,7 +195,8 @@ def test_canonical_web_and_real_discord_actions_verified_end_to_end(tmp_path):
             with psycopg.connect(dsn) as conn:
                 conn.execute(
                     "UPDATE snowfall_identity_platform_checks "
-                    "SET expires_at=now()-interval '1 minute' WHERE player_id=%s",
+                    "SET started_at=now()-interval '16 minutes', "
+                    "expires_at=now()-interval '1 minute' WHERE player_id=%s",
                     (player_id,))
             assert client.get("/v1/verification/status").json()["state"] == "expired"
             with pytest.raises(IdentityConflict, match="Start a 15-minute"):
