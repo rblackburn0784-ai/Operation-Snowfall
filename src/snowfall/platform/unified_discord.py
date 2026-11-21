@@ -12,7 +12,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 import os
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 from snowfall.db.postgres import PostgresStore
 from snowfall.platform.staging import QA_DB, STAGING_PROJECT
@@ -59,6 +59,16 @@ def validate_unified_environment(env=None) -> str | None:
             "Existing-bot QA must use the isolated snowfall_web_qa logical database")
     if not parts.hostname or not parts.username:
         raise UnifiedConfigurationError("Invalid isolated PostgreSQL connection URL")
+    # The original worker is in a different Railway project, so it cannot
+    # reach a private PostgreSQL address belonging to the staging project.
+    # Only its known public TCP proxy with enforced TLS is suitable here.
+    if parts.hostname not in ("postgres.internal", "localhost", "127.0.0.1"):
+        if parts.hostname != "junction.proxy.rlwy.net" or parts.port != 21957:
+            raise UnifiedConfigurationError("Unexpected Snowfall QA PostgreSQL proxy endpoint")
+        params = parse_qs(parts.query)
+        if params.get("sslmode", [""])[0] not in ("require", "verify-ca", "verify-full"):
+            raise UnifiedConfigurationError(
+                "Cross-project PostgreSQL proxy requires encrypted sslmode=require")
     return dsn
 
 
