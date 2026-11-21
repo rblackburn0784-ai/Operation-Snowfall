@@ -113,6 +113,7 @@ class CityPicker(discord.ui.View):
     def __init__(self, settings, store, owner_id: int | None = None):
         super().__init__(timeout=180)
         settings, store = pin(settings, store)
+        self.settings, self.store, self.owner_id = settings, store, owner_id
         if owner_id is not None:
             back = discord.ui.Button(label="◀ My Player", style=discord.ButtonStyle.secondary, row=1)
             home = discord.ui.Button(label="🏠 Home", style=discord.ButtonStyle.secondary, row=1)
@@ -156,6 +157,22 @@ class CityPicker(discord.ui.View):
 
         picker.callback = selected
         self.add_item(picker)
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        # Selected options and navigation from old registration menus must
+        # re-check ownership as well as the current Underworld/Discord link.
+        if self.owner_id is not None and interaction.user.id != self.owner_id:
+            await interaction.response.send_message(
+                "This registration menu belongs to another player.", ephemeral=True)
+            return False
+        if not permitted_guild(interaction.guild_id, self.settings.guild_id):
+            await interaction.response.send_message("Wrong event server.", ephemeral=True)
+            return False
+        if practice_expired(self.settings, self.store):
+            await interaction.response.send_message("This registration menu has expired.",
+                                                    ephemeral=True)
+            return False
+        return await require_linked_discord(interaction)
 
 
 class Dashboard(discord.ui.View):
