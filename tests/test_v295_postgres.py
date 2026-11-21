@@ -93,7 +93,7 @@ def test_two_linked_users_replay_concurrency_and_restarts(tmp_path, monkeypatch)
         )
         app = create_app(cfg, identity=identities, game=game)
         with TestClient(app, base_url="https://qa.test") as client:
-            assert client.get("/v1/health").json()["version"] == "2.9.5"
+            assert client.get("/v1/health").json()["version"] == "2.9.5a"
             ready = client.get("/v1/ready")
             assert ready.status_code == 200
             assert ready.json()["status"] == "ready"

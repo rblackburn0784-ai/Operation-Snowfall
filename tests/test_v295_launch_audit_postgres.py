@@ -85,7 +85,7 @@ def test_staging_qa_readiness_and_audit_gate(tmp_path, monkeypatch):
                         base_url="https://qa.local") as client:
             healthy = client.get("/v1/health")
             assert healthy.status_code == 200
-            assert healthy.json()["version"] == "2.9.5"
+            assert healthy.json()["version"] == "2.9.5a"
             ready = client.get("/v1/ready")
             assert ready.status_code == 200, ready.text
             assert ready.json() == {
