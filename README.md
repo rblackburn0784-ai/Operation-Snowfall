@@ -1,3 +1,9 @@
+# Operation Snowfall v2.9.5a — Release Consolidation & QA Deployment
+
+The isolated shared PostgreSQL game is now guarded by the combined v2.9.5 QA release: strict Underworld + Discord identity verification, read-only host launch audit, duplicate-action and browser retry safety, original Discord UI link checks, and multi-client PostgreSQL replay tests.
+
+This is **not** the prize-bearing production launch. [Read the v2.9.5a release plan](docs/RELEASE_v2.9.5a.md).
+
 # v2.9.5 — Cross-Platform Consolidation & Launch Readiness (QA)
 
 **Core gameplay confirmed across Discord and Snowfall Web:** one verified Underworld character, one PostgreSQL game, shared crafting/currency, Snow Don and scoring. This release closes stale-button and Discord-only account bypasses, labels the shared QA season as **no real prizes**, adds safe Discord failure responses and database readiness checks, and includes a read-only, non-identifying launch audit for the isolated QA database.
