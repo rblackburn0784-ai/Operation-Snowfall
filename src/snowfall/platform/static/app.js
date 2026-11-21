@@ -210,8 +210,22 @@ async function init(){
   await resume();
   if(location.search.includes("login=ok"))notice("Discord login successful.","success");
   if(location.search.includes("linked=discord"))notice("Discord account linked to this character.","success");
-  if(location.search.includes("discord=conflict"))
-    notice("That Discord account already belongs to another character or has separate progress. Nothing was merged.","error");
+  if(location.search.includes("discord=conflict")){
+    const reason=new URLSearchParams(location.search).get("reason")||"manual-review";
+    const explanations={
+      "gameplay":"That Discord login already has its own registered Snowfall player. For safety, its game progress cannot be automatically merged with your Underworld character.",
+      "activity":"That Discord login already has recorded Snowfall activity, such as rewards or event history. A manual review is required before linking.",
+      "linked-elsewhere":"That Discord account is already connected to a different Underworld character. Snowfall will not transfer it automatically.",
+      "character-occupied":"This Underworld character already has a different Discord account connected.",
+      "reserved":"That Discord account has a previously reserved identity requiring manual review.",
+      "underworld-required":"Sign into Snowfall through Underworld first, then use Link Discord account.",
+      "manual-review":"The link could not be completed safely. No accounts or progress were changed."
+    };
+    const explanation=explanations[reason]||explanations["manual-review"];
+    const details=el("linkConflictDetail");
+    if(details){details.textContent=explanation;details.classList.remove("hidden")}
+    notice(explanation,"error");
+  }
   if(location.search.includes("linked=discord")||location.search.includes("discord=conflict"))
     history.replaceState(null,"",location.pathname);
  }catch(e){txt("sideStatus","OFFLINE");txt("sideStatusDetail",e.message);notice("Staging service unavailable: "+e.message,"error")}
