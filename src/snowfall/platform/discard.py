@@ -7,9 +7,7 @@ gameplay history is retained for audit, NOT deleted or transferred.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from hashlib import sha256
-import json
 import secrets
 
 from psycopg import sql
