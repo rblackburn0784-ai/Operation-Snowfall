@@ -368,3 +368,5 @@
 .city-standing.score-leader{border-color:#d5b36e}.city-standing strong:last-child{color:#e9ce9d;text-align:right;white-space:nowrap}.city-standing small{display:block;font-size:.68rem;color:#b5cbd7}.city-standing .hq-meter{margin:.3rem 0}.city-standing .city-crest{width:42px;height:42px}
 @media(max-width:650px){.city-war-main{grid-template-columns:minmax(0,1fr);gap:.65rem}.city-war-banner>img:first-child{height:200px}.city-war-heading>img{width:58px;height:58px}.city-command-toolbar{padding:.65rem}.city-command-controls{width:100%}.city-command-controls label{flex:1}.city-standing{grid-template-columns:22px 32px minmax(0,1fr) auto;gap:.4rem;padding:.55rem}.city-standing .city-crest{width:32px;height:32px}.city-standing strong{font-size:.78rem}.city-standing small{font-size:.62rem}}
 @media(max-width:360px){.city-selectors{grid-template-columns:repeat(2,minmax(0,1fr))}.district-grid{grid-template-columns:1fr}.city-command-controls{flex-direction:column;align-items:stretch}.city-war-heading{gap:.45rem;padding:.6rem}}
+
+.city-map-stage .map-city-pin{pointer-events:all;cursor:pointer}.city-map-stage .map-city-pin:hover{stroke:#fff1c5;stroke-width:6}
