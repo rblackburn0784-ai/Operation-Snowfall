@@ -44,7 +44,7 @@ def test_v296_web_uses_existing_artwork_without_changing_gameplay():
         assert 'id="siteBanner"' not in page.text.split("</header>", 1)[1]
         assert 'id="streetsLink"' in page.text
         assert 'src="/art/v290/cities/map/six_city_territory_map.png"' in page.text
-        assert client.get("/v1/web/config").json()["version"] == "2.9.6h"
+        assert client.get("/v1/web/config").json()["version"] == "2.9.6i"
         assert client.get("/v1/web/config").json()["streets_url"] == ""
         for path, mime in (
             ("/art/v290/boss/phase_ice.webp", "image/webp"),
@@ -152,3 +152,12 @@ def test_v296g_wire_route_only_public_verified_data():
             read.assert_called_once_with(game, day=1)
         assert client.post("/v1/web/wire").status_code == 405
         assert client.get("/v1/web/wire?day=8").status_code == 422
+
+
+def test_v296i_rival_schedule_is_the_existing_territory_schedule():
+    from snowfall.services.territory import schedule_for_day
+    with TestClient(web_app(), base_url="https://qa.example") as client:
+        schedule = client.get("/v1/web/config").json()["rival_schedule"]
+        assert len(schedule) == 7
+        for day in range(1, 8):
+            assert schedule[str(day)] == [list(pair) for pair in schedule_for_day(day)]

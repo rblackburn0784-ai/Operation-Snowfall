@@ -69,13 +69,15 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None, game=
         from snowfall.services.combat import ATTACKS, DAILY_PVP_CAP
         from snowfall.services.economy import ITEM_COSTS, ITEM_CAPS
         from snowfall.services.world import BOSS_LIMIT, SIEGE_LIMIT, BOSS_CAP, SIEGE_CAP
+        from snowfall.services.territory import schedule_for_day
         return {
-            "version": "2.9.6h", "staging": True,
+            "version": "2.9.6i", "staging": True,
             "branding": {"banner": (ASSETS / "snowfall-site-banner.webp").is_file(),
                          "icon": (ASSETS / "snowfall-site-icon.webp").is_file()},
             "season": cfg.season_key,
             "demo_enabled": True,
             "underworld_url": cfg.underworld_origin,
+            "rival_schedule": {day: schedule_for_day(day) for day in range(1, 8)},
             "play_rules": {"pvp_cap": DAILY_PVP_CAP, "boss_limit": BOSS_LIMIT,
                            "siege_limit": SIEGE_LIMIT, "boss_cap": BOSS_CAP,
                            "siege_cap": SIEGE_CAP, "styles": ATTACKS,

@@ -1,4 +1,4 @@
-/* Operation Snowfall v2.9.6h — play-first usability. */
+/* Operation Snowfall v2.9.6i — City Wars siege and fitted cosmetics. */
 "use strict";
 const S={session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
@@ -51,8 +51,39 @@ function profileLayers(wardrobe){
 }
 function cosmeticName(key){return S.items.find(item=>item.key===key)?.name||
     (key?key.split("_").map(word=>word[0].toUpperCase()+word.slice(1)).join(" "):"None");}
+// Portrait landmarks measured on the original 530 × 549 artwork.
+ // Coordinates use the square cover crop (9.5 source pixels removed top/bottom).
+const PORTRAIT_FIT=Object.freeze({
+ recruit:{eyes:[53.2,22.9,34,9],neck:[50.5,39.7,40]},
+ recruit_f:{eyes:[55.8,24.4,32,5],neck:[51.8,45,38]},
+ noir_detective:{eyes:[54,22.1,34,10],neck:[51.3,39.5,40]},
+ noir_detective_f:{eyes:[55.5,24,32,1],neck:[51.5,43.8,38]},
+ winter_enforcer:{eyes:[53.6,19.4,36,7],neck:[50.5,35.3,43]},
+ winter_enforcer_f:{eyes:[55,23,33,6],neck:[51.7,41.2,39]},
+ frost_spectre:{eyes:[54,22.3,34,11],neck:[51.7,39,40]},
+ frost_spectre_f:{eyes:[55.7,24.6,32,5],neck:[52.2,44.1,38]}
+});
+function cosmeticPlacement(portrait,gear,framed){
+ const p=Object.hasOwn(PORTRAIT_FIT,portrait)?PORTRAIT_FIT[portrait]:PORTRAIT_FIT.recruit;
+ // The portrait sits in a 2% inset, or 6% when a frame is equipped.
+ const inset=framed?6:2,scale=(100-2*inset)/100;
+ const point=n=>+(inset+n*scale).toFixed(3),size=n=>+(n*scale).toFixed(3);
+ const [ex,ey,ew,angle]=p.eyes,[nx,ny,nw]=p.neck;
+ if(gear==="goggles")return {left:point(ex),top:point(ey),width:size(ew),transform:"translate(-50%,-49%) rotate("+angle+"deg)"};
+ if(gear==="scarf")return {left:point(nx),top:point(ny),width:size(nw),transform:"translateX(-50%)"};
+ if(gear==="boots")return {left:point(7),top:point(67),width:size(26),transform:"none"};
+ if(gear==="snow_trail"||gear==="candy_trail")return {left:point(66),top:point(57),width:size(30),transform:"none"};
+ return null;
+}
+function alignProfileLayer(node,placement){
+ for(const prop of ["left","top","width"])node.style[prop]=placement?placement[prop]+"%":"";
+ node.style.height=placement?"auto":"";
+ node.style.transform=placement?placement.transform:"";
+}
 function renderProfileLayers(prefix,layers){
- el(prefix+"PortraitWell").classList.toggle("has-frame",!!layers.frame.key);
+ const framed=!!layers.frame.key,portrait=layers.portrait.key||"recruit";
+ const well=el(prefix+"PortraitWell");
+ well.classList.toggle("has-frame",framed);well.dataset.portrait=portrait;
  el(prefix+"BannerWell").classList.toggle("hidden",!layers.banner.key);
  for(const slot of Object.keys(layers)){
   const id=slot[0].toUpperCase()+slot.slice(1),node=el(prefix+id),layer=layers[slot];
@@ -61,6 +92,7 @@ function renderProfileLayers(prefix,layers){
    node.classList.remove("hidden");
   }else{node.classList.add("hidden");node.removeAttribute("src")}
   node.dataset.cosmetic=layer.key||"";
+  if(slot==="gear"||slot==="trail")alignProfileLayer(node,cosmeticPlacement(portrait,layer.key,framed));
   const name=layer.key?cosmeticName(layer.key):slot==="portrait"?"Recruit":"None";
   if(slot==="portrait")node.alt=name+" profile";
   txt(prefix+id+"Name",name);
@@ -241,7 +273,7 @@ function section(name,{record=true,focus=true}={}){
  el("primaryNav").classList.remove("open");
  el("menuToggle").setAttribute("aria-expanded","false");
  if(name==="shop")showShop();
- if(name==="cities"){showCities();showBoard();if(!S.territoryPending&&!S.busy)void refreshTerritory()}
+ if(name==="cities"){showCities();showBoard();if(!S.territoryPending&&!S.busy)void refreshTerritory();if(S.session&&!S.privatePending&&!S.busy)void loadPrivate().catch(e=>notice(e.message,"error"))}
  if(name==="boss"){showBoss();if(!S.bossPending&&!S.busy)void refreshBossVisual()}
  if(name==="wire"){showWire();if(!S.wirePending&&!S.busy)void refreshWire()}
  if(record&&location.hash!=="#play-"+name)history.pushState(null,"",location.pathname+location.search+"#play-"+name);
@@ -274,7 +306,7 @@ function syncPlayIdentity(){
  const id=S.session?String(S.session.player_id):null;
  if(id===S.playIdentity)return;
  S.playIdentity=id;S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
- el("targetSelect").value="";el("combatOutcome").classList.add("hidden");el("playFeedback").classList.add("hidden");
+ el("targetSelect").value="";el("combatOutcome").classList.add("hidden");el("siegeOutcome").classList.add("hidden");el("playFeedback").classList.add("hidden");
 }
 function timeLeft(value,now){const t=Date.parse(value);return Number.isFinite(t)?Math.max(0,Math.ceil((t-now)/1000)):0}
 function shortTime(seconds){const n=Math.max(0,Math.ceil(seconds||0));if(n<60)return n+"s";const m=Math.ceil(n/60);return m<60?m+" min":Math.floor(m/60)+"h "+(m%60)+"m"}
@@ -298,6 +330,7 @@ function playBlock({session,me,hq,world,raid,progress,config,kind,style="standar
   return "";
  }
  if(kind==="boss"&&(raid?.state==="disabled"||world?.boss_enabled===false))return "The Snow Don is disabled.";
+ if(kind==="siege"&&(!Number.isInteger(world?.day)||world.day!==me.day||world.city!==me.city||!(world.siege_max_hp>0)))return "Refresh to load your current city fortress.";
  if(kind==="boss"||kind==="siege"){
   const limit=rules[kind+"_limit"],attempts=world?.[kind+"_attempts"],cap=rules[kind+"_cap"],points=world?.[kind+"_points"];
   if(typeof limit==="number"&&typeof attempts==="number"&&attempts>=limit)return "Daily attack limit reached.";
@@ -316,11 +349,12 @@ function playBlock({session,me,hq,world,raid,progress,config,kind,style="standar
 function currentPlayBlock(kind,body={}){
  return playBlock({session:S.session,me:S.me,hq:S.hq,world:S.world,raid:S.raid,progress:S.progress,config:S.config,kind,style:body.style,item:body.item,now:Date.now()+S.hqClock,fresh:S.privateFresh,busy:S.busy||S.privatePending,pending:S.pendingActions.has(requestKey("/v1/game/"+kind,body))});
 }
-function chooseQuickPlay({phase,bossBlocked,throwBlocked,targets,ammo}){
+function chooseQuickPlay({phase,bossBlocked,throwBlocked,siegeBlocked,targets,ammo}){
  if(["closed","finalized"].includes(phase))return {route:"wire",label:"Event results",hint:"Review the final editions and standings."};
  if(phase!=="live")return {route:"cities",label:"Explore City Wars",hint:phase==="paused"?"Event paused. Explore the standings while you wait.":"Explore the cities while waiting for kickoff."};
  if(!throwBlocked&&targets)return {route:"combat",label:"Fight rivals",hint:"Choose an available rival and throw a snowball."};
  if(!bossBlocked)return {route:"boss",label:"Join the boss raid",hint:"Attack the shared Snow Don. No rival selection needed."};
+ if(siegeBlocked==="")return {route:"cities",label:"Fight the city siege",hint:"Join your city’s shared fortress battle."};
  return {route:"shop",label:"Browse the market",hint:ammo===0?"Snowballs are regenerating. Browse the market while you wait.":"Check your resources and browse the market."};
 }
 function updatePlayControls(){
@@ -345,7 +379,11 @@ function updatePlayControls(){
  txt("combatStatus",throwBlock||(pendingThrow?"Previous throw unconfirmed — retry safely with the same action ID.":!S.targetsReady?"Rival list unavailable — refresh.":S.targets.length?"Choose your rival and take a shot.":"No eligible rivals right now."));
  txt("raidPlayStatus",bossBlock||"Ready to attack · 1 snowball per attempt.");
  const rules=S.config?.play_rules||{},w=S.world;
- txt("raidQuota",registered&&w&&typeof w.boss_attempts==="number"&&typeof rules.boss_limit==="number"&&typeof w.siege_attempts==="number"&&typeof rules.siege_limit==="number"?"Boss: "+Math.max(0,rules.boss_limit-w.boss_attempts)+" attempts left · Siege: "+Math.max(0,rules.siege_limit-w.siege_attempts)+" attempts left":"Daily attack limits apply.");
+ txt("raidQuota",registered&&w&&typeof w.boss_attempts==="number"&&typeof rules.boss_limit==="number"?Math.max(0,rules.boss_limit-w.boss_attempts)+" boss attempts left today":"Daily boss attack limits apply.");
+ const siegePending=S.pendingActions.has(requestKey("/v1/game/siege",{}));
+ txt("siegePlayStatus",siegeBlock||(siegePending?"Previous siege attempt unconfirmed — retry safely.":w?.siege_hp===0?"Fortress cleared. Frozen echo attempts follow the usual limits.":"Ready to attack · 1 snowball"));
+ txt("siegeButton",siegePending?"Retry previous siege":w?.siege_hp===0&&w?.siege_max_hp>0?"Attack fortress echo":"Attack city fortress");
+ el("refreshSiege").disabled=!!(S.busy||S.privatePending);
  const arena=timeLeft(S.hq?.timers?.arena,Date.now()+S.hqClock);
  txt("readyButton",arena?"Extend arena readiness":"Enter arena");
  const price=rules.craft_costs?.[el("craftChoice").value],actual=typeof price==="number"?price-(el("craftChoice").value==="fort"&&S.me?.day===2?2:0):null;
@@ -355,7 +393,7 @@ function updatePlayControls(){
  const style=rules.styles?.[body.style];
  txt("throwStyleHint",Array.isArray(style)?"Base accuracy "+Math.round(style[0]*100)+"% · "+style[1]+" damage · "+style[2]+" base points. Modifiers may apply.":"Choose a throwing style.");
  el("noRivals").classList.toggle("hidden",!(registered&&linked&&S.me.phase==="live"&&S.targetsReady&&!S.targets.length));
- const q=chooseQuickPlay({phase:S.me?.phase,bossBlocked:bossBlock,throwBlocked:throwBlock,targets:S.targets.length,ammo:r?.snowballs});
+ const q=chooseQuickPlay({phase:S.me?.phase,bossBlocked:bossBlock,throwBlocked:throwBlock,siegeBlocked:siegeBlock,targets:S.targets.length,ammo:r?.snowballs});
  txt("playCoach",q.hint);txt("playPrimary",q.label);el("playPrimary").dataset.destination=q.route;
  if(registered&&!linked){txt("playCoach","Continue through Underworld to play your linked character.");txt("playPrimary","Account settings");el("playPrimary").dataset.destination="account"}
 }
@@ -515,7 +553,7 @@ function showBoss(){
  txt("raidSummary",raid?.echo_attacks==null?"Raid statistics will appear once the boss spawns.":fmt(raid.echo_attacks)+" frozen-echo attempts · shared raid totals exclude echo damage.");
  txt("bossFreshness",S.bossStale?(raid?"Last known raid status — refresh pending.":"Raid unavailable — refresh pending."):raid?"Synced with the shared raid · refreshes every 30 seconds while this page is visible.":"Waiting for the shared raid.");
  txt("bossActionTitle",defeated?"The Don is down.": "Put the heat on him.");
- txt("bossActionText",defeated?"The real Don is defeated. The existing frozen-echo action remains available under the normal game rules; it cannot defeat him again.":"Attack the shared boss or defend your city’s siege. Daily limits, ammo costs and rewards are enforced in PostgreSQL.");
+ txt("bossActionText",defeated?"The real Don is defeated. The existing frozen-echo action remains available under the normal game rules; it cannot defeat him again.":"Attack the shared Snow Don with your snowballs. Daily limits apply.");
  txt("bossButton",defeated?"Attack frozen echo":"Attack the Snow Don");
  if(!S.busy)el("bossButton").disabled=disabled||raid?.season_phase==="closed"||raid?.season_phase==="finalized";
 }
@@ -584,6 +622,43 @@ function territoryView(board,city){
  return {banner,match,held,home,wins,losses,archived,
   outcome:wins>0&&losses===0?"victory":losses>0&&wins===0?"defeat":wins&&losses?"mixed":"neutral"};
 }
+// Active siege is pinned to the actual shared world snapshot, never a browsed historical day.
+function siegeAssignment(world,me,config){
+ if(!me?.registered||!knownCity(me.city)||world?.city!==me.city||!Number.isInteger(world.day)||world.day<1||world.day>7||world.day!==me.day)return null;
+ const pair=config?.rival_schedule?.[String(world.day)]?.find(p=>Array.isArray(p)&&p.length===2&&p.includes(me.city)&&p.every(knownCity));
+ const rival=pair?.find(city=>city!==me.city)||null;
+ const known=typeof world.siege_hp==="number"&&world.siege_hp>=0&&typeof world.siege_max_hp==="number"&&world.siege_max_hp>0;
+ return {home:me.city,rival,day:world.day,known,cleared:known&&world.siege_hp===0,percent:known?hqPercent(world.siege_hp,world.siege_max_hp):0};
+}
+function siegeImage(id,src,alt=""){
+ const n=el(id);if(src){if(n.getAttribute("src")!==src)n.src=src;n.alt=alt;n.classList.remove("hidden")}
+ else{n.removeAttribute("src");n.alt="";n.classList.add("hidden")}
+}
+function showSiege(){
+ if(!el("citySiege"))return;
+ const world=S.session?S.world:null,a=siegeAssignment(world,S.session?S.me:null,S.config),rules=S.config?.play_rules||{};
+ el("citySiege").dataset.siegeState=!a?.known?"waiting":a.cleared?"cleared":"active";
+ el("siegeMatchup").classList.toggle("hidden",!a?.rival);
+ siegeImage("siegeRivalSkyline",a?.rival?cityAsset(a.rival,"skyline"):null,a?.rival?a.rival+" daily rival skyline":"");
+ siegeImage("siegeHomeCrest",a?cityAsset(a.home,"crest"):null);
+ siegeImage("siegeRivalCrest",a?.rival?cityAsset(a.rival,"crest"):null);
+ txt("siegeHomeName",a?.home||"");txt("siegeRivalName",a?.rival||"");
+ txt("siegeDay",a?"CITY SIEGE · DAY "+a.day+" OF 7":"CITY SIEGE · DAILY ASSIGNMENT");
+ txt("siegeTitle",a?.rival?a.home+" vs "+a.rival:a?a.home+" city siege":"Your city's siege");
+ txt("siegeRivalNote",a?.rival?"Today's City Wars matchup · separate from the NPC fortress below.":a?"Your daily rival is unavailable.":"Sign in and wait for kickoff to see your city's assignment.");
+ txt("siegeFortTitle",a?.known?a.cleared?"Fortress breached · echo available":a.home+" shared fortress":"Awaiting siege status");
+ txt("siegeHpText",a?.known?fmt(world.siege_hp)+" / "+fmt(world.siege_max_hp)+" HP":"— / — HP");
+ txt("siegeDamage",a?.known?Math.round(100-a.percent)+"% damage taken":"—");
+ el("siegeHpBar").style.width=(a?.percent||0)+"%";
+ if(a?.known)el("siegeHealthTrack").setAttribute("aria-valuenow",String(Math.round(a.percent)));else el("siegeHealthTrack").removeAttribute("aria-valuenow");
+ txt("siegeAttempts",a&&typeof rules.siege_limit==="number"&&typeof world.siege_attempts==="number"?Math.max(0,rules.siege_limit-world.siege_attempts):"—");
+ txt("siegePoints",a&&typeof world.siege_points==="number"?fmt(world.siege_points):"—");
+}
+function showSiegeOutcome(r){
+ el("siegeOutcome").classList.remove("hidden");
+ txt("siegeOutcomeTitle",r.repeated?"Previously recorded siege":r.final_blow&&!r.echo?"Fortress breached!":r.echo?"Fortress echo encounter":r.hit?"Direct hit!":"Snowball missed");
+ txt("siegeOutcomeText","Day "+fmt(r.day)+" · "+(r.city||"Your city")+" · "+(r.hit?fmt(r.damage)+" damage · +"+fmt(r.points)+" points.":"No points from this attempt.")+(r.repeated?" Previously recorded, not a second charge.":""));
+}
 function cityScore(n){return n==null?"—":(Number(n)/100).toLocaleString("en-GB",{maximumFractionDigits:2})}
 function mapMarkup(board,selected){
  const lines=(board?.matches||[]).filter(m=>knownCity(m.city_a)&&knownCity(m.city_b)).map(m=>{
@@ -613,6 +688,7 @@ function matchMarkup(m,selected){
  "<div class='match-extra'><span>Throws: "+fmt(m.throws_a)+" / "+fmt(m.throws_b)+"</span><span>Damage: "+fmt(m.damage_a)+" / "+fmt(m.damage_b)+"</span><span>Knockouts: "+fmt(m.kos_a)+" / "+fmt(m.kos_b)+"</span></div></article>";
 }
 function showCities(){
+ showSiege();
  const board=S.territory,home=S.session&&S.me?.registered&&knownCity(S.me.city)?S.me.city:null;
  const city=knownCity(S.citySelected)?S.citySelected:home||"Chicago",v=territoryView(board,city),b=v.banner;
  const focused=document.activeElement?.dataset?.city;
@@ -830,9 +906,9 @@ async function loadPrivate(){
 }
 async function readPrivate(){
  syncPlayIdentity();
- if(!S.session){S.me=null;S.world=null;S.hq=null;S.shop=null;S.targetsReady=false;S.targets=[];S.progress=null;S.verification=null;S.pendingActions.clear();showMe();showShop();showTargets();return}
+ if(!S.session){S.me=null;S.world=null;S.hq=null;S.shop=null;S.targetsReady=false;S.targets=[];S.progress=null;S.verification=null;S.pendingActions.clear();showMe();showShop();showTargets();showSiege();return}
  try{S.me=await get("/v1/game/me")}
- catch(e){if(e.status===401){S.session=null;S.me=null;S.world=null;S.hq=null;S.shop=null;S.progress=null;S.targetsReady=false;S.targets=[];S.verification=null;showMe();showShop();showTargets();return}throw e}
+ catch(e){if(e.status===401){S.session=null;S.me=null;S.world=null;S.hq=null;S.shop=null;S.progress=null;S.targetsReady=false;S.targets=[];S.verification=null;showMe();showShop();showTargets();showSiege();return}throw e}
  if(S.me.registered){
   const results=await Promise.allSettled([get("/v1/game/world"),get("/v1/game/wardrobe"),get("/v1/game/targets"),get("/v1/game/progress"),get("/v1/game/headquarters")]);
   S.world=results[0].status==="fulfilled"?results[0].value:null;
@@ -1111,7 +1187,7 @@ function bind(){
  for(const kind of ["boss","siege"]){
   el(kind==="boss"?"bossButton":"siegeButton").onclick=()=>{
    if(!registered())return;
-   act(async()=>{let r=await post("/v1/game/"+kind,{},true,true);if(kind==="boss")showBossRecap(r);notice(r.hit?"Hit! "+r.damage+" damage and "+r.points+" points.":"Shot missed.",r.hit?"success":"")});
+   act(async()=>{let r=await post("/v1/game/"+kind,{},true,true);if(kind==="boss")showBossRecap(r);else showSiegeOutcome(r);notice(r.hit?"Hit! "+r.damage+" damage and "+r.points+" points.":"Shot missed.",r.hit?"success":"")});
   };
  }
  el("craftButton").onclick=()=>{if(registered())act(async()=>{let r=await post("/v1/game/craft",{item:el("craftChoice").value},true,true);notice(r.text||"Crafted.","success")})};
@@ -1147,7 +1223,7 @@ function bind(){
  el("territoryDay").onchange=()=>{S.territoryDay=el("territoryDay").value;void refreshTerritory()};
  el("refreshTerritory").onclick=()=>{if(!S.territoryPending&&!S.busy)void Promise.all([refreshTerritory(),refreshCityStandings()])};
  for(const id of ["citySelectors","cityStandings"])el(id).onclick=e=>{const b=e.target.closest("button[data-city]");if(b&&knownCity(b.dataset.city)){S.citySelected=b.dataset.city;showCities();if(id==="cityStandings")el("cityWarRoom").scrollIntoView({block:"start"});else el("citySelectors").querySelector("[aria-pressed=true]")?.focus({preventScroll:true})}};
- for(const id of ["refreshHome","refreshBoss","refreshShop"]){el(id).onclick=()=>refresh().then(()=>notice("Game state refreshed.")).catch(e=>notice(e.message,"error"))}
+ for(const id of ["refreshHome","refreshBoss","refreshShop","refreshSiege"]){el(id).onclick=()=>refresh().then(()=>notice("Game state refreshed.")).catch(e=>notice(e.message,"error"))}
 }
 async function init(){
  bind();setupAtmosphere();
@@ -1164,7 +1240,7 @@ async function init(){
    if(!S.bossPending)void refreshBossVisual();
    if(el("page-cities").classList.contains("active")&&!S.territoryPending&&S.territoryDay==="current")void Promise.all([refreshTerritory(),refreshCityStandings()]);
    if(!S.wirePending)void refreshWire();
-   if(S.session&&["home","combat","boss"].some(name=>el("page-"+name).classList.contains("active"))&&!document.activeElement?.matches("input,select,textarea")&&el("authDialog").classList.contains("hidden"))
+   if(S.session&&["home","combat","boss","cities"].some(name=>el("page-"+name).classList.contains("active"))&&!document.activeElement?.matches("input,select,textarea")&&el("authDialog").classList.contains("hidden"))
     void loadPrivate().catch(()=>{});
   };
   setInterval(poll,30000);document.addEventListener("visibilitychange",poll);
