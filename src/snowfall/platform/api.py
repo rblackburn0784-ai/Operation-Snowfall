@@ -126,6 +126,29 @@ def _idempotency(principal_id: int, operation: str, key: str | None) -> str:
     return "web:" + sha256(f"{principal_id}:{operation}:{key}".encode()).hexdigest()
 
 
+def _link_conflict_code(exc: IdentityConflict) -> str:
+    """Stable, non-identifying error categories for an already-verified OAuth user.
+
+    Only permit fixed labels in the browser redirect. Never include raw
+    exception text, Discord IDs, session cookies or Underworld account IDs.
+    The actual database remains authoritative; no conflict is bypassed here.
+    """
+    description = str(exc)
+    if "existing gameplay" in description or "game progress" in description:
+        return "gameplay"
+    if "existing activity" in description:
+        return "activity"
+    if "another linked identity" in description or "another player with linked progress" in description:
+        return "linked-elsewhere"
+    if "already has a Discord account linked" in description:
+        return "character-occupied"
+    if "Discord ID already reserved" in description:
+        return "reserved"
+    if "Sign in through Underworld" in description:
+        return "underworld-required"
+    return "manual-review"
+
+
 def _challenge(verifier: str) -> str:
     return base64.urlsafe_b64encode(sha256(verifier.encode("ascii")).digest()).rstrip(
         b"=").decode("ascii")
@@ -309,11 +332,14 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         if mode == "link":
             try:
                 identities.link_discord(principal, user_id)
-            except IdentityConflict:
-                # No silent transfer of existing profiles. Avoid returning a
-                # JSON error page from an OAuth browser redirect.
-                return RedirectResponse(cfg.public_base_url + "/?discord=conflict",
-                                        status_code=303)
+            except IdentityConflict as exc:
+                # The link failure must remain fail-closed, but let the
+                # verified account owner see which safe next step applies.
+                # Only server-defined categories are included in the URL.
+                reason = _link_conflict_code(exc)
+                return RedirectResponse(
+                    cfg.public_base_url + "/?discord=conflict&reason=" + reason,
+                    status_code=303)
             return RedirectResponse(cfg.public_base_url + "/?linked=discord",
                                     status_code=303)
         resolved = identities.resolve_discord(user_id)
