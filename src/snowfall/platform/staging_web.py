@@ -45,7 +45,7 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None) -> Fa
     @app.get("/v1/web/config")
     def config():
         return {
-            "version": "2.9.4a", "staging": True,
+            "version": "2.9.4c", "staging": True,
             "season": cfg.season_key,
             "demo_enabled": True,
             "discord_oauth": bool(cfg.discord_client_id),
