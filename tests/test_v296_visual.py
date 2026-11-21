@@ -12,7 +12,7 @@ from snowfall.platform.staging import (
 from snowfall.platform.staging_web import attach_web_ui, safe_streets_url
 
 
-def web_app(*, streets=""):
+def web_app(*, streets="", game=None):
     env = {
         "RAILWAY_PROJECT_ID": STAGING_PROJECT,
         "RAILWAY_ENVIRONMENT_ID": STAGING_ENVIRONMENT,
@@ -24,7 +24,7 @@ def web_app(*, streets=""):
         "SNOWFALL_DISCORD_STREETS_URL": streets,
     }
     cfg = APISettings("postgresql://unused/db", "web-qa-2026", "https://qa.example")
-    return attach_web_ui(FastAPI(), None, cfg, env=env)
+    return attach_web_ui(FastAPI(), None, cfg, env=env, game=game)
 
 
 def test_v296_web_uses_existing_artwork_without_changing_gameplay():
@@ -36,7 +36,7 @@ def test_v296_web_uses_existing_artwork_without_changing_gameplay():
         assert 'id="bossPortrait"' in page.text
         assert 'id="hqCityArt"' in page.text
         assert 'id="hqPortraitWell"' in page.text
-        assert '<section class="hero">' in page.text
+        assert '<section class="hero" id="snowDonHero"' in page.text
         assert 'THE COLD<br><em>NEVER</em>' in page.text
         header = page.text.split("</header>", 1)[0]
         assert 'id="siteBanner"' in header
@@ -44,7 +44,7 @@ def test_v296_web_uses_existing_artwork_without_changing_gameplay():
         assert 'id="siteBanner"' not in page.text.split("</header>", 1)[1]
         assert 'id="streetsLink"' in page.text
         assert 'src="/art/v290/cities/map/six_city_territory_map.png"' in page.text
-        assert client.get("/v1/web/config").json()["version"] == "2.9.6b"
+        assert client.get("/v1/web/config").json()["version"] == "2.9.6c"
         assert client.get("/v1/web/config").json()["streets_url"] == ""
         for path, mime in (
             ("/art/v290/boss/phase_ice.webp", "image/webp"),
@@ -100,3 +100,18 @@ def test_v296_reuses_only_committed_artwork():
                   "v290/cosmetics/frames/ice_frame.png",
                   "v290/portraits/frost_spectre_m.webp"):
         assert (root / asset).is_file(), asset
+
+
+def test_v296c_public_boss_visual_route_is_read_only():
+    from unittest.mock import patch
+    game = object()
+    expected = {"day": 4, "hp": 75, "max_hp": 150, "tier": 50,
+                "state": "wounded", "splash": "/art/v290/boss/rage_snowball.webp"}
+    with TestClient(web_app(game=game), base_url="https://qa.example") as client:
+        with patch("snowfall.platform.boss_visuals.current_boss", return_value=expected) as read:
+            response = client.get("/v1/web/boss")
+            assert response.status_code == 200
+            assert response.json() == expected
+            assert response.headers["cache-control"] == "no-store"
+            read.assert_called_once_with(game)
+        assert client.post("/v1/web/boss").status_code == 405

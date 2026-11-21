@@ -1,6 +1,6 @@
-/* Operation Snowfall v2.9.6b — restored splash, header branding and larger HQ. */
+/* Operation Snowfall v2.9.6c — shared Snow Don visual state. */
 "use strict";
-const S={session:null,me:null,world:null,raid:null,shop:null,items:[],board:[],cities:[],targets:[],config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
+const S={session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,shop:null,items:[],board:[],cities:[],targets:[],config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
 const txt=(id,v)=>{if(el(id))el(id).textContent=v==null?"—":String(v)};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -89,7 +89,8 @@ function configureBranding(branding){
 function bossArtTier(hp,max){
  if(!(Number(max)>0))return 100;
  if(Number(hp)<=0)return 0;
- return Math.min(100,Math.max(10,Math.ceil(100*Number(hp)/Number(max)/10)*10));
+ const maximum=Math.trunc(Number(max)),remaining=Math.max(0,Math.min(Math.trunc(Number(hp)),maximum));
+ return Math.max(10,Math.floor((remaining*10+maximum-1)/maximum)*10);
 }
 function safeStreetsUrl(value){
  if(typeof value!=="string")return "";
@@ -173,7 +174,7 @@ function section(name){
  el("menuToggle").setAttribute("aria-expanded","false");
  if(name==="shop")showShop();
  if(name==="cities"){showCities();showBoard()}
- if(name==="boss")showBoss();
+ if(name==="boss"){showBoss();if(!S.bossPending&&!S.busy)void refreshBossVisual()}
  window.scrollTo({top:document.querySelector(".page-grid").offsetTop,behavior:"smooth"});
 }
 function authModal(){if(S.session)return notice("Already signed in.","success");el("authDialog").classList.remove("hidden")}
@@ -189,6 +190,7 @@ function showMe(){
  el("accountTools").classList.toggle("hidden",!signed);
  if(signed&&!S.session?.links?.some(x=>x.provider==="discord"))el("accountTools").open=true;
  showWardrobe();
+ if(!signed)el("bossRecap").classList.add("hidden");
  if(!signed||S.session?.links?.some(x=>x.provider==="discord")){
    el("discordDiscardPanel").classList.add("hidden");S.discard=null;
  }
@@ -286,18 +288,68 @@ function renderProgress(){
      fmt(p.boss_hp)+"/"+fmt(p.boss_max_hp)+" HP.");
 }
 function showBoss(){
- let max=Number(S.world?.boss_max_hp??S.raid?.max_hp??0), hp=Number(S.world?.boss_hp??S.raid?.remaining_hp??0);
- txt("bossHeadline",max&&hp===0?"The Snow Don has fallen!":"The Snow Don lives.");
- txt("bossHpText",fmt(hp)+" / "+fmt(max)+" HP");
- txt("bossPhase",max?Math.round((1-hp/max)*100)+"% damage taken":"Raid not started");
- el("bossHpBar").style.width=max?Math.max(0,Math.min(100,100*hp/max))+"%":"0%";
- txt("raidSummary",S.raid?fmt(S.raid.shared_hits)+" hits · "+fmt(S.raid.contributors)+" contributors · "+fmt(S.raid.misses)+" misses":"Raid status will appear here.");
-  const tier=bossArtTier(hp,max),portrait=el("bossPortrait");
-  if(portrait.dataset.tier!==String(tier)){
-   portrait.src=tier===0?"/art/v290/boss/snow_don_0.webp":"/art/boss/snow_don_"+tier+".png";
-   portrait.dataset.tier=String(tier);
-  }
-  portrait.alt=tier===0?"Snow Don defeated":"Snow Don artwork at approximately "+tier+"% remaining health";
+ const raid=S.raid,known=raid?.hp!=null&&Number(raid.max_hp)>0;
+ const hp=known?Number(raid.hp):0,max=known?Number(raid.max_hp):0;
+ const state=raid?.state||"waiting",defeated=state==="defeated",disabled=state==="disabled";
+ const visibleHealth=known&&!disabled,percent=visibleHealth?Math.max(0,Math.min(100,100*hp/max)):0;
+ const tier=visibleHealth?raid.tier:null;
+ for(const id of ["snowDonHero","bossScene"])el(id).dataset.bossState=state;
+ const art=el("heroBossArt"),portrait=el("bossPortrait");
+ const splash=raid?.splash||"/art/v290/boss/phase_ice.webp";
+ const portraitPath=raid?.portrait||"/art/boss/snow_don_100.png";
+ if(art.getAttribute("src")!==splash)art.src=splash;
+ if(portrait.getAttribute("src")!==portraitPath)portrait.src=portraitPath;
+ art.dataset.tier=tier==null?"":String(tier);portrait.dataset.tier=art.dataset.tier;
+ art.alt=defeated?"Original Discord Snow Don final defeat scene":"Original Discord Snow Don cinematic: "+(raid?.title||"awaiting the raid");
+ portrait.alt=defeated?"Original Discord defeated Snow Don portrait":tier==null?"Original Snow Don portrait":"Discord Snow Don damage portrait — "+tier+"% health tier";
+ txt("bossTierLabel",tier==null?"Awaiting status":tier===0?"Defeated":tier+"% artwork tier");
+ el("heroLiveTitle").classList.toggle("hidden",defeated);el("heroDefeatTitle").classList.toggle("hidden",!defeated);
+ txt("heroLede",defeated?"The shared Snow Don has fallen. The city celebrates. Visit the raid aftermath or continue your permitted daily activities.":"Six cities. Seven days. One very angry Snow Don. Grab your ammunition, pick your city and make a name for yourself.");
+ const status=visibleHealth?fmt(hp)+" / "+fmt(max)+" HP · "+(raid?.title||""):(raid?.title||"Awaiting the Snow Don");
+ txt("heroBossStatus",status+(S.bossStale?" · Refresh pending":""));
+ txt("heroArtCaption",defeated?"THE FINAL SNOWFALL":(raid?.title||"ART FROM THE ORIGINAL DISCORD EVENT"));
+ txt("heroBossLink",defeated?"View the aftermath":"Meet the Snow Don");
+ txt("hqBossLink",defeated?"View boss aftermath":"🎯 Attack Snow Don");
+ txt("bossHeadline",defeated?"The Snow Don has fallen!":disabled?"The boss is disabled":visibleHealth?"The Snow Don lives.":"The boss awaits.");
+ txt("bossPhase",raid?.title||"The city is waiting");
+ txt("raidDay",raid?.day?"SNOW DON / DAY "+raid.day+" OF 7":"SNOW DON / CURRENT STATUS");
+ txt("bossHpText",visibleHealth?fmt(hp)+" / "+fmt(max)+" HP":"— / — HP");
+ txt("bossDamage",visibleHealth?Math.round(100-percent)+"% damage taken":"—");
+ const bar=el("bossHpBar");bar.style.width=percent+"%";
+ if(visibleHealth)bar.parentElement.setAttribute("aria-valuenow",String(Math.round(percent)));
+ else bar.parentElement.removeAttribute("aria-valuenow");
+ for(const [id,key] of [["raidHits","hit_count"],["raidContributors","contributors"],["raidMisses","misses"]])
+  txt(id,raid?.[key]==null?"—":fmt(raid[key]));
+ txt("raidSummary",raid?.echo_attacks==null?"Raid statistics will appear once the boss spawns.":fmt(raid.echo_attacks)+" frozen-echo attempts · shared raid totals exclude echo damage.");
+ txt("bossFreshness",S.bossStale?(raid?"Last known raid status — refresh pending.":"Raid unavailable — refresh pending."):raid?"Synced with the shared raid · refreshes every 30 seconds while this page is visible.":"Waiting for the shared raid.");
+ txt("bossActionTitle",defeated?"The Don is down.": "Put the heat on him.");
+ txt("bossActionText",defeated?"The real Don is defeated. The existing frozen-echo action remains available under the normal game rules; it cannot defeat him again.":"Attack the shared boss or defend your city’s siege. Daily limits, ammo costs and rewards are enforced in PostgreSQL.");
+ txt("bossButton",defeated?"Attack frozen echo":"Attack the Snow Don");
+ if(!S.busy)el("bossButton").disabled=disabled||raid?.season_phase==="closed"||raid?.season_phase==="finalized";
+}
+async function refreshBossVisual(){
+ const sequence=++S.bossRequest;S.bossPending=true;
+ try{
+  const raid=await get("/v1/web/boss");
+  if(sequence!==S.bossRequest)return;
+  if(!["waiting","disabled","healthy","cracked","wounded","critical","defeated"].includes(raid.state))throw Error("Missing raid status");
+  S.raid=raid;S.bossStale=false;
+ }catch{
+  if(sequence!==S.bossRequest)return;
+  S.bossStale=true;
+ }finally{
+  if(sequence===S.bossRequest){S.bossPending=false;showBoss()}
+ }
+}
+function showBossRecap(r){
+ const echo=!!r.echo,final=!!r.final_blow&&!echo;
+ txt("bossRecapTitle",final?"The final blow!":echo?"Frozen echo encounter":r.hit?"Direct hit!":"The Don dodged the shot.");
+ txt("bossRecapText",(r.hit?(echo?"Echo damage: ":"Damage: ")+fmt(r.damage)+" · "+fmt(r.points)+" points.":"No hit this attempt.")+
+    (r.repeated?" Previously recorded action.":""));
+ const image=el("bossRecapArt"),tier=bossArtTier(r.hp_after,r.max_hp);
+ image.src=tier===0?"/art/v290/boss/snow_don_0.webp":"/art/boss/snow_don_"+tier+".png";
+ image.alt="Snow Don artwork at the recorded encounter's remaining health";
+ el("bossRecap").classList.remove("hidden");
 }
 function showTargets(){
  let node=el("targetSelect"),current=node.value;
@@ -326,11 +378,10 @@ function showShop(){
  }).join(""):"<p class='empty'>The market is currently unavailable.</p>";
 }
 async function loadPublic(){
- const results=await Promise.allSettled([get("/v1/game/leaderboard?limit=20"),get("/v1/game/cities"),get("/v1/game/raid?day=1"),get("/v1/game/catalog")]);
+ const results=await Promise.allSettled([get("/v1/game/leaderboard?limit=20"),get("/v1/game/cities"),get("/v1/game/catalog")]);
  if(results[0].status==="fulfilled")S.board=results[0].value.players||[];
  if(results[1].status==="fulfilled")S.cities=results[1].value.cities||[];
- if(results[2].status==="fulfilled")S.raid=results[2].value;
- if(results[3].status==="fulfilled")S.items=results[3].value.items||[];
+ if(results[2].status==="fulfilled")S.items=results[2].value.items||[];
  showBoard();showCities();showBoss();showShop();
 }
 async function loadPrivate(){
@@ -383,14 +434,14 @@ async function loadDiscardOffer(){
  updateDiscardSubmit();
  notice("Choose carefully: your separate Discord character will be retired only if you confirm.","error");
 }
-async function refresh(){await Promise.all([loadPublic(),loadPrivate()])}
+async function refresh(){await Promise.all([loadPublic(),loadPrivate()]);await refreshBossVisual()}
 async function resume(){try{S.session=await get("/v1/auth/session")}catch{S.session=null}await refresh()}
 async function act(fn){
  if(S.busy)return;
  if(!S.session)return authModal();
  S.busy=true;document.querySelectorAll(".actions-inline button,.craft-card button").forEach(b=>b.disabled=true);
  try{await fn();await refresh()}catch(e){notice(e.message,"error")}
- finally{S.busy=false;document.querySelectorAll(".actions-inline button,.craft-card button").forEach(b=>b.disabled=false)}
+ finally{S.busy=false;document.querySelectorAll(".actions-inline button,.craft-card button").forEach(b=>b.disabled=false);showBoss()}
 }
 function registered(){if(S.me?.registered)return true;section("home");notice("Register your player at Headquarters first.","error");return false}
 function bind(){
@@ -492,7 +543,7 @@ function bind(){
  for(const kind of ["boss","siege"]){
   el(kind==="boss"?"bossButton":"siegeButton").onclick=()=>{
    if(!registered())return;
-   act(async()=>{let r=await post("/v1/game/"+kind,{},true,true);notice(r.hit?"Hit! "+r.damage+" damage and "+r.points+" points.":"Shot missed.",r.hit?"success":"")});
+   act(async()=>{let r=await post("/v1/game/"+kind,{},true,true);if(kind==="boss")showBossRecap(r);notice(r.hit?"Hit! "+r.damage+" damage and "+r.points+" points.":"Shot missed.",r.hit?"success":"")});
   };
  }
  el("craftButton").onclick=()=>{if(registered())act(async()=>{let r=await post("/v1/game/craft",{item:el("craftChoice").value},true,true);notice(r.text||"Crafted.","success")})};
@@ -512,6 +563,8 @@ async function init(){
   if(!cfg.underworld_assertions)el("underworldForm").querySelector("button").disabled=true;
   txt("sideStatus",(health.status||"unknown").toUpperCase());txt("sideStatusDetail","Isolated staging · "+cfg.season);
   await resume();
+  const poll=()=>{if(!document.hidden&&!S.busy&&!S.bossPending)void refreshBossVisual()};
+  setInterval(poll,30000);document.addEventListener("visibilitychange",poll);
   if(location.search.includes("login=ok"))notice("Discord login successful.","success");
   if(location.search.includes("linked=discord"))notice("Discord account linked to this character.","success");
   if(location.search.includes("discord=discard-offer")){
