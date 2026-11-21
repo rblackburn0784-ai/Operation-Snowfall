@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from threading import Lock
 from urllib.parse import urlsplit
+import mimetypes
 import os
 import re
 import secrets
@@ -108,6 +109,9 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None) -> Fa
 
     # Reuse the artwork already bundled with the existing Discord bot. Mount
     # only the public art directory; no user data or game-write endpoint.
+    # Slim Linux images may omit the system WebP MIME mapping. Register it
+    # explicitly so both the original art and new branding decode in browsers.
+    mimetypes.add_type("image/webp", ".webp", strict=True)
     app.mount("/art", StaticFiles(directory=str(ART)), name="snowfall-art")
     app.mount("/static", StaticFiles(directory=str(ASSETS)), name="snowfall-static")
 

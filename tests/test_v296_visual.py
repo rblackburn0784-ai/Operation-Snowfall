@@ -58,6 +58,8 @@ def test_v296_web_uses_existing_artwork_without_changing_gameplay():
                                ("icon", "snowfall-site-icon.webp")):
             response = client.get("/static/" + filename)
             assert response.status_code == (200 if branding[flag] else 404)
+            if branding[flag]:
+                assert response.headers["content-type"].startswith("image/webp")
 
 
 @pytest.mark.parametrize("url", [
