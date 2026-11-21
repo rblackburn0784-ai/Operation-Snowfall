@@ -497,21 +497,27 @@ function showFitting(){
  el("fitCollector").dataset.rarity=rarity;
  txt("fitRarity",rarity+" style preview");
  txt("fitPlayerName",w?S.me.mr_username:"Guest fitting model");
- txt("fitStatus",changed.length?changed.length+" previewed slot"+(changed.length===1?"":"s")+" · No purchase or equipment change made.":"Showing "+(w?"your currently equipped outfit":"the default recruit")+". Try any item for free.");
+ txt("fitStatus",changed.length?changed.length+" previewed slot"+(changed.length===1?"":"s")+" · Previewing never purchases or equips an item.":"Showing "+(w?"your currently equipped outfit":"the default recruit")+". Try any item for free.");
  el("fitReset").disabled=!changed.length;
  el("fitChanges").innerHTML=changed.map(slot=>{
   const i=marketItem(layers[slot].key),state=marketState(i,w),owned=["owned","equipped"].includes(state);
-  return "<div class='fit-change'><div><strong>"+esc(i.name)+"</strong><small>"+(owned?"Owned":state==="unknown"?"Preview only":"✦ "+fmt(i.cost)+" to unlock")+"</small></div><button data-fit-remove='"+slot+"' class='button button-outline button-small' aria-label='Remove "+esc(slot)+" preview'>✕</button></div>";
+  const kind=owned?"equip":"buy",ready=marketEligible(i,kind);
+  const label=owned?"Equip":i.cost===0?"Unlock free":"Unlock · ✦ "+fmt(i.cost);
+  return "<div class='fit-change'><div><strong>"+esc(i.name)+"</strong><small>"+(owned?"Owned":state==="unknown"?"Preview only":"✦ "+fmt(i.cost)+" to unlock")+"</small></div><div class='fit-change-actions'><button data-fit-action='"+kind+"' data-item='"+esc(i.key)+"' class='button button-gold button-small' "+(!ready?"disabled":"")+">"+label+"</button><button data-fit-remove='"+slot+"' class='button button-outline button-small' aria-label='Remove "+esc(slot)+" preview'>✕</button></div></div>";
  }).join("");
  const cost=changed.reduce((total,slot)=>{const i=marketItem(layers[slot].key);return total+(w&&marketState(i,w)==="unowned"?i.cost:0)},0);
  txt("fitCost",w?"Estimated cost for unowned preview items: "+fmt(cost)+" Snowflakes. No checkout or automatic spend.":"Sign in to see your owned items and actual purchase eligibility.");
- txt("fitHint",w?"Purchase and equip items individually in the catalogue.":"Browsing and previewing are free.");
+ txt("fitHint",w?"Unlock or equip individual preview items here or in the catalogue.":"Browsing and previewing are free.");
 }
 function tryMarketItem(key){
  const i=marketItem(key);
  if(!i||!HQ_SLOTS[i.category]?.includes(key)||!Object.hasOwn(COSMETIC_ART,key))return false;
  S.market.preview[i.category]=key;
  showShop();return true;
+}
+function focusFitting(){
+ el("marketFitting").scrollIntoView({block:"start"});
+ el("fittingTitle").focus({preventScroll:true});
 }
 function showFeatured(){
  const items=S.items.filter(i=>MARKET_SLOTS.includes(i.category)&&Object.hasOwn(COSMETIC_ART,i.key))
@@ -753,14 +759,18 @@ function bind(){
  };
  el("featuredPrev").onclick=()=>{S.market.featured--;showFeatured()};
  el("featuredNext").onclick=()=>{S.market.featured++;showFeatured()};
- el("featuredTry").onclick=()=>{if(tryMarketItem(el("featuredTry").dataset.item))el("marketFitting").scrollIntoView({block:"start"})};
+ el("featuredTry").onclick=()=>{if(tryMarketItem(el("featuredTry").dataset.item))focusFitting()};
  el("fitReset").onclick=()=>{S.market.preview={};showShop()};
  el("fitBrowse").onclick=()=>el("marketCatalogue").scrollIntoView({block:"start"});
- el("fitChanges").onclick=e=>{const b=e.target.closest("button[data-fit-remove]");if(b&&MARKET_SLOTS.includes(b.dataset.fitRemove)){delete S.market.preview[b.dataset.fitRemove];showShop()}};
+ el("fitChanges").onclick=e=>{
+  const b=e.target.closest("button");if(!b||b.disabled)return;
+  if(MARKET_SLOTS.includes(b.dataset.fitRemove)){delete S.market.preview[b.dataset.fitRemove];showShop();el("fittingTitle").focus()}
+  else if(["buy","equip"].includes(b.dataset.fitAction))marketAction(b.dataset.item,b.dataset.fitAction);
+ };
  el("craftChoice").onchange=updateCraftArtwork;
  el("catalog").onclick=e=>{
   const b=e.target.closest("button");if(!b||b.disabled)return;
-  if(b.dataset.try){if(tryMarketItem(b.dataset.try))el("marketFitting").scrollIntoView({block:"start"});return}
+  if(b.dataset.try){if(tryMarketItem(b.dataset.try))focusFitting();return}
   if(b.dataset.buy)marketAction(b.dataset.buy,"buy");
   else if(b.dataset.equip)marketAction(b.dataset.equip,"equip");
  };

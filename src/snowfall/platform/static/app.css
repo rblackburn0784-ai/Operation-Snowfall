@@ -321,3 +321,5 @@
 .market-item small{font-size:.7rem;overflow-wrap:anywhere}
 @media(max-width:780px){.fitting-layout{grid-template-columns:1fr}.fitting-stage .collector-profile{max-width:350px}.market-feature{gap:.6rem}.market-feature-content h3{font-size:1.2rem}}
 @media(max-width:480px){.market-feature{grid-template-columns:1fr}.market-feature-art{aspect-ratio:16/10}.market-feature-art img{max-height:200px}.market-fitting{padding:.55rem}.fitting-layout{padding:.55rem}.market-filters{padding:.55rem;gap:.45rem}.market-item{padding:.65rem!important}.market-catalogue .catalog-grid{grid-template-columns:1fr}.market-item-art{aspect-ratio:16/10}.market-item-art .catalog-thumb{max-height:230px}.market-wallet .button{width:100%}}
+
+.fit-change{flex-wrap:wrap}.fit-change>div:first-child{flex:1 1 100%}.fit-change-actions{display:flex;gap:.35rem;flex-wrap:wrap;width:100%}.fit-change-actions>.button:first-child{flex:1 1 auto}.fit-change-actions>.button{min-height:38px}
