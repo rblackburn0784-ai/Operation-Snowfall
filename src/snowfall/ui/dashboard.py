@@ -17,13 +17,21 @@ def escape_name(name: str) -> str:
     return discord.utils.escape_markdown(discord.utils.escape_mentions(name))
 
 
-def rules_text() -> str:
+def rules_text(settings=None) -> str:
+    shared_qa = getattr(settings, "season_key", "") == "web-qa-2026"
+    introduction = (
+        "• **Entry:** Use your verified Underworld character and link Discord. "
+        "Both platforms share one player, score and inventory.\\n"
+        "• **Prizes:** QA is fictional: no real prizes or official event awards.\\n"
+        if shared_qa else
+        "• **Entry:** Self-declare your MR username and city. No MR password required.\\n"
+        "• **Prizes:** Only individual awards receive prizes. City titles are for bragging rights.\\n"
+    )
     return (
-        "**❄️ Operation Snowfall — Community Christmas Event**\n"
+        "**❄️ Operation Snowfall — Community Christmas Event**\\n"
         "Seven full days of snowball battles across six MafiaReturns city teams.\n"
-        "• **Entry:** Self-declare your MR username and city. No MR password or account linking.\n"
-        "• **Registration:** Opens 168 hours before scheduled kickoff; late entry is allowed.\n"
-        "• **Prizes:** Only individual awards receive prizes. City titles are for bragging rights.\n"
+        + introduction
+        + "• **Registration:** Opens 168 hours before scheduled kickoff; late entry is allowed.\\n"
         "• **Fair play:** One MR name per Discord account; impersonation reports go to staff.\n"
         "• **Privacy:** Declared names, Discord IDs and scores are stored; see `/snow privacy`.\n"
         "• **Combat:** `/snow ready` opts in to being targeted for 36 effective hours.\n"
@@ -42,7 +50,8 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
     starts = int(season.planned_start.timestamp())
     ending = season.projected_end(now)
     embed = discord.Embed(
-        title=("🧪 Operation Snowfall — TEST ARENA" if settings.is_test else
+        title=("🧪 Operation Snowfall — SHARED QA / NO PRIZES" if settings.season_key == "web-qa-2026" else
+               "🧪 Operation Snowfall — TEST ARENA" if settings.is_test else
                "❄️ Operation Snowfall — Event Headquarters"),
         description=(
             f"**Phase:** {stage.replace('_', ' ').title()}\n"
@@ -51,6 +60,7 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
             f"**Projected end:** {f'<t:{int(ending.timestamp())}:F>' if ending else 'After host starts'}\n"
             f"**Current day:** {season.day(now) or '—'} / 7\n"
             f"**Registered players:** {registered}\n"
+            "**Prizes:** QA only — no prizes." if settings.season_key == "web-qa-2026" else
             "**Prizes:** Individual only. City standings = bragging rights."
         ),
         color=0x78B9EA,
@@ -196,7 +206,7 @@ class Dashboard(discord.ui.View):
     @discord.ui.button(label="Rules", style=discord.ButtonStyle.secondary,
                        custom_id="snowfall:v1:rules")
     async def rules_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message(rules_text(), ephemeral=True,
+        await interaction.response.send_message(rules_text(self.settings), ephemeral=True,
                                                 allowed_mentions=discord.AllowedMentions.none())
 
     @discord.ui.button(label="Throw", emoji="🎯", style=discord.ButtonStyle.success,
