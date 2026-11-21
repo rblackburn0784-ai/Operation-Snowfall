@@ -94,18 +94,30 @@ class SnowfallBot(discord.Client):
         self.tree.add_command(cityhq, guild=guild)
         # All buttons must have fixed custom_ids and timeout=None so old messages work.
         self.add_view(Dashboard(self.settings, self.store))
-        try:
-            await self.tree.sync(guild=guild)
-        except discord.Forbidden:
-            log.error("Discord refused slash-command sync (403 Missing Access) for guild %s. "
-                      "Confirm config.toml guild_id is the exact event server ID, "
-                      "and that the token's application is installed in that guild "
-                      "with bot + applications.commands scopes.", self.settings.guild_id)
-            raise
+        for attempt in range(3):
+            try:
+                synced = await self.tree.sync(guild=guild)
+                log.info("Registered %s slash-command groups in guild %s", len(synced),
+                         self.settings.guild_id)
+                break
+            except discord.Forbidden:
+                log.error("Discord rejected slash-command sync in guild %s. "
+                          "Check bot installation and applications.commands scope.",
+                          self.settings.guild_id)
+                raise
+            except discord.HTTPException as exc:
+                if exc.status not in (429, 500, 502, 503, 504) or attempt == 2:
+                    raise
+                log.warning("Discord command sync temporarily unavailable (HTTP %s); retry %s/2",
+                            exc.status, attempt + 1)
+                await asyncio.sleep(2 ** attempt)
 
     async def on_ready(self):
+        status = ("SHARED QA — NO PRIZES"
+                  if getattr(self.store, "unified_discord", False)
+                  else self.settings.mode.upper())
         log.info("[%s] Connected as %s in guild %s, season %s, database %s",
-                 self.settings.mode.upper(), self.user, self.settings.guild_id,
+                 status, self.user, self.settings.guild_id,
                  self.settings.season_key, "PostgreSQL" if getattr(self.store, "backend", "sqlite") == "postgres"
         else self.settings.database_path)
         if not self.refresh_world.is_running():
