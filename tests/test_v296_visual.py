@@ -1,0 +1,87 @@
+"""v2.9.6 QA visual integration: original artwork and optional safe Discord link."""
+from pathlib import Path
+
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+import pytest
+
+from snowfall.platform.api import APISettings
+from snowfall.platform.staging import (
+    QA_CONFIRM, STAGING_ENVIRONMENT, STAGING_PROJECT,
+)
+from snowfall.platform.staging_web import attach_web_ui, safe_streets_url
+
+
+def web_app(*, streets=""):
+    env = {
+        "RAILWAY_PROJECT_ID": STAGING_PROJECT,
+        "RAILWAY_ENVIRONMENT_ID": STAGING_ENVIRONMENT,
+        "RAILWAY_ENVIRONMENT_NAME": "staging",
+        "SNOWFALL_WEB_QA_CONFIRM": QA_CONFIRM,
+        "SNOWFALL_API_ENABLED": "1",
+        "SNOWFALL_DB_BACKEND": "postgres",
+        "SNOWFALL_WEB_DEMO_ACCESS_CODE": "private-test-code-with-at-least-32-chars",
+        "SNOWFALL_DISCORD_STREETS_URL": streets,
+    }
+    cfg = APISettings("postgresql://unused/db", "web-qa-2026", "https://qa.example")
+    return attach_web_ui(FastAPI(), None, cfg, env=env)
+
+
+def test_v296_web_uses_existing_artwork_without_changing_gameplay():
+    with TestClient(web_app(), base_url="https://qa.example") as client:
+        page = client.get("/")
+        assert page.status_code == 200
+        assert "NO PRIZES" in page.text
+        assert 'id="menuToggle"' in page.text
+        assert 'id="bossPortrait"' in page.text
+        assert 'id="hqCityArt"' in page.text
+        assert 'id="streetsLink"' in page.text
+        assert 'src="/art/v290/cities/map/six_city_territory_map.png"' in page.text
+        assert client.get("/v1/web/config").json()["version"] == "2.9.6"
+        assert client.get("/v1/web/config").json()["streets_url"] == ""
+        for path, mime in (
+            ("/art/v290/boss/phase_ice.webp", "image/webp"),
+            ("/art/v290/cosmetics/backgrounds/shop.webp", "image/webp"),
+            ("/art/boss/snow_don_60.png", "image/png"),
+            ("/art/v290/cities/crests/chicago_crest.png", "image/png"),
+            ("/art/v290/cities/map/six_city_territory_map.png", "image/png"),
+        ):
+            response = client.get(path)
+            assert response.status_code == 200, path
+            assert response.headers["content-type"].startswith(mime), path
+        assert client.get("/art/not-present.webp").status_code == 404
+        assert client.get("/static/favicon.svg").status_code == 200
+        assert client.get("/favicon.ico").headers["content-type"].startswith("image/svg+xml")
+
+
+@pytest.mark.parametrize("url", [
+    "http://discord.com/channels/123456789012345678/123456789012345678",
+    "https://discord.com.evil.test/channels/123456789012345678/123456789012345678",
+    "https://discord.com@evil.test/channels/123456789012345678/123456789012345678",
+    "https://discord.com/channels/123456789012345678/123456789012345678?token=a",
+    "https://discord.com/channels/123456789012345678/123456789012345678#fragment",
+    "https://discord.com/channels/@me/123456789012345678",
+    "https://discord.com/channels/not-a-snowflake/123456789012345678",
+    "javascript:alert(1)",
+    "//discord.com/channels/123456789012345678/123456789012345678",
+    "https://discord.com:443/channels/123456789012345678/123456789012345678",
+    "",
+])
+def test_v296_discord_channel_url_rejects_untrusted_destinations(url):
+    assert safe_streets_url(url) == ""
+
+
+def test_v296_discord_channel_link_is_explicit_and_safe():
+    channel = "https://discord.com/channels/123456789012345678/234567890123456789"
+    assert safe_streets_url(channel) == channel
+    with TestClient(web_app(streets=channel), base_url="https://qa.example") as client:
+        assert client.get("/v1/web/config").json()["streets_url"] == channel
+
+
+def test_v296_reuses_only_committed_artwork():
+    root = Path(__file__).resolve().parents[1] / "src" / "snowfall" / "graphics" / "art"
+    for asset in ("cities/chicago.webp", "cities/las_vegas.webp",
+                  "v290/boss/snow_don_0.webp",
+                  "v290/cosmetics/frames/ice_frame.png",
+                  "v290/portraits/frost_spectre_m.webp"):
+        assert (root / asset).is_file(), asset
