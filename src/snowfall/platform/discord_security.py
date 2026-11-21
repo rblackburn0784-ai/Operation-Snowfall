@@ -40,7 +40,7 @@ async def check_linked_player(interaction) -> bool:
         await interaction.response.send_message(UNLINKED_MESSAGE, ephemeral=True)
         return False
     except Exception:
-        log.exception("Shared Discord identity lookup failed; blocking action")
+        log.error("Shared Discord identity lookup failed; blocking action")
         await interaction.response.send_message(UNAVAILABLE_MESSAGE, ephemeral=True)
         return False
     return True
