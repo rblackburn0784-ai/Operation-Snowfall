@@ -87,7 +87,10 @@ def test_linked_account_gate_handles_disconnect_unlinked_and_db_outage():
         assert not await require_linked_discord(attempted)
         assert "Link your Discord login" in attempted.responded[0][0]
         from snowfall.platform.discord_bridge import DiscordBridgeGateway
-        gateway = DiscordBridgeGateway(temporary, SimpleNamespace())
+        class ForbiddenGame:
+            def register(self, *_args):
+                raise AssertionError("Discord-only identity reached game registration")
+        gateway = DiscordBridgeGateway(temporary, ForbiddenGame())
         try:
             gateway.register(ACTOR, "AccidentalSecondPlayer", "Detroit")
             raise AssertionError("Discord-only identity bypassed Underworld linking")
