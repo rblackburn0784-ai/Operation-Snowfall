@@ -1,3 +1,11 @@
+# v2.9.4e1 — Existing Discord Bot QA Cutover (single token, verified backup)
+
+The existing `Operation-Snowfall` Railway Discord service now has a fail-closed staging PostgreSQL cutover with a persistent, verified original SQLite backup. It still uses the same application, bot token, guild and slash commands. When isolated QA mode is enabled with a valid staging PostgreSQL connection, `/snowbridge verify` joins its original `/snow` commands. No new bot, mirrored data store or prize transfer.
+
+The staging database belongs to a **different Railway project**, so the production worker needs a **private-to-the-service Railway variable** containing the staging **public TCP proxy** connection URL, with `sslmode=require` and database `snowfall_web_qa`. These credentials are not exposed through connected Railway access. **Do not apply QA activation until this connection variable is configured and preflighted.**
+
+[Full cutover, rollback and manual credential handoff guide](docs/RELEASE_v2.9.4e1.md).
+
 # v2.9.4e — Cross-Platform Gameplay Verification (QA)
 
 One linked Underworld/Discord character, one PostgreSQL game. Start a 15-minute baseline in the **Snowfall Web Verification Lab**, run the real **`/snowbridge verify`** command from your existing linked Discord account, then perform a genuine Discord action and check the canonical score, inventory and Snow Don HP from the browser. Server-side immutable game event receipts distinguish real Discord actions from browser actions and reject replay or made-up proof. No extra prizes or points are created by verification.
