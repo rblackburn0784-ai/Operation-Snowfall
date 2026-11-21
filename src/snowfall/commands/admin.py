@@ -34,6 +34,20 @@ class SnowAdminGroup(app_commands.Group):
         super().__init__(name="snowadmin", description="Operation Snowfall organisers and staff")
         self.settings, self.store, self.practice = settings, store, practice
 
+    @staticmethod
+    def _shared_qa(interaction) -> bool:
+        store = getattr(getattr(interaction, "client", None), "store", None)
+        return bool(getattr(store, "unified_discord", False))
+
+    async def _qa_forbidden(self, interaction, action: str) -> bool:
+        if not self._shared_qa(interaction):
+            return False
+        await interaction.response.send_message(
+            f"🧪 `{action}` is disabled in shared QA. "
+            "No prize, official launch or public-broadcast state was changed.",
+            ephemeral=True)
+        return True
+
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if self.practice is not None:
             self.practice.for_interaction(interaction.channel_id)
@@ -44,6 +58,15 @@ class SnowAdminGroup(app_commands.Group):
         if not is_staff(interaction.user.id, self.settings.admin_user_ids,
                         self.settings.staff_role_ids, roles):
             await interaction.response.send_message("This command is restricted to event staff.", ephemeral=True)
+            return False
+        if self._shared_qa(interaction) and getattr(
+                getattr(interaction, "command", None), "name", "") in {
+                    "approve-launch", "export-prizes", "prize-status",
+                    "finalize", "publish-leaderboards", "announce-day",
+                }:
+            await interaction.response.send_message(
+                "🧪 Official launch, prize and public broadcast commands are "
+                "disabled while the bot is connected to QA.", ephemeral=True)
             return False
         return True
 
@@ -56,6 +79,8 @@ class SnowAdminGroup(app_commands.Group):
     async def perform(self, interaction: discord.Interaction, action: str,
                       confirmation: str, reason: str, new_start: datetime | None = None):
         if not await self.require_host(interaction):
+            return
+        if action == "finalize" and await self._qa_forbidden(interaction, action):
             return
         if action == "start" and not self.settings.is_test:
             if not await asyncio.to_thread(is_approved, self.store, self.settings.season_key):
@@ -98,7 +123,7 @@ class SnowAdminGroup(app_commands.Group):
         projected = season.projected_end(now)
         await interaction.followup.send(
             f"**{self.settings.event_name}**"
-            f" {'🧪 TEST INSTANCE — NO REAL PRIZES' if self.settings.is_test else 'PRODUCTION'}\n"
+            f" {'🧪 SHARED QA — NO REAL PRIZES' if self._shared_qa(interaction) else '🧪 TEST INSTANCE — NO REAL PRIZES' if self.settings.is_test else 'PRODUCTION'}\n"
             f"Phase: **{season.phase(now)}** | Game day: **{season.day(now) or '—'}**\n"
             f"Registration: <t:{int(season.registration_opens().timestamp())}:F>\n"
             f"Scheduled start: <t:{int(season.planned_start.timestamp())}:F>\n"
@@ -179,7 +204,7 @@ class SnowAdminGroup(app_commands.Group):
         season = await asyncio.to_thread(self.store.season, self.settings.season_key)
         players = await asyncio.to_thread(self.store.registrations, self.settings.season_key)
         embed = dashboard_embed(self.settings, season, now, len(players))
-        embed.add_field(name="Welcome and Rules", value=rules_text()[:1024], inline=False)
+        embed.add_field(name="Welcome and Rules", value=rules_text(self.settings)[:1024], inline=False)
         existing = await asyncio.to_thread(self.store.get_published,
                                            self.settings.season_key, "dashboard")
         message = None
@@ -226,6 +251,8 @@ class SnowAdminGroup(app_commands.Group):
     async def publish_boards(self, interaction: discord.Interaction):
         if not await self.require_host(interaction):
             return
+        if await self._qa_forbidden(interaction, "publish-leaderboards"):
+            return
         if not self.settings.leaderboard_channel_id:
             await interaction.response.send_message(
                 "Configure leaderboard_channel_id first.", ephemeral=True)
@@ -245,6 +272,8 @@ class SnowAdminGroup(app_commands.Group):
                           description="Host: publish/update today's announcement in #Announcements")
     async def announce_day(self, interaction: discord.Interaction):
         if not await self.require_host(interaction):
+            return
+        if await self._qa_forbidden(interaction, "announce-day"):
             return
         if not self.settings.announcement_channel_id:
             await interaction.response.send_message(
@@ -417,6 +446,8 @@ class SnowAdminGroup(app_commands.Group):
     async def approve(self, interaction: discord.Interaction, confirmation: str, reason: str):
         if not await self.require_host(interaction):
             return
+        if await self._qa_forbidden(interaction, "approve-launch"):
+            return
         if confirmation != "APPROVE":
             await interaction.response.send_message("Type APPROVE to confirm.", ephemeral=True)
             return
@@ -482,6 +513,8 @@ class SnowAdminGroup(app_commands.Group):
     async def export_prizes(self, interaction: discord.Interaction):
         if not await self.require_host(interaction):
             return
+        if await self._qa_forbidden(interaction, "export-prizes"):
+            return
         await interaction.response.defer(ephemeral=True)
         try:
             rows = await asyncio.to_thread(capture_final_awards, self.store,
@@ -502,6 +535,8 @@ class SnowAdminGroup(app_commands.Group):
     async def prize_status(self, interaction: discord.Interaction, place: int, reward: str,
                            status: app_commands.Choice[str], reason: str):
         if not await self.require_host(interaction):
+            return
+        if await self._qa_forbidden(interaction, "prize-status"):
             return
         await interaction.response.defer(ephemeral=True)
         try:
