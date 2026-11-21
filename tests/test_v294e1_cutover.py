@@ -5,7 +5,6 @@ Fixtures never touch real Railway, Discord or database credentials.
 from __future__ import annotations
 
 from contextlib import closing
-from pathlib import Path
 import sqlite3
 
 import pytest
