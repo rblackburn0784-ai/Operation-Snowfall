@@ -157,6 +157,22 @@ def test_verified_discord_retirement_retains_underworld_and_immutable_audit(tmp_
                     "acknowledged_loss": True, "confirmation": "DELETE"}).status_code == 422
                 assert identity.principal_for_discord(DISCORD_USER) == int(DISCORD_USER)
 
+                # The visible Cancel button invalidates the server-side
+                # challenge and leaves both player records exactly as they were.
+                cancelled = client.post("/v1/auth/discord/discard/cancel",
+                                        headers=csrf, json={})
+                assert cancelled.status_code == 200
+                assert cancelled.json() == {"cancelled": True}
+                assert client.get("/v1/auth/discord/discard/preview").status_code == 401
+                assert identity.principal_for_discord(DISCORD_USER) == int(DISCORD_USER)
+                assert game.progress(int(DISCORD_USER)) == old_score
+
+                # Only fresh, fully verified Discord OAuth can issue another
+                # challenge after cancellation.
+                resumed = authorize("link", csrf["X-Snowfall-CSRF"])
+                assert resumed.headers["location"] == "https://qa.example/?discord=discard-offer"
+                assert client.get("/v1/auth/discord/discard/preview").status_code == 200
+
                 # Progress changed after the confirmation screen was shown:
                 # no silent loss; user must re-verify OAuth and review again.
                 with store.connect() as conn:
