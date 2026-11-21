@@ -101,6 +101,15 @@ SCHEMA = (
        points_discarded BIGINT NOT NULL CHECK(points_discarded>=0),
        snapshot_hash TEXT NOT NULL,
        created_at TIMESTAMPTZ NOT NULL DEFAULT now())""",
+    """CREATE TABLE IF NOT EXISTS snowfall_identity_platform_checks (
+       player_id BIGINT PRIMARY KEY REFERENCES snowfall_identity_principals(player_id),
+       season_key TEXT NOT NULL,
+       started_at TIMESTAMPTZ NOT NULL,
+       expires_at TIMESTAMPTZ NOT NULL,
+       baseline JSONB NOT NULL,
+       discord_seen_at TIMESTAMPTZ,
+       discord_snapshot JSONB,
+       CHECK(expires_at>started_at))""",
 )
 
 
