@@ -1,3 +1,7 @@
+# v2.9.4c1 — Discord Link Conflict Diagnostics (QA only)
+
+The Linked Identities panel now explains whether OAuth linking was blocked by registered Discord gameplay, recorded activity, or a Discord account bound to a different character. No identifiers or tokens are included in the diagnostic redirect or logs, and all existing account-protection rules remain enforced. This is diagnostics only — it does not merge or overwrite profiles.
+
 # v2.9.4c — Fix Discord-first Linking Conflicts (QA)
 
 A Discord-only Snowfall identity created by **Continue with Discord** can now be linked to its verified Underworld character *only when the Discord identity has no gameplay or other links*. Existing game progress is never merged or discarded. Existing browser sessions for the empty Discord-only identity are revoked, and the action is audited.
