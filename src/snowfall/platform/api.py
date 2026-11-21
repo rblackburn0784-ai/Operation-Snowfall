@@ -9,6 +9,7 @@ import base64
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from hashlib import sha256
+import logging
 import os
 from pathlib import Path
 import re
@@ -338,6 +339,8 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
                 # verified account owner see which safe next step applies.
                 # Only server-defined categories are included in the URL.
                 reason = _link_conflict_code(exc)
+                logging.getLogger(__name__).warning(
+                    "Discord account-link denied: category=%s", reason)
                 return RedirectResponse(
                     cfg.public_base_url + "/?discord=conflict&reason=" + reason,
                     status_code=303)
