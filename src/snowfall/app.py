@@ -22,7 +22,7 @@ from snowfall.services.world import WorldEngine
 from snowfall.ui.broadcast import BroadcastPublisher
 from snowfall.ops import backup_sqlite, restore_sqlite
 from snowfall.practice import PracticeManager, ScopedSettings, ScopedStore
-from snowfall.platform.identity import IdentityError, IdentityRepository
+from snowfall.platform.identity import IdentityRepository
 
 log = logging.getLogger(__name__)
 
@@ -33,23 +33,14 @@ class GuildCommandTree(app_commands.CommandTree):
             await interaction.response.send_message(
                 "Operation Snowfall only works in its dedicated event server.", ephemeral=True)
             return False
-        if self.client.unified_identity is not None:
-            command = getattr(interaction.command, "qualified_name", "")
-            # Preserve public help, the account-link instructions and host
-            # administration. Gameplay cannot create an unlinked second profile.
-            public = {"snow privacy", "snow rules", "snow guide", "snowbridge link"}
-            if command not in public and not command.startswith("snowadmin "):
-                try:
-                    await asyncio.to_thread(
-                        self.client.unified_identity.principal_for_discord,
-                        str(interaction.user.id))
-                except IdentityError:
-                    await interaction.response.send_message(
-                        "🔗 Link your Discord account to your Underworld character "
-                        "before playing. Use `/snowbridge link` for instructions.",
-                        ephemeral=True)
-                    return False
-        return True
+        command = getattr(interaction.command, "qualified_name", "")
+        # Staff safety is enforced by SnowAdminGroup; public rules and linking
+        # remain available before a character is linked.
+        public = {"snow privacy", "snow rules", "snow guide", "snowbridge link"}
+        if command in public or command.startswith("snowadmin "):
+            return True
+        from snowfall.platform.discord_security import check_linked_player
+        return await check_linked_player(interaction)
 
 
 class SnowfallBot(discord.Client):
@@ -178,7 +169,7 @@ class SnowfallBot(discord.Client):
 def main(argv: list[str] | None = None):
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    parser = argparse.ArgumentParser(description="Operation Snowfall v0.2.8")
+    parser = argparse.ArgumentParser(description="Operation Snowfall v2.9.5")
     parser.add_argument("--test", action="store_true", help="Obsolete: use /snowadmin test-start in the main bot")
     parser.add_argument("--backup-now", action="store_true", help="Create a verified backup then exit")
     parser.add_argument("--restore", metavar="BACKUP", help="Offline restore from a verified backup")
