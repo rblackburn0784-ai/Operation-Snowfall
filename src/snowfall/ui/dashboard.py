@@ -168,6 +168,19 @@ class Dashboard(discord.ui.View):
         if not permitted_guild(interaction.guild_id, self.settings.guild_id):
             await interaction.response.send_message("Wrong event server.", ephemeral=True)
             return False
+        # Persistent public buttons bypass slash-command tree checks, so they
+        # must also verify account linking before any canonical game write.
+        identity = getattr(interaction.client, "unified_identity", None)
+        if identity is not None:
+            from snowfall.platform.identity import IdentityError
+            try:
+                await asyncio.to_thread(
+                    identity.principal_for_discord, str(interaction.user.id))
+            except IdentityError:
+                await interaction.response.send_message(
+                    "🔗 Link your Discord account through Snowfall first. "
+                    "Use `/snowbridge link` to get started.", ephemeral=True)
+                return False
         return True
 
     @discord.ui.button(label="Join", emoji="❄️", style=discord.ButtonStyle.primary,
