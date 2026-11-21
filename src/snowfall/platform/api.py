@@ -138,7 +138,7 @@ def _link_conflict_code(exc: IdentityConflict) -> str:
         return "gameplay"
     if "existing activity" in description:
         return "activity"
-    if "another linked identity" in description or "another player with linked progress" in description:
+    if ("another linked identity" in description or "another player with linked progress" in description\n            or "already belongs to another player" in description):
         return "linked-elsewhere"
     if "already has a Discord account linked" in description:
         return "character-occupied"
