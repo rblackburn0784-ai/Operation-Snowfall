@@ -6,7 +6,7 @@ import path from "node:path";
 import {fileURLToPath} from "node:url";
 import vm from "node:vm";
 
-const root=path.dirname(fileURLToPath(new URL("../src/snowfall/",import.meta.url)));
+const root=fileURLToPath(new URL("../src/snowfall/",import.meta.url));
 const js=readFileSync(path.join(root,"platform/static/app.js"),"utf8");
 const html=readFileSync(path.join(root,"platform/static/index.html"),"utf8");
 const ctx=vm.createContext({document:{addEventListener:()=>{}},URL});
