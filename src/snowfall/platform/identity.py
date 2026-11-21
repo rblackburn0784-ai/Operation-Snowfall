@@ -80,6 +80,27 @@ SCHEMA = (
        target_player_id BIGINT NOT NULL
          REFERENCES snowfall_identity_principals(player_id),
        created_at TIMESTAMPTZ NOT NULL DEFAULT now())""",
+    """CREATE TABLE IF NOT EXISTS snowfall_identity_discard_intents (
+       challenge_hash TEXT PRIMARY KEY,
+       session_hash TEXT NOT NULL,
+       target_player_id BIGINT NOT NULL
+         REFERENCES snowfall_identity_principals(player_id),
+       discord_subject TEXT NOT NULL,
+       season_key TEXT NOT NULL,
+       snapshot_hash TEXT NOT NULL,
+       expires_at TIMESTAMPTZ NOT NULL)""",
+    """CREATE INDEX IF NOT EXISTS idx_snowfall_discard_intents_session
+       ON snowfall_identity_discard_intents(session_hash)""",
+    """CREATE TABLE IF NOT EXISTS snowfall_identity_discard_audit (
+       id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+       old_player_id BIGINT NOT NULL,
+       target_player_id BIGINT NOT NULL
+         REFERENCES snowfall_identity_principals(player_id),
+       old_character_name TEXT NOT NULL,
+       season_key TEXT NOT NULL,
+       points_discarded BIGINT NOT NULL CHECK(points_discarded>=0),
+       snapshot_hash TEXT NOT NULL,
+       created_at TIMESTAMPTZ NOT NULL DEFAULT now())""",
 )
 
 
