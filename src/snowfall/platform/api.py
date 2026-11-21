@@ -181,7 +181,7 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         shared.store.season(cfg.season_key)
         yield
 
-    app = FastAPI(title="Operation Snowfall Shared API", version="2.9.4e",
+    app = FastAPI(title="Operation Snowfall Shared API", version="2.9.5",
                   lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
     if cfg.cors_origins:
         app.add_middleware(CORSMiddleware, allow_origins=list(cfg.cors_origins),
@@ -240,7 +240,27 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
 
     @app.get("/v1/health")
     def health():
-        return {"status": "ok", "version": "2.9.4c1", "backend": "postgres",
+        return {"status": "ok", "version": "2.9.5", "backend": "postgres",
+                "season": cfg.season_key}
+
+    @app.get("/v1/ready")
+    def readiness():
+        """Read-only live dependency check; liveness alone cannot prove game access.
+
+        Do not return DB errors, OAuth secrets or connection URLs in responses.
+        Railway can monitor this independently from the cheap /v1/health.
+        """
+        try:
+            identities.check()
+            shared.store.season(cfg.season_key)
+            if cfg.season_key == "web-qa-2026":
+                from snowfall.platform.unified_discord import verify_qa_database
+                verify_qa_database(cfg.database_url, season=cfg.season_key)
+        except Exception:
+            logging.getLogger(__name__).warning(
+                "Snowfall readiness dependency check failed; no credentials logged")
+            raise HTTPException(503, "Game database not ready") from None
+        return {"status": "ready", "backend": "postgres",
                 "season": cfg.season_key}
 
     @app.post("/v1/auth/underworld")
