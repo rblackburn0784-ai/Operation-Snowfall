@@ -1,0 +1,150 @@
+name: v2.9.6g deployed atmosphere and finale smoke
+on:
+  push:
+    branches: [qa/v2.9.6g-live-finale-smoke]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deployed-finale-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify deployed verified Wire and original artwork
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,time,urllib.request,urllib.error,hashlib,pathlib
+          base="https://snowfall-web-qa-staging.up.railway.app"
+          def get(path):
+              with urllib.request.urlopen(base+path,timeout=20) as r:
+                  return r.read(),r.headers
+          for i in range(72):
+              try:
+                  cfg=json.loads(get("/v1/web/config")[0])
+                  assert cfg["version"]=="2.9.6g",cfg["version"]
+                  assert cfg["staging"] and cfg["branding"]=={"banner":True,"icon":True}
+                  get("/v1/ready")
+                  body,headers=get("/v1/web/wire")
+                  wire=json.loads(body)
+                  assert headers.get("Cache-Control")=="no-store"
+                  assert wire["verified_only"] is True and "stories" not in wire and "pending_stories" not in wire
+                  assert wire["day"] is None or wire["day"] in wire["available_days"]
+                  assert all(set(h)=={"key","title","detail","category"} for h in wire["headlines"])
+                  get("/v1/web/boss");get("/v1/web/territory");get("/v1/game/catalog")
+                  break
+              except Exception:
+                  if i==71: raise
+                  time.sleep(5)
+          for art in ("wire/backgrounds/final_day_edition.png","wire/backgrounds/front_page_template.png","wire/backgrounds/newsroom_editorial.png","wire/banners/snowfall_wire_masthead.png","wire/banners/breaking_news.png","boss/raid_celebration.webp","boss/victory_screen.webp","boss/final_defeat.webp"):
+              path="v290/"+art
+              data,headers=get("/art/"+path)
+              assert headers.get("Content-Type","").startswith("image/")
+              assert hashlib.sha256(data).digest()==hashlib.sha256(pathlib.Path("src/snowfall/graphics/art",path).read_bytes()).digest(),path
+              print("PASS original artwork",path)
+          print("LIVE",cfg["version"],"Wire",wire["phase"],"day",wire["day"],"verified headlines",len(wire["headlines"]))
+          pathlib.Path("wire-live.json").write_text(json.dumps(wire))
+          PY
+      - name: Install Chromium
+        run: |
+          python -m pip install playwright
+          python -m playwright install chromium
+      - name: Render live, daily defeat, reset, paused, closed and finalized states
+        shell: bash
+        run: |
+          mkdir -p qa-screenshots
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright,expect
+          from urllib.parse import urlsplit,parse_qs
+          import json
+          base="https://snowfall-web-qa-staging.up.railway.app"
+          state={"phase":"live","day":2,"defeated":False}
+          def wire(day=None):
+              current=state["day"]
+              ended=state["phase"] in ("closed","finalized")
+              selected=day or current
+              complete=ended or selected<current
+              return dict(phase=state["phase"],current_day=None if ended else current,last_completed=7 if ended else current-1,available_days=list(range(1,current+1)),day=selected,complete=complete,theme="Fixture dispatch",verified_only=True,headlines=[{"key":"lead","category":"Championship","title":"Fixture Day "+str(selected),"detail":"Fictional browser-test report"},{"key":"combat","category":"Combat","title":"<script>Fixture</script>","detail":"Two test throws"}])
+          def raid():
+              dead=state["defeated"]
+              return dict(day=state["day"],season_phase=state["phase"],hp=0 if dead else 150,max_hp=150,tier=0 if dead else 100,state="defeated" if dead else "healthy",portrait="/art/v290/boss/snow_don_0.webp" if dead else "/art/boss/snow_don_100.png",splash="/art/v290/boss/final_defeat.webp" if dead else "/art/v290/boss/phase_ice.webp",title="The Final Snowfall" if dead else "The Don Rules the Streets",hit_count=8,misses=2,contributors=3,echo_attacks=0)
+          with sync_playwright() as p:
+              browser=p.chromium.launch(headless=True,args=["--no-sandbox"])
+              for label,w,h in [("desktop",1440,1000),("mobile",390,844),("small-mobile",320,740)]:
+                  state.update(phase="live",day=2,defeated=False)
+                  page=browser.new_page(viewport={"width":w,"height":h},device_scale_factor=1)
+                  errors=[];page.on("pageerror",lambda e:errors.append(str(e)))
+                  def route_request(route):
+                      req=route.request;url=urlsplit(req.url)
+                      if req.method not in ("GET","HEAD"): route.abort();return
+                      if url.path=="/v1/web/wire":
+                          selected=parse_qs(url.query).get("day",[None])[0]
+                          route.fulfill(status=200,content_type="application/json",body=json.dumps(wire(int(selected) if selected else None)))
+                      elif url.path=="/v1/web/boss": route.fulfill(status=200,content_type="application/json",body=json.dumps(raid()))
+                      elif url.path=="/v1/auth/session": route.fulfill(status=401,content_type="application/json",body='{"detail":"Not authenticated"}')
+                      else: route.continue_()
+                  page.route("**/*",route_request)
+                  page.goto(base,wait_until="domcontentloaded",timeout=45000)
+                  expect(page.locator("#eventConnectionText")).to_contain_text("Connected",timeout=30000)
+                  expect(page.locator("#eventFinale")).to_be_hidden()
+                  expect(page.locator("#phaseValue")).to_have_text("LIVE")
+                  page.locator("#atmosphereToggle").click()
+                  expect(page.locator("html")).to_have_attribute("data-atmosphere","off")
+                  assert page.locator(".snow").first.evaluate("n=>getComputedStyle(n).display")=="none"
+                  page.reload(wait_until="domcontentloaded")
+                  expect(page.locator("#eventConnectionText")).to_contain_text("Connected",timeout=30000)
+                  expect(page.locator("html")).to_have_attribute("data-atmosphere","off")
+                  page.emulate_media(reduced_motion="reduce")
+                  expect(page.locator("#atmosphereToggle")).to_be_disabled()
+                  if w<=780: page.locator("#menuToggle").click()
+                  page.locator('.topnav [data-nav="wire"]').click()
+                  expect(page.locator("#wireLead")).to_have_text("Fixture Day 2",timeout=30000)
+                  expect(page.locator("#wireHeadlines")).to_contain_text("<script>Fixture</script>")
+                  assert page.locator("#wireHeadlines script").count()==0
+                  page.locator("#wireDay").select_option("1")
+                  expect(page.locator("#wirePaper")).to_have_attribute("data-edition","archive")
+                  page.locator("#wireDay").select_option("current")
+                  expect(page.locator("#wirePaper")).to_have_attribute("data-edition","live")
+                  state.update(defeated=True)
+                  if w<=780: page.locator("#menuToggle").click()
+                  page.locator('.topnav [data-nav="boss"]').click()
+                  expect(page.locator("#eventFinale")).to_have_attribute("data-kind","raid",timeout=30000)
+                  expect(page.locator("#raidCelebration")).to_be_visible()
+                  expect(page.locator("#heroBossArt")).to_have_attribute("src","/art/v290/boss/final_defeat.webp")
+                  expect(page.locator("#phaseValue")).to_have_text("LIVE")
+                  page.screenshot(path=f"qa-screenshots/{label}-raid.png",full_page=True)
+                  state.update(day=3,defeated=False)
+                  page.locator("#refreshBoss").click()
+                  expect(page.locator("#eventFinale")).to_be_hidden(timeout=30000)
+                  expect(page.locator("#heroBossArt")).to_have_attribute("src","/art/v290/boss/phase_ice.webp")
+                  state.update(phase="paused")
+                  page.locator("#refreshBoss").click()
+                  expect(page.locator("#eventFinale")).to_have_attribute("data-kind","paused",timeout=30000)
+                  state.update(phase="closed",day=7)
+                  page.locator("#refreshBoss").click()
+                  expect(page.locator("#eventFinale")).to_have_attribute("data-kind","closed",timeout=30000)
+                  state.update(phase="finalized")
+                  page.locator("#refreshBoss").click()
+                  expect(page.locator("#eventFinale")).to_have_attribute("data-kind","finalized",timeout=30000)
+                  page.locator("#heroPlay").click()
+                  expect(page.locator("#wirePaper")).to_have_attribute("data-edition","final",timeout=30000)
+                  expect(page.locator("#wireEditionArt")).to_have_attribute("src","/art/v290/wire/backgrounds/final_day_edition.png")
+                  assert page.evaluate("document.documentElement.scrollWidth-innerWidth")<=2
+                  assert not errors,errors
+                  page.screenshot(path=f"qa-screenshots/{label}-final-wire.png",full_page=True)
+                  print(label,"PASS atmosphere persistence, reduced motion, daily raid vs season ending, archive, no overflow")
+                  page.close()
+              browser.close()
+          print("All mutation requests blocked; no actual game state changed.")
+          PY
+      - name: Save screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snowfall-v296g-finale-screenshots
+          path: qa-screenshots/
+          if-no-files-found: ignore
