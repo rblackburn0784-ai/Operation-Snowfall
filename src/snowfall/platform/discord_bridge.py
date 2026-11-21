@@ -103,7 +103,7 @@ class SnowBridgeGroup(app_commands.Group):
         except ValueError as exc:
             await interaction.followup.send("⚠️ " + str(exc), ephemeral=True)
         except Exception:
-            logging.getLogger(__name__).exception(
+            logging.getLogger(__name__).error(
                 "Canonical Discord gameplay unavailable; refusing action")
             await interaction.followup.send(
                 "⚠️ Shared game temporarily unavailable. No new action was recorded. "
