@@ -28,7 +28,11 @@ async def require_linked_discord(interaction) -> bool:
     if identity is None:
         return True
     try:
-        await asyncio.to_thread(identity.principal_for_discord, str(interaction.user.id))
+        principal = await asyncio.to_thread(
+            identity.principal_for_discord, str(interaction.user.id))
+        links = await asyncio.to_thread(identity.links, principal)
+        if not any(link["provider"] == "underworld" for link in links):
+            raise IdentityError("Discord is not linked to an Underworld character")
     except IdentityError:
         message = ("🔗 Link your Discord login to your Underworld character "
                    "on Snowfall Web before playing. Try `/snowbridge link`.")
