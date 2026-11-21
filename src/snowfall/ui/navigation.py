@@ -161,7 +161,7 @@ async def show_rules(interaction, settings, store, owner_id: int):
     settings, store = pin(settings, store)
     from snowfall.ui.dashboard import rules_text
     await _edit(interaction, view=HelpMenu(settings, store, owner_id),
-                content=rules_text(), embed=None)
+                content=rules_text(settings), embed=None)
 
 
 class MainMenu(MenuView):
