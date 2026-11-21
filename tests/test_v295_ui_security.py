@@ -6,6 +6,8 @@ the real Discord callback path, which *bypasses* CommandTree guards.
 from __future__ import annotations
 
 import asyncio
+
+import pytest
 from types import SimpleNamespace
 
 from snowfall.platform.discord_security import (
@@ -168,3 +170,48 @@ def test_shared_qa_labels_never_promise_real_prizes():
     import inspect
     source = inspect.getsource(dashboard_embed)
     assert 'settings.season_key == "web-qa-2026"' in source
+
+
+def test_postgres_adapter_refuses_unlinked_snowflakes_at_sql_boundary():
+    """A revoked link must not create a second discord-ID gameplay profile."""
+    from snowfall.platform.unified_discord import MappedConnection
+    from snowfall.platform.identity import IdentityConflict
+
+    class LinkedRows:
+        def fetchall(self):
+            return [("123456789012345678", 6_000_000_000_000_000_002)]
+
+    class Underlying:
+        def __init__(self):
+            self.calls = []
+
+        def execute(self, statement, params=()):
+            self.calls.append((statement, params))
+            return LinkedRows()
+
+    db = Underlying()
+    con = MappedConnection(db)
+    assert len(db.calls) == 1
+    con.execute("SELECT 1 WHERE discord_user_id=?", (123456789012345678,))
+    assert db.calls[-1][1] == (6_000_000_000_000_000_002,)
+    with pytest.raises(IdentityConflict, match="no longer linked"):
+        con.execute("INSERT INTO players(discord_user_id) VALUES(?)",
+                    (234567890123456789,))
+    assert len(db.calls) == 2  # No raw unlinked ID ever reached PostgreSQL.
+    con.execute("SELECT ?", (6_000_000_000_000_000_002,))
+    con.execute("SELECT ?", (123,))
+
+
+def test_qa_linking_checks_are_repeated_after_revoke_not_cached():
+    """A still-open Discord menu is never a permanent identity grant."""
+    async def run():
+        from snowfall.ui.navigation import MenuView
+        interaction = fake_interaction("linked")
+        view = MenuView(_settings(), SimpleNamespace(unified_discord=True),
+                        interaction.user.id)
+        assert await view.interaction_check(interaction)
+        interaction.client.unified_identity.mode = "unlinked"
+        interaction.response.messages.clear()
+        assert not await view.interaction_check(interaction)
+        assert interaction.response.messages[-1] == (UNLINKED_MESSAGE, True)
+    asyncio.run(run())
