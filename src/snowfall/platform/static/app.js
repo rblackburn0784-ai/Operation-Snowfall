@@ -1,6 +1,6 @@
-/* Operation Snowfall v2.9.6f — City Wars, original map and shared visual state. */
+/* Operation Snowfall v2.9.6g — atmosphere, verified Wire and event finale. */
 "use strict";
-const S={session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,targets:[],config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
+const S={session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
 const txt=(id,v)=>{if(el(id))el(id).textContent=v==null?"—":String(v)};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -231,7 +231,7 @@ async function request(path,method,body,mutation,unique){
 const get=path=>request(path);
 const post=(path,body,mutate,unique)=>request(path,"POST",body,mutate,unique);
 function section(name){
- if(!["home","combat","boss","shop","cities"].includes(name))name="home";
+ if(!["home","combat","boss","shop","cities","wire"].includes(name))name="home";
  document.querySelectorAll(".panel").forEach(n=>n.classList.toggle("active",n.id==="page-"+name));
  document.querySelectorAll(".nav-item").forEach(n=>{
   const active=n.dataset.nav===name;
@@ -243,7 +243,8 @@ function section(name){
  if(name==="shop")showShop();
  if(name==="cities"){showCities();showBoard();if(!S.territoryPending&&!S.busy)void refreshTerritory()}
  if(name==="boss"){showBoss();if(!S.bossPending&&!S.busy)void refreshBossVisual()}
- window.scrollTo({top:document.querySelector(".page-grid").offsetTop,behavior:"smooth"});
+ if(name==="wire"){showWire();if(!S.wirePending&&!S.busy)void refreshWire()}
+ window.scrollTo({top:document.querySelector(".page-grid").offsetTop,behavior:motionEnabled()?"smooth":"auto"});
 }
 function authModal(){if(S.session)return notice("Already signed in.","success");el("authDialog").classList.remove("hidden")}
 function closeAuth(){el("authDialog").classList.add("hidden")}
@@ -408,7 +409,7 @@ async function refreshBossVisual(){
   if(sequence!==S.bossRequest)return;
   S.bossStale=true;
  }finally{
-  if(sequence===S.bossRequest){S.bossPending=false;showBoss()}
+  if(sequence===S.bossRequest){S.bossPending=false;showBoss();showEvent()}
  }
 }
 function showBossRecap(r){
@@ -417,8 +418,8 @@ function showBossRecap(r){
  txt("bossRecapText",(r.hit?(echo?"Echo damage: ":"Damage: ")+fmt(r.damage)+" · "+fmt(r.points)+" points.":"No hit this attempt.")+
     (r.repeated?" Previously recorded action.":""));
  const image=el("bossRecapArt"),tier=bossArtTier(r.hp_after,r.max_hp);
- image.src=tier===0?"/art/v290/boss/snow_don_0.webp":"/art/boss/snow_don_"+tier+".png";
- image.alt="Snow Don artwork at the recorded encounter's remaining health";
+ image.src=final?"/art/v290/boss/victory_screen.webp":tier===0?"/art/v290/boss/snow_don_0.webp":"/art/boss/snow_don_"+tier+".png";
+ image.alt=final?"Original Discord final-blow victory artwork":"Snow Don artwork at the recorded encounter's remaining health";
  el("bossRecap").classList.remove("hidden");
 }
 function showTargets(){
@@ -746,7 +747,7 @@ async function loadDiscardOffer(){
  updateDiscardSubmit();
  notice("Choose carefully: your separate Discord character will be retired only if you confirm.","error");
 }
-async function refresh(){await Promise.all([loadPublic(),loadPrivate()]);await Promise.all([refreshBossVisual(),refreshTerritory()])}
+async function refresh(){await Promise.all([loadPublic(),loadPrivate()]);await Promise.all([refreshBossVisual(),refreshTerritory(),refreshWire()]);showEvent()}
 async function resume(){try{S.session=await get("/v1/auth/session")}catch{S.session=null}await refresh()}
 async function act(fn){
  if(S.busy)return;
@@ -756,6 +757,91 @@ async function act(fn){
  finally{S.busy=false;document.querySelectorAll(".actions-inline button,.craft-card button").forEach(b=>b.disabled=false);showBoss();showShop()}
 }
 function registered(){if(S.me?.registered)return true;section("home");notice("Register your player at Headquarters first.","error");return false}
+// Local presentation preference only.
+function motionEnabled(){
+ return document.documentElement?.dataset.atmosphere!=="off"&&!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+}
+function setupAtmosphere(){
+ let off=false;
+ try{off=localStorage.getItem("snowfall-atmosphere")==="off"}catch{}
+ const media=window.matchMedia("(prefers-reduced-motion: reduce)");
+ const update=()=>{
+  document.documentElement.dataset.atmosphere=off?"off":"on";
+  const enabled=!off&&!media.matches;
+  el("atmosphereToggle").setAttribute("aria-pressed",String(enabled));
+  txt("atmosphereToggle",media.matches?"Motion reduced by system":enabled?"Atmosphere on":"Atmosphere off");
+  el("atmosphereToggle").disabled=media.matches;
+ };
+ el("atmosphereToggle").onclick=()=>{off=!off;try{localStorage.setItem("snowfall-atmosphere",off?"off":"on")}catch{}update()};
+ media.addEventListener?.("change",update);update();
+}
+function eventPresentation(wire,raid,stale=false){
+ const phase=wire?.phase||(!stale?raid?.season_phase:null)||"unknown";
+ const ended=["closed","finalized"].includes(phase);
+ const defeated=raid?.state==="defeated"&&!stale&&(!wire?.current_day||wire.current_day===raid.day);
+ return {phase,ended,defeated,kind:ended?phase:phase==="paused"?"paused":defeated?"raid":"normal"};
+}
+function showEvent(){
+ const e=eventPresentation(S.wireStale?null:S.wire,S.raid,S.bossStale);
+ const phaseLabels={not_open:"NOT OPEN",registration:"REGISTRATION",ready:"AWAITING START",live:"LIVE",paused:"PAUSED",closed:"CLOSED",finalized:"FINALIZED",unknown:"—"};
+ txt("phaseValue",phaseLabels[e.phase]||"—");
+ if(!el("eventFinale"))return;
+ if(S.connection==="ready"){
+  const stale=S.wireStale||S.bossStale||S.territoryStale;
+  txt("eventConnectionText",stale?"Some live data could not refresh. Last known status may be shown.":"Connected to shared staging game · "+(phaseLabels[e.phase]||"checking status"));
+  el("eventRetry").classList.toggle("hidden",!stale);
+ }
+ const finale=el("eventFinale"),art=el("finaleArt");
+ finale.classList.toggle("hidden",e.kind==="normal");
+ finale.dataset.kind=e.kind;
+ if(e.kind==="normal"){art.removeAttribute("src")}
+ else{
+  const src=e.ended?"/art/v290/wire/backgrounds/final_day_edition.png":e.kind==="raid"?"/art/v290/boss/raid_celebration.webp":"/art/v290/wire/backgrounds/newsroom_editorial.png";
+  if(art.getAttribute("src")!==src)art.src=src;
+  art.alt=e.ended?"Original final-day newspaper artwork":e.kind==="raid"?"Original raid celebration":"Original newsroom artwork";
+  txt("finaleKicker",e.ended?"SEVEN-DAY SEASON / ARCHIVE":e.kind==="raid"?"DAILY RAID VICTORY":"EVENT PAUSED");
+  txt("eventFinaleTitle",e.kind==="finalized"?"The final edition":e.kind==="closed"?"The streets fall quiet":e.kind==="raid"?"The Snow Don has fallen":"The streets are on hold");
+  txt("finaleText",e.kind==="finalized"?"The season is finalized. Explore verified editions and standings. This QA event awards no prizes.":e.kind==="closed"?"The seven-day playing window has closed. Review the standings and newspaper while official finalization is pending.":e.kind==="raid"?"Today's shared boss is defeated. This is a daily raid victory, not the end of the season. The usual event rules still apply.":"The event clock is paused. Resume timing is controlled by the host; browse existing records.");
+ }
+ el("raidCelebration").classList.toggle("hidden",!e.defeated);
+ if(e.defeated)txt("raidCelebrationText","Day "+(S.raid.day||"—")+" · "+fmt(S.raid.contributors)+" contributors · "+fmt(S.raid.hit_count)+" shared hits. "+(e.ended?"Season archive.":"The frozen echo follows the existing game rules."));
+ if(e.ended){txt("bossActionText","The event is closed. Raid results are available for review; no further attacks are allowed.");txt("heroPlay","View event records")}
+ else txt("heroPlay","Enter the event ↗");
+}
+const WIRE_ART=Object.freeze({waiting:"front_page_template.png",live:"front_page_template.png",archive:"front_page_template.png",final:"final_day_edition.png"});
+function wireHeadlineMarkup(h){
+ return "<article class='wire-story'><p class='wire-byline'>"+esc(h.category)+"</p><h4>"+esc(h.title)+"</h4><p>"+esc(h.detail)+"</p></article>";
+}
+function showWire(){
+ const w=S.wire,heads=Array.isArray(w?.headlines)?w.headlines:[],lead=heads.find(h=>h.key==="lead")||heads[0];
+ const kind=!w?.day?"waiting":w.complete&&w.day===7?"final":w.complete?"archive":"live";
+ el("wirePaper").dataset.edition=kind;
+ const select=el("wireDay");
+ select.innerHTML='<option value="current">Latest edition</option>'+ (w?.available_days||[]).filter(d=>Number.isInteger(d)&&d>=1&&d<=7).map(d=>'<option value="'+d+'">Day '+d+'</option>').join("");
+ select.value=S.wireDay;select.disabled=S.wirePending;
+ const art=el("wireEditionArt"),src="/art/v290/wire/backgrounds/"+WIRE_ART[kind];
+ if(art.getAttribute("src")!==src)art.src=src;
+ txt("wireEdition",w?.day?"DAY "+w.day+" / 7 · "+(w.complete?"ARCHIVE": "LIVE DISPATCH"):"AWAITING KICKOFF");
+ txt("wireTheme",w?.theme||"THE WINTER UNDERWORLD");
+ txt("wireLead",lead?.title||"The streets are waiting");txt("wireLeadDetail",lead?.detail||"Verified dispatches appear once the event opens.");
+ el("wireHeadlines").innerHTML=heads.filter(h=>h!==lead).map(wireHeadlineMarkup).join("");
+ txt("wireNotice",S.wireStale?"Refresh unavailable — "+(w?"last known edition shown.":"no edition loaded."):w?.day?w.complete?"Historical ledger dispatch · review-cleared records as of this refresh. Not a prize announcement.":"Live figures may change until the day closes.":"No edition has opened yet.");
+ txt("wireSideTitle",lead?.title||"Special bulletin");
+ txt("wireSideDetail",(w?.day?"Day "+w.day+" · ":"")+(lead?.detail||"Verified dispatches from the shared game."));
+}
+async function refreshWire(){
+ const seq=++S.wireRequest,chosen=S.wireDay;S.wirePending=true;el("wireDay").disabled=true;
+ try{
+  const w=await get("/v1/web/wire"+(chosen==="current"?"":"?day="+encodeURIComponent(chosen)));
+  if(seq!==S.wireRequest)return;
+  if(w?.verified_only!==true||!Array.isArray(w.headlines)||!Array.isArray(w.available_days))throw Error("Invalid edition");
+  S.wire=w;S.wireStale=false;
+ }catch{
+  if(seq!==S.wireRequest)return;
+  S.wireStale=true;
+  if(chosen!=="current"&&String(S.wire?.day)!==chosen)S.wireDay=S.wire?.day?String(S.wire.day):"current";
+ }finally{if(seq===S.wireRequest){S.wirePending=false;showWire();showEvent()}}
+}
 function bind(){
  document.querySelectorAll("[data-nav]").forEach(b=>b.addEventListener("click",()=>section(b.dataset.nav)));
  el("menuToggle").onclick=()=>{
@@ -763,7 +849,10 @@ function bind(){
   el("menuToggle").setAttribute("aria-expanded",String(open));
  };
  document.querySelectorAll(".nav-item").forEach(b=>b.setAttribute("aria-pressed",String(b.classList.contains("active"))));
- el("heroPlay").onclick=()=>S.session?section("home"):authModal();
+ el("heroPlay").onclick=()=>eventPresentation(S.wireStale?null:S.wire,S.raid,S.bossStale).ended?section("wire"):S.session?section("home"):authModal();
+ el("wireDay").onchange=()=>{S.wireDay=el("wireDay").value;void refreshWire()};
+ el("refreshWire").onclick=()=>{if(!S.wirePending)void refreshWire()};
+ el("eventRetry").onclick=()=>{if(S.connection==="offline")location.reload();else void refresh().catch(e=>notice(e.message,"error"))};
  el("hqRecommended").onclick=()=>{const dest=el("hqRecommended").dataset.destination;if(dest==="missions")el("hqMissions").scrollIntoView({block:"start"});else if(dest)section(dest)};
  el("loginCTA").onclick=authModal;el("closeAuth").onclick=closeAuth;
  el("authDialog").onclick=e=>{if(e.target===el("authDialog"))closeAuth()};
@@ -895,15 +984,15 @@ function bind(){
  for(const id of ["refreshHome","refreshBoss","refreshShop"]){el(id).onclick=()=>refresh().then(()=>notice("Game state refreshed.")).catch(e=>notice(e.message,"error"))}
 }
 async function init(){
- bind();
+ bind();setupAtmosphere();
  try{
   let [cfg,health]=await Promise.all([get("/v1/web/config"),get("/v1/health")]);
   S.config=cfg;configureBranding(cfg.branding);configureStreets(cfg.streets_url);el("discordLogin").disabled=!cfg.discord_oauth;
   if(!cfg.discord_oauth)el("discordLogin").textContent="Discord login (not configured)";
   if(!cfg.underworld_assertions)el("underworldForm").querySelector("button").disabled=true;
   txt("sideStatus",(health.status||"unknown").toUpperCase());txt("sideStatusDetail","Isolated staging · "+cfg.season);
-  await resume();
-  const poll=()=>{if(document.hidden||S.busy)return;if(!S.bossPending)void refreshBossVisual();if(el("page-cities").classList.contains("active")&&!S.territoryPending&&S.territoryDay==="current")void Promise.all([refreshTerritory(),refreshCityStandings()])};
+  await resume();S.connection="ready";showEvent();
+  const poll=()=>{if(document.hidden||S.busy)return;if(!S.bossPending)void refreshBossVisual();if(el("page-cities").classList.contains("active")&&!S.territoryPending&&S.territoryDay==="current")void Promise.all([refreshTerritory(),refreshCityStandings()]);if(!S.wirePending)void refreshWire()};
   setInterval(poll,30000);document.addEventListener("visibilitychange",poll);
   setInterval(()=>{if(!document.hidden)updateHqTimers()},1000);
   if(location.search.includes("login=ok"))notice("Discord login successful.","success");
@@ -932,6 +1021,6 @@ async function init(){
   }
   if(location.search.includes("linked=discord")||location.search.includes("discord=conflict")||location.search.includes("discord=discard-offer"))
     history.replaceState(null,"",location.pathname);
- }catch(e){txt("sideStatus","OFFLINE");txt("sideStatusDetail",e.message);notice("Staging service unavailable: "+e.message,"error")}
+ }catch(e){S.connection="offline";txt("eventConnectionText","Connection unavailable. Retry to reconnect.");el("eventRetry").classList.remove("hidden");txt("sideStatus","OFFLINE");txt("sideStatusDetail",e.message);notice("Staging service unavailable: "+e.message,"error")}
 }
 document.addEventListener("DOMContentLoaded",init);
