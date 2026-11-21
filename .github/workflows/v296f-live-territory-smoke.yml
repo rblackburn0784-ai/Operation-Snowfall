@@ -1,0 +1,149 @@
+name: v2.9.6f deployed City Wars smoke
+on:
+  push:
+    branches: [qa/v2.9.6f-live-territory-smoke]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deployed-city-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify live read-only territory and all original city artwork
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,time,urllib.request,urllib.error,hashlib,pathlib
+          base="https://snowfall-web-qa-staging.up.railway.app"
+          def get(path):
+              with urllib.request.urlopen(base+path,timeout=20) as r:
+                  return r.read(),r.headers
+          for i in range(72):
+              try:
+                  cfg=json.loads(get("/v1/web/config")[0])
+                  assert cfg["version"]=="2.9.6f",cfg["version"]
+                  assert cfg["staging"] is True and cfg["branding"]=={"banner":True,"icon":True}
+                  get("/v1/ready")
+                  body,headers=get("/v1/web/territory")
+                  board=json.loads(body)
+                  assert headers.get("Cache-Control")=="no-store"
+                  assert board["honorary_only"] is True
+                  assert len(board["banners"])==6
+                  assert "viewer_city" not in board and "missions" not in board
+                  assert len(board["districts"])==(12 if board["day"] is not None else 6)
+                  assert len(board["matches"])==(3 if board["day"] is not None else 0)
+                  break
+              except Exception:
+                  if i==71: raise
+                  time.sleep(5)
+          assets=[]
+          for b in board["banners"]:
+              slug=b["city"].lower().replace(" ","_")
+              assets.extend((f"cities/{slug}.webp",f"v290/cities/crests/{slug}_crest.png",f"v290/cities/banners/{slug}_district_banner.png"))
+          assets.extend(("v290/cities/map/six_city_territory_map.png","v290/cities/outcomes/city_victory_background.png","v290/cities/outcomes/city_defeat_background.png"))
+          for asset in assets:
+              data,headers=get("/art/"+asset)
+              assert headers.get("Content-Type","").startswith("image/"),asset
+              assert hashlib.sha256(data).digest()==hashlib.sha256(pathlib.Path("src/snowfall/graphics/art",asset).read_bytes()).digest(),asset
+              print("PASS exact original artwork",asset)
+          if board["current_day"] and board["current_day"]<7:
+              try: get("/v1/web/territory?day="+str(board["current_day"]+1))
+              except urllib.error.HTTPError as e: assert e.code==400,e.code
+              else: raise AssertionError("Future day unexpectedly available")
+          get("/v1/web/boss")
+          print("LIVE",cfg["version"],"day",board["day"],"districts",len(board["districts"]),"artworks",len(assets))
+          pathlib.Path("territory-live.json").write_text(json.dumps(board))
+          PY
+      - name: Install Chromium
+        run: |
+          python -m pip install playwright
+          python -m playwright install chromium
+      - name: Check city selection, history, neutral ties and responsive layouts
+        shell: bash
+        run: |
+          mkdir -p qa-screenshots
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright, expect
+          from urllib.parse import urlsplit,parse_qs
+          import json,pathlib
+          base="https://snowfall-web-qa-staging.up.railway.app"
+          original=json.loads(pathlib.Path("territory-live.json").read_text())
+          banners=original["banners"]
+          pairs=[("Chicago","Los Angeles"),("New York","Detroit"),("Philadelphia","Las Vegas")]
+          def snapshot(day):
+              districts=[dict(key="home:"+b["city"],name=b["home_district"],kind="home",owner="Chicago" if b["city"]=="Chicago" else None,contenders=[b["city"]],day=day) for b in banners]
+              matches=[]
+              for i,(a,b) in enumerate(pairs):
+                  owner=a if i==0 else None
+                  m=dict(day=day,slot=i,city_a=a,city_b=b,rally_a=8 if owner else 0,rally_b=0,hits_a=4 if owner else 0,hits_b=0,throws_a=4 if owner else 0,throws_b=0,damage_a=20 if owner else 0,damage_b=0,kos_a=0,kos_b=0,rally_district="Rally Frontier "+str(i+1),duel_district="Duel Frontier "+str(i+1),rally_owner=owner,duel_owner=owner)
+                  matches.append(m)
+                  for kind in ("rally","duel"):
+                      districts.append(dict(key=kind+":"+str(i),name=m[kind+"_district"],kind=kind,owner=owner,contenders=[a,b],day=day))
+              return dict(day=day,current_day=2,phase="live",banners=[dict(b,active=2 if b["city"]=="Chicago" else 0,rally_marks=8 if b["city"]=="Chicago" else 0,mission_name="Fixture City Mission",mission_progress=4 if b["city"]=="Chicago" else 0,mission_target=4,mission_complete=b["city"]=="Chicago") for b in banners],matches=matches,districts=districts,honorary_only=True)
+          scores=[dict(city=b["city"],score_x100=12345 if b["city"]=="Chicago" else 0,active_players=2 if b["city"]=="Chicago" else 0,daily_wins=1 if b["city"]=="Chicago" else 0,siege_clears=0,siege_damage=0,qualifying_today=b["city"]=="Chicago",todays_score_x100=2345 if b["city"]=="Chicago" else 0,provisional=True) for b in banners]
+          scores.sort(key=lambda b:-b["score_x100"])
+          with sync_playwright() as p:
+              browser=p.chromium.launch(headless=True,args=["--no-sandbox"])
+              for label,w,h in [("desktop",1440,1000),("mobile",390,844),("small-mobile",320,740)]:
+                  page=browser.new_page(viewport={"width":w,"height":h},device_scale_factor=1)
+                  errors=[];page.on("pageerror",lambda e:errors.append(str(e)))
+                  def route_request(route):
+                      req=route.request
+                      url=urlsplit(req.url)
+                      if req.method not in ("GET","HEAD"): route.abort();return
+                      if url.path=="/v1/web/territory":
+                          day=int(parse_qs(url.query).get("day",[2])[0])
+                          route.fulfill(status=200,content_type="application/json",body=json.dumps(snapshot(day)))
+                      elif url.path=="/v1/game/cities": route.fulfill(status=200,content_type="application/json",body=json.dumps({"cities":scores}))
+                      elif url.path=="/v1/auth/session": route.fulfill(status=401,content_type="application/json",body='{"detail":"Not authenticated"}')
+                      else: route.continue_()
+                  page.route("**/*",route_request)
+                  page.goto(base,wait_until="domcontentloaded",timeout=45000)
+                  if w<=780: page.locator("#menuToggle").click()
+                  page.locator('.topnav [data-nav="cities"]').click()
+                  expect(page.locator("#citySelectors button")).to_have_count(6,timeout=30000)
+                  expect(page.locator("#cityMatches article")).to_have_count(3,timeout=30000)
+                  expect(page.locator("#cityDistricts article")).to_have_count(12)
+                  expect(page.locator("#cityHeld")).to_have_text("3 / 12")
+                  expect(page.locator("#cityOutcomeArt")).to_be_hidden()
+                  expect(page.locator("#cityStandings")).to_contain_text("123.45 pts")
+                  expect(page.locator("#cityMapOverlay line")).to_have_count(3)
+                  expect(page.locator("#cityMapOverlay [data-map-city]")).to_have_count(6)
+                  page.locator("#citySelectors [data-city='Detroit']").click()
+                  expect(page.locator("#cityWarTitle")).to_have_text("Detroit War Room")
+                  expect(page.locator("#cityOutcomeText")).to_contain_text("2 neutral")
+                  if label=="desktop":
+                      page.locator("#cityMapOverlay [data-map-city='Chicago']").click()
+                      expect(page.locator("#cityWarTitle")).to_have_text("Chicago War Room")
+                  page.locator("#territoryDay").select_option("1")
+                  expect(page.locator("#territoryDayLabel")).to_contain_text("Historical",timeout=30000)
+                  page.locator("#citySelectors [data-city='Chicago']").click()
+                  expect(page.locator("#cityOutcomeArt")).to_have_attribute("src","/art/v290/cities/outcomes/city_victory_background.png")
+                  page.locator("#citySelectors [data-city='Los Angeles']").click()
+                  expect(page.locator("#cityOutcomeArt")).to_have_attribute("src","/art/v290/cities/outcomes/city_defeat_background.png")
+                  page.locator("#citySelectors [data-city='Chicago']").click()
+                  page.locator("#cityWarBanner").scroll_into_view_if_needed()
+                  page.wait_for_function("()=>document.querySelector('#cityWarBanner').complete && document.querySelector('#cityWarBanner').naturalWidth>0")
+                  assert page.evaluate("document.documentElement.scrollWidth-innerWidth")<=2
+                  page.screenshot(path=f"qa-screenshots/{label}-city-wars.png",full_page=True)
+                  page.locator("#territoryDay").select_option("current")
+                  expect(page.locator("#territoryDayLabel")).to_contain_text("Current territory",timeout=30000)
+                  expect(page.locator("#cityOutcomeArt")).to_be_hidden()
+                  assert not errors,errors
+                  print(label,"PASS map, six cities, all twelve districts, ties, history and no horizontal overflow")
+                  page.close()
+              browser.close()
+          print("PASS fixture UI; no mutation requests forwarded.")
+          PY
+      - name: Save screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snowfall-v296f-city-screenshots
+          path: qa-screenshots/
+          if-no-files-found: ignore
