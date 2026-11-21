@@ -52,6 +52,11 @@ migration or a claim that every winter game has a browser UI.
 - Discord's persistent dashboard, help and rules clearly identify the
   shared `web-qa-2026` season as **QA / no prizes**. No claims that
   account linking is unnecessary while shared mode is active.
+- The original `/snowadmin` bot now blocks **prize payouts,
+  export-prizes, launch approvals, finalization, and public guild-wide
+  leaderboard/day announcements** while the shared QA adapter is active.
+  This prevents fictional QA results from being interpreted as real
+  awards or replacing existing official Discord messages.
 - Discord's app command tree sends a generic private failure when a
   command crashes, without posting SQL traces, connection URLs, secrets
   or a second error for an expected permission check failure.
