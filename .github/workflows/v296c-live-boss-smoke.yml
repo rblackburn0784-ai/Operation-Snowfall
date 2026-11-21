@@ -1,0 +1,135 @@
+name: v2.9.6c deployed Snow Don smoke
+on:
+  push:
+    branches: [qa/v2.9.6c-live-boss-smoke]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deployed-boss-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check deployed config and actual persisted boss state
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib, json, pathlib, time, urllib.request
+          base = "https://snowfall-web-qa-staging.up.railway.app"
+          def get(path):
+              with urllib.request.urlopen(base+path, timeout=25) as res:
+                  return res.read(),res.headers
+          for i in range(48):
+              try:
+                  cfg=json.loads(get("/v1/web/config")[0])
+                  assert cfg["version"]=="2.9.6c",cfg["version"]
+                  assert cfg["staging"] is True
+                  assert cfg["branding"]=={"banner":True,"icon":True}
+                  break
+              except Exception:
+                  if i==47: raise
+                  time.sleep(5)
+          get("/v1/ready")
+          body,headers=get("/v1/web/boss")
+          boss=json.loads(body)
+          assert headers.get("Cache-Control")=="no-store"
+          assert boss["state"] in ("healthy","cracked","wounded","critical","waiting","disabled","defeated"),boss
+          for field in ("portrait","splash"):
+              asset=boss[field]
+              data,headers=get(asset)
+              file=pathlib.Path("src/snowfall/graphics"+asset)
+              assert hashlib.sha256(data).digest()==hashlib.sha256(file.read_bytes()).digest(),asset
+              assert headers.get("Content-Type","").startswith("image/"),asset
+          print("LIVE VERSION",cfg["version"],"STAGING",cfg["staging"])
+          print("LIVE BOSS:",json.dumps(boss))
+          PY
+      - name: Install Chromium and Playwright
+        run: |
+          python -m pip install playwright
+          python -m playwright install chromium
+      - name: Verify all portrait tiers, splash phases, defeat and next-day reset in browser
+        shell: bash
+        run: |
+          mkdir -p qa-screenshots
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright, expect
+          from urllib.parse import urlsplit
+          import json
+          base="https://snowfall-web-qa-staging.up.railway.app"
+          # Browser-only fixtures. No actual boss damage, account creation or POST.
+          cases=[
+             (150,100,"healthy","phase_ice","The Don Rules the Streets"),
+             (135,90,"healthy","phase_ice","The Don Rules the Streets"),
+             (120,80,"healthy","phase_ice","The Don Rules the Streets"),
+             (105,70,"cracked","rage_tommy","The Don Loses His Hat"),
+             (90,60,"cracked","rage_tommy","The Don Loses His Hat"),
+             (75,50,"wounded","rage_snowball","The Don Is Losing His Cool"),
+             (60,40,"wounded","rage_snowball","The Don Is Losing His Cool"),
+             (45,30,"wounded","rage_snowball","The Don Is Losing His Cool"),
+             (30,20,"critical","phase_frostfire","Last Stand at the Frozen Alley"),
+             (15,10,"critical","phase_frostfire","Last Stand at the Frozen Alley"),
+             (0,0,"defeated","final_defeat","The Final Snowfall"),
+          ]
+          cases.append(cases[0])
+          def snapshot(case,day):
+              hp,tier,state,scene,title=case
+              return dict(day=day,season_phase="live",hp=hp,max_hp=150,tier=tier,state=state,
+                  portrait="/art/boss/snow_don_"+str(tier)+".png" if tier else "/art/v290/boss/snow_don_0.webp",
+                  splash="/art/v290/boss/"+scene+".webp",title=title,hit_count=8,misses=3,contributors=2,echo_attacks=0)
+          def image(page,id):
+              page.wait_for_function("(id)=>{let i=document.getElementById(id);return i.complete&&i.naturalWidth>0;}",arg=id,timeout=25000)
+          with sync_playwright() as p:
+              browser=p.chromium.launch(headless=True,args=["--no-sandbox"])
+              for label,w,h in [("desktop",1440,1000),("mobile",390,844)]:
+                  page=browser.new_page(viewport={"width":w,"height":h},device_scale_factor=1)
+                  errors=[]; page.on("pageerror",lambda e:errors.append(str(e)))
+                  current=snapshot(cases[0],4)
+                  def route_request(route):
+                      req=route.request
+                      if req.method not in ("GET","HEAD"): route.abort()
+                      elif urlsplit(req.url).path=="/v1/web/boss":
+                          route.fulfill(status=200,content_type="application/json",body=json.dumps(current))
+                      else: route.continue_()
+                  page.route("**/*",route_request)
+                  page.goto(base,wait_until="domcontentloaded",timeout=45000)
+                  expect(page.locator("header #siteBanner")).to_be_visible(timeout=25000)
+                  expect(page.locator("#heroBossArt")).to_have_attribute("data-tier","100",timeout=25000)
+                  if label=="mobile": page.locator("#menuToggle").click()
+                  page.locator('.topnav [data-nav="boss"]').click()
+                  for i,case in enumerate(cases):
+                      current=snapshot(case,5 if i==len(cases)-1 else 4)
+                      page.locator("#refreshBoss").click()
+                      expect(page.locator("#heroBossArt")).to_have_attribute("src",current["splash"],timeout=30000)
+                      expect(page.locator("#bossPortrait")).to_have_attribute("src",current["portrait"],timeout=30000)
+                      expect(page.locator("#heroBossArt")).to_have_attribute("data-tier",str(current["tier"]))
+                      expect(page.locator("#bossPortrait")).to_have_attribute("data-tier",str(current["tier"]))
+                      expect(page.locator("#bossScene")).to_have_attribute("data-boss-state",current["state"])
+                      expect(page.locator("#bossHpText")).to_have_text(f'{current["hp"]} / 150 HP')
+                      image(page,"heroBossArt"); image(page,"bossPortrait")
+                      if current["state"]=="defeated":
+                          expect(page.locator("#heroDefeatTitle")).to_be_visible()
+                          expect(page.locator("#bossButton")).to_have_text("Attack frozen echo")
+                          page.screenshot(path=f"qa-screenshots/{label}-defeat.png",full_page=True)
+                      else:
+                          expect(page.locator("#heroLiveTitle")).to_be_visible()
+                          expect(page.locator("#heroDefeatTitle")).to_be_hidden()
+                      if i==0: page.screenshot(path=f"qa-screenshots/{label}-healthy.png",full_page=True)
+                      if i==8: page.screenshot(path=f"qa-screenshots/{label}-critical.png",full_page=True)
+                      assert page.evaluate("document.documentElement.scrollWidth-innerWidth")<=2
+                      print(label,current["day"],current["hp"],current["tier"],current["state"],"PASS")
+                  assert not errors,errors
+                  page.close()
+              browser.close()
+          print("PASS: all 11 damage tiers and both views; desktop/mobile; next-day reset; no writes.")
+          PY
+      - name: Save browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snowfall-v296c-boss-screenshots
+          path: qa-screenshots/
+          if-no-files-found: ignore
