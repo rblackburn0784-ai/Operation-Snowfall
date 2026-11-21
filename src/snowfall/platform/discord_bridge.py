@@ -106,8 +106,8 @@ class SnowBridgeGroup(app_commands.Group):
             logging.getLogger(__name__).error(
                 "Canonical Discord gameplay unavailable; refusing action")
             await interaction.followup.send(
-                "⚠️ Shared game temporarily unavailable. No new action was recorded. "
-                "Please check your progress before retrying.", ephemeral=True)
+                "⚠️ Shared game temporarily unavailable. The result may be uncertain. "
+                "Check /snowbridge progress before retrying.", ephemeral=True)
         return None
 
     @app_commands.command(name="link", description="How to link Discord and Underworld")
