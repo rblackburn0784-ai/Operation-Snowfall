@@ -53,6 +53,10 @@ def test_official_prize_launch_and_public_broadcast_commands_disabled():
             ctx2 = interaction(command=command)
             assert await g._qa_forbidden(ctx2, command)
             assert ctx2.response.messages[0][1]["ephemeral"]
+        legacy_backup = interaction(command="backup")
+        assert await g._qa_forbidden(legacy_backup, "backup")
+        assert legacy_backup.response.messages[0][1]["ephemeral"]
+
         allowed = interaction(command="status")
         assert await g.interaction_check(allowed)
         assert not allowed.response.messages
