@@ -15,7 +15,7 @@ from snowfall.platform.api import APISettings, create_app
 from snowfall.platform.discord_bridge import DiscordBridgeGateway
 from snowfall.platform.game import SharedGame
 from snowfall.platform.identity import IdentityRepository
-from snowfall.platform.staging import StagingGame, _source_snapshot
+from snowfall.platform.staging import STAGING_PROJECT, StagingGame, _source_snapshot
 
 SEASON = "web-qa-2026"
 ACTOR1 = 123456789012345678
@@ -44,6 +44,14 @@ def test_two_linked_users_replay_concurrency_and_restarts(tmp_path, monkeypatch)
         _source_snapshot(source, SEASON)
         migrate(source, dsn, confirmation="OFFLINE_MIGRATE")
         with psycopg.connect(dsn) as con:
+            # The consolidated web readiness gate requires verified QA DB
+            # ownership; an ad-hoc localhost database without its marker
+            # must correctly return 503, not silently pass.
+            con.execute("""CREATE TABLE snowfall_web_qa_marker (
+                singleton INT PRIMARY KEY CHECK(singleton=1),
+                project_id TEXT NOT NULL, season_key TEXT NOT NULL)""")
+            con.execute("INSERT INTO snowfall_web_qa_marker VALUES(1,%s,%s)",
+                        (STAGING_PROJECT, SEASON))
             con.execute("""CREATE TABLE snowfall_web_qa_bonus (
                 player_id BIGINT PRIMARY KEY,
                 granted_at TIMESTAMPTZ NOT NULL DEFAULT now())""")
