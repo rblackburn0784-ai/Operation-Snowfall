@@ -84,6 +84,71 @@ def verify_qa_database(dsn: str, *, season: str = QA_SEASON) -> None:
             raise UnifiedConfigurationError("Verified identity schema is required")
 
 
+# Only gameplay ownership fields may be displayed as Discord snowflakes.
+# Opaque interaction IDs, ledger primary keys, seasons and points never change.
+PLAYER_ID_COLUMNS = frozenset({
+    "discord_user_id", "user_id", "player_id", "attacker_id", "target_id",
+    "defender_id", "owner_id", "opponent_id", "winner_id", "actor_id",
+    "subject_id",
+})
+
+
+class MappedRow:
+    """SQLite Row-compatible read view with reverse, presentation-only IDs."""
+
+    def __init__(self, original, reverse):
+        self._names = list(original.keys())
+        self._values = tuple(
+            reverse.get(value, value) if (
+                name in PLAYER_ID_COLUMNS and isinstance(value, int)
+                and not isinstance(value, bool)
+            ) else value
+            for name, value in zip(self._names, original)
+        )
+        self._by_name = {}
+        for name, value in zip(self._names, self._values):
+            self._by_name.setdefault(name, value)
+
+    def __getitem__(self, key):
+        if isinstance(key, (int, slice)):
+            return self._values[key]
+        return self._by_name[key]
+
+    def __iter__(self):
+        return iter(self._values)
+
+    def __len__(self):
+        return len(self._values)
+
+    def keys(self):
+        return list(self._names)
+
+    def items(self):
+        return self._by_name.items()
+
+
+class MappedCursor:
+    """Keep legacy Python equality/replay checks consistent with mapped SQL."""
+
+    def __init__(self, cursor, reverse):
+        self._cursor, self._reverse = cursor, reverse
+
+    def _row(self, row):
+        return None if row is None else MappedRow(row, self._reverse)
+
+    def fetchone(self):
+        return self._row(self._cursor.fetchone())
+
+    def fetchall(self):
+        return [self._row(row) for row in self._cursor.fetchall()]
+
+    def __iter__(self):
+        return (self._row(row) for row in self._cursor)
+
+    def __getattr__(self, name):
+        return getattr(self._cursor, name)
+
+
 class MappedConnection:
     """Translate bound Discord user IDs to linked principals at the SQL boundary.
 
@@ -102,6 +167,7 @@ class MappedConnection:
             "SELECT subject, player_id FROM snowfall_identity_links "
             "WHERE provider='discord'").fetchall()
         self._linked = {int(row[0]): int(row[1]) for row in rows}
+        self._reverse = {principal: discord for discord, principal in self._linked.items()}
 
     def _one(self, value):
         if isinstance(value, int) and not isinstance(value, bool):
@@ -113,7 +179,7 @@ class MappedConnection:
             mapped = {key: self._one(value) for key, value in parameters.items()}
         else:
             mapped = tuple(self._one(value) for value in parameters)
-        return self._underlying.execute(statement, mapped)
+        return MappedCursor(self._underlying.execute(statement, mapped), self._reverse)
 
     def __getattr__(self, name):
         return getattr(self._underlying, name)
