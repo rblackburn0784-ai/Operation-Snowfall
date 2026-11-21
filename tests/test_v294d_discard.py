@@ -21,7 +21,7 @@ from snowfall.platform.api import APISettings, create_app
 from snowfall.platform.assertions import sign_underworld_assertion
 from snowfall.platform.discard import DiscardService, QA_SEASON, CONFIRM_PHRASE
 from snowfall.platform.game import SharedGame
-from snowfall.platform.identity import IdentityConflict, IdentityError, IdentityRepository
+from snowfall.platform.identity import IdentityError, IdentityRepository
 from snowfall.platform.staging import StagingGame, _source_snapshot
 
 DISCORD_USER = "123456789012345678"
