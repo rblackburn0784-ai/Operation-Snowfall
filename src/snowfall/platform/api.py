@@ -29,6 +29,7 @@ from snowfall.platform.assertions import parse_underworld_assertion
 from snowfall.platform.game import SharedGame
 from snowfall.platform.identity import IdentityConflict, IdentityError, IdentityRepository
 from snowfall.platform.discard import CONFIRM_PHRASE, DiscardService, QA_SEASON
+from snowfall.platform.verification import CrossPlatformVerifier
 
 
 COOKIE = "snowfall_session"
@@ -180,7 +181,7 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         shared.store.season(cfg.season_key)
         yield
 
-    app = FastAPI(title="Operation Snowfall Shared API", version="2.9.4d",
+    app = FastAPI(title="Operation Snowfall Shared API", version="2.9.4e",
                   lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
     if cfg.cors_origins:
         app.add_middleware(CORSMiddleware, allow_origins=list(cfg.cors_origins),
@@ -417,6 +418,22 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         response.delete_cookie(DISCARD_COOKIE, path="/", secure=cfg.cookie_secure,
                                httponly=True, samesite="lax")
         return {"cancelled": True}
+
+    @app.post("/v1/verification/start")
+    def verification_start(principal: int = Depends(writer)):
+        """Snapshot authenticated canonical progress; no score/gameplay writes."""
+        if cfg.season_key != QA_SEASON:
+            raise HTTPException(404, "QA-only cross-platform verification")
+        return jsonable_encoder(CrossPlatformVerifier(
+            identities, shared, cfg.season_key).start(principal))
+
+    @app.get("/v1/verification/status")
+    def verification_status(principal: int = Depends(player)):
+        """Status requires the same authenticated player's browser session."""
+        if cfg.season_key != QA_SEASON:
+            raise HTTPException(404, "QA-only cross-platform verification")
+        return jsonable_encoder(CrossPlatformVerifier(
+            identities, shared, cfg.season_key).status(principal))
 
     @app.get("/v1/game/leaderboard")
     def leaderboard(limit: int = Query(default=25, ge=1, le=50)):
