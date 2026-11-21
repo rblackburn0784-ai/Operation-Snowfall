@@ -29,7 +29,8 @@ def audit_qa_database(dsn: str) -> dict:
     import psycopg
     with psycopg.connect(dsn, connect_timeout=10) as conn:
         conn.execute("SET TRANSACTION READ ONLY")
-        scalar = lambda query, params=(): int(conn.execute(query, params).fetchone()[0])
+        def scalar(query, params=()):
+            return int(conn.execute(query, params).fetchone()[0])
         active = scalar("""SELECT COUNT(*) FROM players WHERE season_key=%s
                            AND review_state!='disqualified'""", (QA_SEASON,))
         retired = scalar("""SELECT COUNT(*) FROM players WHERE season_key=%s
