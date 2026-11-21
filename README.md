@@ -1,3 +1,11 @@
+# v2.9.4e — Cross-Platform Gameplay Verification (QA)
+
+One linked Underworld/Discord character, one PostgreSQL game. Start a 15-minute baseline in the **Snowfall Web Verification Lab**, run the real **`/snowbridge verify`** command from your existing linked Discord account, then perform a genuine Discord action and check the canonical score, inventory and Snow Don HP from the browser. Server-side immutable game event receipts distinguish real Discord actions from browser actions and reject replay or made-up proof. No extra prizes or points are created by verification.
+
+This branch adds the verification feature to the original Discord worker but does **not** activate or deploy it. The existing live Discord bot is still on SQLite/main; the final real two-platform check requires a controlled single-token QA worker cutover. No second Discord application is required.
+
+[See the v2.9.4e test guide and guarded activation steps](docs/RELEASE_v2.9.4e.md).
+
 # v2.9.4d — Keep Underworld, Retire the Discord-Only Snowfall Character (QA)
 
 If Discord login and Underworld login created separate Snowfall characters, players can optionally **keep the verified Underworld character and permanently retire the separate Discord-only character**. A verified Discord OAuth login, detailed loss preview, checkbox, typed confirmation, ten-minute one-use challenge and server-side account locks are required. **Nothing transfers** from the discarded character; immutable historical game records are preserved for audit and the retired player is excluded from active rankings. This feature is QA-only, not an automatic merge or production account deletion.
