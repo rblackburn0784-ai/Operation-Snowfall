@@ -113,7 +113,8 @@ def test_browser_oauth_conflict_is_safe_redirect_without_account_merge():
             response = client.get("/v1/auth/discord/callback", params={
                 "state": args["state"][0], "code": "a-fake-code"})
             assert response.status_code == 303
-            assert response.headers["location"] == ("https://qa.example/"\n                "?discord=conflict&reason=linked-elsewhere")
+            assert response.headers["location"] == ("https://qa.example/"
+                "?discord=conflict&reason=linked-elsewhere")
             assert "fake-token" not in response.headers["location"]
             assert client.get("/v1/auth/session").json()["player_id"] == str(
                 identity.principal_id)
