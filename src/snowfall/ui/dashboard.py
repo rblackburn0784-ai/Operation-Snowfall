@@ -49,6 +49,8 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
     opens = int(season.registration_opens().timestamp())
     starts = int(season.planned_start.timestamp())
     ending = season.projected_end(now)
+    prizes = ("QA only — no prizes" if settings.season_key == "web-qa-2026"
+              else "Individual only. City standings = bragging rights.")
     embed = discord.Embed(
         title=("🧪 Operation Snowfall — SHARED QA / NO PRIZES" if settings.season_key == "web-qa-2026" else
                "🧪 Operation Snowfall — TEST ARENA" if settings.is_test else
@@ -60,8 +62,7 @@ def dashboard_embed(settings, season, now: datetime, registered: int) -> discord
             f"**Projected end:** {f'<t:{int(ending.timestamp())}:F>' if ending else 'After host starts'}\n"
             f"**Current day:** {season.day(now) or '—'} / 7\n"
             f"**Registered players:** {registered}\n"
-            "**Prizes:** QA only — no prizes." if settings.season_key == "web-qa-2026" else
-            "**Prizes:** Individual only. City standings = bragging rights."
+            f"**Prizes:** {prizes}"
         ),
         color=0x78B9EA,
     )
