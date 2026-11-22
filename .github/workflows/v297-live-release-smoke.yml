@@ -285,6 +285,8 @@ jobs:
                   assert frame.evaluate("n=>n.closest('aside.sidebar')!==null")
                   assert frame.get_attribute("src") is None
                   page.evaluate("configureStreets('https://discord.com/channels/123456789012345678/987654321012345678')")
+                  expect(page.locator("#streetsChatEnable")).to_be_enabled()
+                  page.route("https://e.widgetbot.io/**",lambda route:route.fulfill(status=200,content_type="text/html",body="<p>Widget test frame</p>"))
                   if w<=980:
                       page.locator("#streetsChatLauncher").click()
                       expect(dock).to_be_visible()
@@ -292,9 +294,7 @@ jobs:
                   else:
                       page.locator("#streetsTopLink").click()
                       expect(dock).to_be_visible()
-                  expect(page.locator("#streetsChatEnable")).to_be_enabled()
-                  page.route("https://e.widgetbot.io/**",lambda route:route.fulfill(status=200,content_type="text/html",body="<p>Widget test frame</p>"))
-                  page.locator("#streetsChatEnable").click()
+                  # Opening the dock is the player's explicit opt-in and launches chat.
                   expect(frame).to_have_attribute("src","https://e.widgetbot.io/channels/123456789012345678/987654321012345678")
                   expect(page.locator("#streetsChatEmbed")).to_be_visible()
                   assert frame.evaluate("n=>n.getBoundingClientRect().width>=280")
