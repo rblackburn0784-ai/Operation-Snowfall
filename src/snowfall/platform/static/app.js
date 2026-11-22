@@ -1,6 +1,6 @@
-/* Operation Snowfall v2.9.8 — consolidated release and safe recovery. */
+/* Operation Snowfall v2.9.8a — consolidated release and safe recovery. */
 "use strict";
-const S={activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
+const S={arcade:null,arcadeRun:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
 const txt=(id,v)=>{const node=el(id),value=v==null?"—":String(v);if(node&&node.textContent!==value)node.textContent=value};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -158,12 +158,12 @@ function showHq(){
   txt("hqTimer"+key[0].toUpperCase()+key.slice(1),"—");
  if(h)updateHqTimers();
  const recommendation=el("hqRecommended");
- const routes={world:["boss","Open raid"],fight:["combat","Find rivals"],player:["combat","Enter arena"],rankings:["cities","View standings"],quests:["missions","View assignments"]};
+ const routes={world:["boss","Open raid"],fight:["combat","Find rivals"],player:["combat","Enter arena"],rankings:["cities","View standings"],quests:["missions","View assignments"],arcade:["arcade","Open Winter Arcade"]};
  const next=h?routes[h.next_action_route]:null;
  recommendation.classList.toggle("hidden",!next);
  recommendation.dataset.destination=next?.[0]||"";
  recommendation.textContent=next?.[1]||"Open";
- if(h)txt("hqNextMove",h.next_action+(["arcade","guide"].includes(h.next_action_route)?" See Discord for this feature.":""));
+ if(h)txt("hqNextMove",h.next_action+(["guide"].includes(h.next_action_route)?" See Discord for this feature.":""));
  txt("hqQuestCount",h?quests.filter(q=>q.claimed).length+" / "+quests.length+" claimed":"Unavailable");
  el("hqQuestList").innerHTML=quests.length?quests.map(q=>"<article class='hq-quest'><strong>"+esc(q.name)+"</strong><span>"+(q.claimed?"Claimed":Number(q.progress)>=Number(q.target)?"Ready to claim":"In progress")+"</span><div class='hq-meter'><span style='width:"+hqPercent(q.progress,q.target)+"%'></span></div><small>"+fmt(q.progress)+" / "+fmt(q.target)+"</small></article>").join(""):"<p class='subtle'>"+(h?"No daily assignments are available.":"Refresh to load your assignments.")+"</p>";
  txt("hqGiftStatus",h?"Daily gift: "+h.daily_gift+" · Bonus: "+h.bonus_gift+" · Open gifts in Winter Activities.":"Gift status unavailable.");
@@ -231,7 +231,7 @@ function nextActionId(){
 }
 // Store only pending operation keys and their opaque IDs in this browser tab.
  // No passwords, session cookies, CSRF values or names are persisted.
-const RECOVERABLE_ACTIONS=new Set(["/v1/game/throw","/v1/game/boss","/v1/game/siege","/v1/game/craft","/v1/game/wardrobe/purchase","/v1/game/activities/action"]);
+const RECOVERABLE_ACTIONS=new Set(["/v1/game/throw","/v1/game/boss","/v1/game/siege","/v1/game/craft","/v1/game/wardrobe/purchase","/v1/game/activities/action","/v1/game/arcade/move"]);
 function pendingStoreKey(){
  const id=String(S.session?.player_id||"");
  return /^[1-9][0-9]{0,18}$/.test(id)?"snowfall-pending-v1:"+String(S.config?.season||"qa")+":"+id:null;
@@ -305,7 +305,7 @@ async function request(path,method,body,mutation,unique){
 const get=path=>request(path);
 const post=(path,body,mutate,unique)=>request(path,"POST",body,mutate,unique);
 function section(name,{record=true,focus=true}={}){
- if(!["home","combat","boss","shop","cities","wire","activities"].includes(name))name="home";
+ if(!["home","combat","boss","shop","cities","wire","activities","arcade"].includes(name))name="home";
  document.querySelectorAll(".panel").forEach(n=>n.classList.toggle("active",n.id==="page-"+name));
  document.querySelectorAll(".nav-item").forEach(n=>{
   const active=n.dataset.nav===name;
@@ -315,6 +315,7 @@ function section(name,{record=true,focus=true}={}){
  el("primaryNav").classList.remove("open");
  el("menuToggle").setAttribute("aria-expanded","false");
  if(name==="shop")showShop();
+ if(name==="arcade"){showArcade();if(S.session&&!S.privatePending&&!S.busy)void loadPrivate().catch(e=>notice(e.message,"error"))}
  if(name==="activities"){showActivities();if(S.session&&!S.privatePending&&!S.busy)void loadPrivate().catch(e=>notice(e.message,"error"))}
  if(name==="cities"){showCities();showBoard();if(!S.territoryPending&&!S.busy)void refreshTerritory();if(S.session&&!S.privatePending&&!S.busy)void loadPrivate().catch(e=>notice(e.message,"error"))}
  if(name==="boss"){showBoss();if(!S.bossPending&&!S.busy)void refreshBossVisual()}
@@ -348,7 +349,7 @@ function hasPlayIdentity(session,config){return !!session&&(!config?.staging||se
 function syncPlayIdentity(){
  const id=S.session?String(S.session.player_id):null;
  if(id===S.playIdentity)return;
- S.playIdentity=id;S.activities=null;el("activitiesResult")?.classList.add("hidden");showActivities();S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
+ S.playIdentity=id;S.arcade=null;S.arcadeRun=null;S.arcadeBoard=null;S.arcadeBoardSeq++;showArcade();S.activities=null;el("activitiesResult")?.classList.add("hidden");showActivities();S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
  S.pendingActions.clear();restorePending();
  el("targetSelect").value="";el("combatOutcome").classList.add("hidden");el("siegeOutcome").classList.add("hidden");el("bossRecap").classList.add("hidden");el("playFeedback").classList.add("hidden");
 }
@@ -948,7 +949,7 @@ async function loadPublic(){
 async function loadPrivate(){
  if(S.privatePending)return;
  S.privatePending=true;updatePlayControls();
- try{await readPrivate();S.privateFresh=!!S.session&&!!S.me}catch(e){S.privateFresh=false;throw e}finally{S.privatePending=false;showActivities();updatePlayControls()}
+ try{await readPrivate();S.privateFresh=!!S.session&&!!S.me}catch(e){S.privateFresh=false;throw e}finally{S.privatePending=false;showActivities();showArcade();updatePlayControls()}
 }
 async function readPrivate(){
  syncPlayIdentity();
@@ -959,7 +960,7 @@ async function readPrivate(){
  }
  catch(e){if(e.status===401||e.message==="Account changed in another tab; sign in again"){S.session=null;S.me=null;S.world=null;S.hq=null;S.shop=null;S.progress=null;S.targetsReady=false;S.targets=[];S.verification=null;showMe();showShop();showTargets();showSiege();return}throw e}
  if(S.me.registered){
-  const results=await Promise.allSettled([get("/v1/game/world"),get("/v1/game/wardrobe"),get("/v1/game/targets"),get("/v1/game/progress"),get("/v1/game/headquarters"),el("page-activities")?.classList.contains("active")?get("/v1/game/activities"):Promise.resolve(null)]);
+  const results=await Promise.allSettled([get("/v1/game/world"),get("/v1/game/wardrobe"),get("/v1/game/targets"),get("/v1/game/progress"),get("/v1/game/headquarters"),el("page-activities")?.classList.contains("active")?get("/v1/game/activities"):Promise.resolve(null),el("page-arcade")?.classList.contains("active")?get("/v1/game/arcade"):Promise.resolve(null)]);
   if(results.some(r=>r.status==="rejected"&&(r.reason?.status===401||r.reason?.message==="Account changed in another tab; sign in again"))){
    S.session=null;return readPrivate();
   }
@@ -970,6 +971,12 @@ async function readPrivate(){
   S.progress=results[3].status==="fulfilled"?results[3].value:null;
   S.hq=results[4].status==="fulfilled"?results[4].value:null;
   S.activities=results[5]?.status==="fulfilled"?results[5].value:null;
+  S.arcade=results[6]?.status==="fulfilled"?results[6].value:null;
+  if(S.arcadeRun&&S.arcade&&String(S.arcade.player_id)===String(S.session.player_id)){
+   if(S.arcadeRun.day!==S.arcade.day)S.arcadeRun=null;
+   else try{S.arcadeRun=await get("/v1/game/arcade/session/"+encodeURIComponent(S.arcadeRun.session_id))}
+   catch{S.arcadeRun=null}
+  }
   S.hqClock=Number.isFinite(Date.parse(S.hq?.server_time))?Date.parse(S.hq.server_time)-Date.now():0;
   const linked=(S.session.links||[]).some(x=>x.provider==="discord")&&
                (S.session.links||[]).some(x=>x.provider==="underworld");
@@ -978,7 +985,7 @@ async function readPrivate(){
     catch{S.verification=null}
   }else S.verification=null;
  }else{S.shop=null;S.world=null;S.hq=null;S.progress=null;S.targetsReady=false;S.targets=[];S.verification=null;}
- showMe();showTargets();showBoss();showShop();showCities();showActivities();
+ showMe();showTargets();showBoss();showShop();showCities();showActivities();showArcade();
 }
 function updateDiscardSubmit(){
  el("discardConfirm").disabled=!S.discard||!el("discardAcknowledge").checked||
@@ -1023,7 +1030,7 @@ async function act(fn){
   try{await refresh()}catch(e){S.privateFresh=false;playFeedback("Action recorded. Refresh to see updated resources.", "warning");notice("Action recorded; refresh failed.","error")}
  }catch(e){playFeedback(e.message,"error");notice(e.message,"error");if(S.lastThrow&&S.pendingActions.has(requestKey("/v1/game/throw",S.lastThrow.body)))showTargets()}
 
- finally{S.busy=false;document.querySelectorAll(".actions-inline button,.craft-card button").forEach(b=>b.disabled=false);showBoss();showShop();showActivities();updatePlayControls()}
+ finally{S.busy=false;document.querySelectorAll(".actions-inline button,.craft-card button").forEach(b=>b.disabled=false);showBoss();showShop();showActivities();showArcade();updatePlayControls()}
 }
 function registered(){
  if(!S.session){authModal();return false}
@@ -1119,7 +1126,7 @@ async function refreshWire(){
  }finally{if(seq===S.wireRequest){S.wirePending=false;showWire();showEvent()}}
 }
 function bind(){
- bindActivities();
+ bindActivities();bindArcade();
  document.querySelectorAll("[data-nav]").forEach(b=>b.addEventListener("click",()=>section(b.dataset.nav)));
  document.querySelectorAll("[data-jump]").forEach(b=>b.addEventListener("click",()=>el(b.dataset.jump)?.scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"})));
  window.addEventListener("popstate",()=>section(location.hash.startsWith("#play-")?location.hash.slice(6):"home",{record:false}));
@@ -1384,5 +1391,86 @@ function bindActivities(){
    notice(result.message||"Activity recorded.","success");
   });
   showActivities();
+ });
+}
+
+/* v2.9.8a — five shared arcade games, with server-owned puzzle sessions. */
+const ARCADE_ART=Object.freeze(Object.fromEntries(["gallery","safe","snowman","catch","trivia"].map(k=>[k,"/art/v290/arcade/"+k+".webp"])));
+function arcadeAllowed(){
+ return !!(S.session&&S.me?.registered&&S.arcade&&String(S.arcade.player_id)===String(S.session.player_id));
+}
+function arcadeButton(action,value,label,disabled=false){
+ return "<button type='button' class='button button-outline' data-arcade='"+esc(action)+"' data-value='"+esc(value)+"'"+(disabled?" disabled":"")+">"+esc(label)+"</button>";
+}
+function showArcade(){
+ const lobby=el("arcadeLobby"),runNode=el("arcadeRun"),stamps=el("arcadeStamps"),board=el("arcadeBoard");
+ if(!lobby||!runNode||!stamps||!board)return;
+ const a=arcadeAllowed()?S.arcade:null;
+ const locked=!!(S.busy||S.privatePending||!S.privateFresh||a?.phase!=="live"||!hasPlayIdentity(S.session,S.config));
+ txt("arcadeStatus",!S.session?"Sign in to play.":!S.me?.registered?"Register at Headquarters to play.":!a?"Refresh to load your arcade.":("Day "+(a.day??"—")+" / 7 · "+String(a.phase).toUpperCase()+" · "+fmt(a.completed)+" completed runs · "+fmt(a.bests_total)+" combined best"));
+ el("arcadeRefresh").disabled=!!(S.busy||S.privatePending);
+ el("arcadeBoardRefresh").disabled=!a||S.busy||S.privatePending;
+ if(!a){lobby.innerHTML="";stamps.innerHTML="";board.innerHTML="";runNode.classList.add("hidden");runNode.innerHTML="";return}
+ const run=S.arcadeRun&&S.arcadeRun.day===a.day&&ARCADE_ART[S.arcadeRun.mode]?S.arcadeRun:null;
+ runNode.classList.toggle("hidden",!run);
+ if(run){
+  const round=run.current;
+  const choices=Array.isArray(round?.choices)?round.choices:[];
+  runNode.innerHTML="<img class='arcade-run-art' src='"+ARCADE_ART[run.mode]+"' alt=''><div class='arcade-run-copy'><p class='eyebrow'>"+esc(run.title)+" · Run "+fmt(run.attempt)+"</p><h3>"+(run.finished?"Run complete!":"Round "+fmt(round?.index)+" / "+fmt(run.total_rounds))+"</h3><div class='arcade-meter' aria-label='Score'><span style='width:"+Math.max(0,Math.min(100,Number(run.score)||0))+"%'></span></div><p><strong>"+fmt(run.score)+" / 100</strong> arcade points</p>"+(run.feedback?"<p class='arcade-feedback' role='status'>"+esc(run.feedback)+"</p>":"")+(run.finished?"<p>Personal records and stamps are saved to your shared passport.</p>":"<p class='arcade-prompt'>"+esc(round?.prompt)+"</p><div class='arcade-choices'>"+choices.map(v=>arcadeButton("move",v,v,locked)).join("")+"</div>")+"</div>";
+ }
+ else runNode.innerHTML="";
+ const records=Array.isArray(a.records)?a.records:[];
+ lobby.innerHTML=(a.games||[]).filter(g=>ARCADE_ART[g.key]).map(g=>{
+  const r=records.find(x=>x.mode===g.key)||{},used=Number(r.attempts_today||0),cap=Number(a.daily_cap||3);
+  const canResume=!!r.active_id;
+  return "<article class='arcade-card'><img src='"+ARCADE_ART[g.key]+"' alt='' loading='lazy'><div><p class='eyebrow'>"+fmt(g.rounds)+" rounds · "+esc(g.award_name)+"</p><h3>"+esc(g.title)+"</h3><p>"+esc(g.description)+"</p><p>Personal best: <strong>"+fmt(r.personal_best)+" / 100</strong> · "+fmt(r.games_played)+" finished</p><p>"+fmt(used)+" / "+fmt(cap)+" starts used today</p>"+arcadeButton("start",g.key,canResume?"Resume game":used>=cap?"Daily limit reached":"Play game",locked||(!canResume&&used>=cap))+"</div></article>";
+ }).join("");
+ const collected=new Set(a.stamps||[]);
+ stamps.innerHTML=Object.entries(a.stamp_labels||{}).map(([key,name])=>"<div class='arcade-stamp"+(collected.has(key)?" earned":"")+"'><span>"+(collected.has(key)?"✓":"◇")+"</span> "+esc(name)+"</div>").join("");
+ renderArcadeBoard();
+}
+function renderArcadeBoard(){
+ const root=el("arcadeBoard");if(!root||!arcadeAllowed())return;
+ const b=S.arcadeBoard;
+ if(!b){root.textContent="Choose a game and period to view the rankings.";return}
+ const row=(label,detail)=>"<div class='activity-line'><strong>"+esc(label)+"</strong><span>"+esc(detail)+"</span></div>";
+ root.innerHTML="<div class='arcade-boards'><div><h4>Player high scores</h4>"+((b.players||[]).map((p,i)=>row((i+1)+". "+p.name+" · "+p.city,fmt(p.best)+" / 100 · "+fmt(p.games)+" runs")).join("")||"<p>No finished runs yet.</p>")+"</div><div><h4>City Cup · all games</h4>"+((b.cities||[]).map((c,i)=>row((i+1)+". "+c.city,fmt(c.score)+" · "+fmt(c.players)+" players")).join("")||"<p>No city records yet.</p>")+"</div></div>";
+}
+async function loadArcadeBoard(){
+ if(!arcadeAllowed()||S.busy||S.privatePending)return;
+ const seq=++S.arcadeBoardSeq,identity=String(S.session.player_id),mode=el("arcadeBoardMode").value,daily=el("arcadeBoardPeriod").value==="daily";
+ S.arcadeBoard=null;txt("arcadeBoard","Loading rankings…");
+ try{
+  const b=await get("/v1/game/arcade/board?mode="+encodeURIComponent(mode)+"&daily="+daily);
+  if(seq!==S.arcadeBoardSeq||identity!==String(S.session?.player_id))return;
+  if(b.mode!==mode||b.daily!==daily)throw Error("Unexpected arcade rankings");
+  S.arcadeBoard=b;renderArcadeBoard();
+ }catch(e){if(seq===S.arcadeBoardSeq)txt("arcadeBoard",e.message)}
+}
+function bindArcade(){
+ const page=el("page-arcade");if(!page)return;
+ el("arcadeRefresh").onclick=()=>{if(registered()&&!S.busy&&!S.privatePending)void loadPrivate().catch(e=>notice(e.message,"error"))};
+ el("arcadeBoardRefresh").onclick=()=>void loadArcadeBoard();
+ for(const id of ["arcadeBoardMode","arcadeBoardPeriod"])el(id).onchange=()=>{S.arcadeBoardSeq++;S.arcadeBoard=null;renderArcadeBoard()};
+ page.addEventListener("click",event=>{
+  const b=event.target.closest("button[data-arcade]");
+  if(!b||b.disabled||!registered()||!arcadeAllowed()||S.busy||S.privatePending)return;
+  const a=S.arcade,action=b.dataset.arcade,value=b.dataset.value;
+  if(action==="start"&&ARCADE_ART[value]){
+   const record=a.records.find(r=>r.mode===value);if(!record)return;
+   act(async()=>{
+    const run=record.active_id?await get("/v1/game/arcade/session/"+encodeURIComponent(record.active_id)):
+      await post("/v1/game/arcade/start",{mode:value,day:a.day,attempts_today:record.attempts_today},true);
+    S.arcadeRun=run;S.arcadeBoard=null;el("arcadeRun").classList.remove("hidden");
+    notice(run.finished?"Run already completed.":"Arcade run ready.","success");
+   });
+  }else if(action==="move"&&S.arcadeRun&&!S.arcadeRun.finished&&S.arcadeRun.current?.choices?.includes(value)){
+   const body={session_id:S.arcadeRun.session_id,step:S.arcadeRun.step,choice:value};
+   act(async()=>{
+    const result=await post("/v1/game/arcade/move",body,true,true);
+    S.arcadeRun=result.session;S.arcadeBoard=null;notice(result.feedback||"Turn recorded.","success");
+   });
+  }
+  showArcade();
  });
 }

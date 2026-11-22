@@ -184,3 +184,40 @@ class SharedGame:
         from snowfall.platform.player_activities import perform_activity
         return perform_activity(self.store, self.season, player_id, action, item,
                                 day, interaction_id, now or _time())
+
+    def arcade_lobby(self, player_id: int, *, now=None) -> dict:
+        from snowfall.services.social_arcade import SocialArcadeEngine, GAMES, STAMPS, DAILY_GAME_CAP
+        lobby = SocialArcadeEngine(self.store).lobby(self.season, player_id, now or _time())
+        return {**asdict(lobby), "player_id": str(player_id),
+                "games": [asdict(spec) for spec in GAMES.values()],
+                "stamp_labels": STAMPS, "daily_cap": DAILY_GAME_CAP}
+
+    def arcade_session(self, player_id: int, session_id: str, *, now=None) -> dict:
+        from snowfall.services.social_arcade import SocialArcadeEngine
+        return asdict(SocialArcadeEngine(self.store).session(
+            self.season, player_id, session_id, now or _time()))
+
+    def arcade_start(self, player_id: int, mode: str, day: int, attempts_today: int,
+                     *, now=None) -> dict:
+        from snowfall.services.social_arcade import SocialArcadeEngine
+        return asdict(SocialArcadeEngine(self.store).begin(
+            self.season, player_id, mode, now or _time(),
+            expected_day=day, expected_used=attempts_today))
+
+    def arcade_move(self, player_id: int, session_id: str, step: int, choice: str,
+                    interaction_id: str, *, now=None) -> dict:
+        from snowfall.services.social_arcade import SocialArcadeEngine
+        return asdict(SocialArcadeEngine(self.store).move(
+            self.season, player_id, session_id, step, choice, interaction_id,
+            now or _time()))
+
+    def arcade_board(self, player_id: int, mode: str, *, daily=False, now=None) -> dict:
+        from snowfall.services.social_arcade import SocialArcadeEngine
+        engine = SocialArcadeEngine(self.store)
+        now = now or _time()
+        return {"mode": mode, "daily": daily,
+                "players": [{"name": row.name, "city": row.city, "best": row.best,
+                             "games": row.games} for row in engine.leaderboard(
+                                 self.season, player_id, mode, now, daily=daily)],
+                "cities": [asdict(row) for row in engine.city_table(
+                    self.season, player_id, now, daily=daily)]}

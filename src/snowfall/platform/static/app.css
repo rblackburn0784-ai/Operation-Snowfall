@@ -580,3 +580,28 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
 .activity-actions{display:flex;flex-wrap:wrap;gap:.55rem;margin:.6rem 0}
 .activity-card .button{white-space:normal;text-align:center;min-height:44px}
 @media(max-width:780px){.activity-grid{grid-template-columns:minmax(0,1fr)}.activity-intro{grid-template-columns:minmax(0,1fr)}.activity-line{align-items:flex-start;flex-wrap:wrap}}
+
+/* v2.9.8a — arcade lobby and accessible, responsive game controls. */
+.arcade-intro{display:flex;align-items:center;gap:1rem;justify-content:space-between;padding:1rem;border:1px solid #456174;background:#152e3c;margin-bottom:1rem}
+.arcade-lobby{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin:1rem 0}
+.arcade-card,.arcade-run{background:#142a37;border:1px solid #456174;min-width:0;overflow-wrap:anywhere}
+.arcade-card>img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
+.arcade-card>div,.arcade-run-copy{padding:1rem}
+.arcade-card h3,.arcade-run h3{margin:.3rem 0 .65rem}
+.arcade-card p,.arcade-run p{margin:.5rem 0;color:#c8d7dc}
+.arcade-run{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);margin:1rem 0}
+.arcade-run-art{width:100%;height:100%;min-height:180px;object-fit:cover}
+.arcade-meter{height:9px;background:#0b1922;border-radius:5px;overflow:hidden}
+.arcade-meter span{display:block;height:100%;background:#e7bd77}
+.arcade-prompt{font-size:1.05rem;line-height:1.5;font-weight:600}
+.arcade-feedback{padding:.65rem;background:#233d4a;border-left:3px solid #d5ad6d}
+.arcade-choices,.arcade-filters{display:flex;flex-wrap:wrap;gap:.6rem;align-items:end}
+.arcade-choices button{flex:1 1 120px}
+.arcade-card .button,.arcade-run .button,.arcade-filters .button{min-height:44px;white-space:normal}
+.arcade-passport,.arcade-rankings{margin:1rem 0}
+.arcade-stamps,.arcade-boards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.6rem}
+.arcade-stamp{border:1px solid #456174;padding:.6rem;color:#a3b5bf}.arcade-stamp.earned{color:#f0d299;border-color:#a88954;background:#2b3c43}
+.arcade-filters label{flex:1 1 120px;min-width:0}.arcade-filters select{width:100%}
+.arcade-boards .activity-line{flex-wrap:wrap}
+@media(max-width:780px){.arcade-lobby,.arcade-run,.arcade-boards{grid-template-columns:minmax(0,1fr)}.arcade-run-art{height:auto;min-height:0;aspect-ratio:16/9}.arcade-intro{align-items:flex-start;flex-direction:column}}
+@media(max-width:420px){.arcade-stamps{grid-template-columns:minmax(0,1fr)}.arcade-choices button{flex-basis:100%}}

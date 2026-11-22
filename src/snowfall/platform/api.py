@@ -127,6 +127,18 @@ class ActivityBody(BaseModel):
     day: int | None = Field(default=None, ge=1, le=7)
 
 
+class ArcadeStart(BaseModel):
+    mode: Literal["gallery", "safe", "snowman", "catch", "trivia"]
+    day: int = Field(ge=1, le=7)
+    attempts_today: int = Field(ge=0, le=3)
+
+
+class ArcadeTurn(BaseModel):
+    session_id: str = Field(pattern=r"^[a-f0-9]{32}$")
+    step: int = Field(ge=0, le=4)
+    choice: str = Field(min_length=1, max_length=96)
+
+
 class OAuthStart(BaseModel):
     mode: Literal["login", "link"] = "login"
 
@@ -583,6 +595,37 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         iid = _idempotency(principal, "activities:" + body.action, idempotency_key)
         return jsonable_encoder(shared.activity_action(
             principal, body.action, body.item, body.day, iid))
+
+    @app.get("/v1/game/arcade")
+    def arcade_lobby(response: Response, principal: int = Depends(player)):
+        response.headers["Cache-Control"] = "no-store"
+        return jsonable_encoder(shared.arcade_lobby(principal))
+
+    @app.get("/v1/game/arcade/session/{session_id}")
+    def arcade_session(session_id: str, response: Response, principal: int = Depends(player)):
+        response.headers["Cache-Control"] = "no-store"
+        if not re.fullmatch(r"[a-f0-9]{32}", session_id):
+            raise HTTPException(400, "Invalid arcade session")
+        return jsonable_encoder(shared.arcade_session(principal, session_id))
+
+    @app.post("/v1/game/arcade/start")
+    def arcade_start(body: ArcadeStart, principal: int = Depends(game_writer)):
+        return jsonable_encoder(shared.arcade_start(
+            principal, body.mode, body.day, body.attempts_today))
+
+    @app.post("/v1/game/arcade/move")
+    def arcade_move(body: ArcadeTurn, idempotency_key: str | None = Header(default=None),
+                    principal: int = Depends(game_writer)):
+        return jsonable_encoder(shared.arcade_move(
+            principal, body.session_id, body.step, body.choice,
+            _idempotency(principal, "arcade:move", idempotency_key)))
+
+    @app.get("/v1/game/arcade/board")
+    def arcade_board(response: Response,
+                     mode: Literal["gallery", "safe", "snowman", "catch", "trivia"] = "gallery",
+                     daily: bool = False, principal: int = Depends(player)):
+        response.headers["Cache-Control"] = "no-store"
+        return jsonable_encoder(shared.arcade_board(principal, mode, daily=daily))
 
     @app.get("/v1/game/inventory")
     def inventory(principal: int = Depends(player)):

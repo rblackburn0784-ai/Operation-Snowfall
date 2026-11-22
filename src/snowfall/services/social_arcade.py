@@ -360,7 +360,8 @@ class SocialArcadeEngine:
                                sum(r.games_played for r in records),
                                sum(r.personal_best for r in records))
 
-    def begin(self, season: str, user: int, mode: str, now: datetime) -> ArcadeSession:
+    def begin(self, season: str, user: int, mode: str, now: datetime, *,
+              expected_day: int | None = None, expected_used: int | None = None) -> ArcadeSession:
         """Resume active session or spend one of three daily *starts*."""
         if mode not in GAMES:
             raise SocialArcadeError("Unknown arcade game.")
@@ -368,16 +369,30 @@ class SocialArcadeEngine:
         with self.store.connect() as con:
             con.execute("BEGIN IMMEDIATE")
             _, day = self._eligible(con, season, user, now, active=True)
+            if expected_day is not None and day != expected_day:
+                raise SocialArcadeError("The event day changed. Refresh the arcade.")
             active = con.execute(
                 "SELECT * FROM social_arcade_runs WHERE season_key=? "
                 "AND discord_user_id=? AND day=? AND mode=? AND status='active'",
                 (season, user, day, mode)).fetchone()
-            if active:
-                return _session(con, active)
             used = int(con.execute(
                 "SELECT COUNT(*) FROM social_arcade_runs WHERE season_key=? "
                 "AND discord_user_id=? AND day=? AND mode=?",
                 (season, user, day, mode)).fetchone()[0])
+            # Web starts carry a snapshot of the attempt counter. In the
+            # same write transaction, a retry returns its existing run even
+            # if it was completed on Discord after the response was lost.
+            if expected_used is not None and used != expected_used:
+                if used == expected_used + 1:
+                    previous = con.execute(
+                        "SELECT * FROM social_arcade_runs WHERE season_key=? "
+                        "AND discord_user_id=? AND day=? AND mode=? AND attempt=?",
+                        (season, user, day, mode, used)).fetchone()
+                    if previous:
+                        return _session(con, previous)
+                raise SocialArcadeError("Arcade attempts changed. Refresh the lobby.")
+            if active:
+                return _session(con, active)
             if used >= DAILY_GAME_CAP:
                 raise SocialArcadeError(
                     "You've used all three daily runs of this game. "
