@@ -235,13 +235,22 @@ function updateStreetsChat(){
    frame.removeAttribute("src");
    embed.classList.add("hidden");
  }
- button.disabled=!configured||!eligible;
+ button.disabled=!configured;
+ button.textContent=!S.session?"Sign in to enter chat":!hasPlayIdentity(S.session,S.config)?"Connect Underworld":!S.me?.registered?"Go to Headquarters":"Enter The Streets chat";
  button.classList.toggle("hidden",S.streetsChatOpen&&eligible);
  txt("streetsChatStatus",!configured?"The Discord channel isn't configured yet.":!S.session?"Sign in through Underworld to enter chat.":!eligible?"Register your character in Headquarters before joining.":S.streetsChatOpen?"Chat is open below. Discord members and website visitors can message in the same room.":"Enter chat to connect to WidgetBot. Messages stay here in the Snowfall page.");
 }
 function openStreetsChat(){
  updateStreetsChat();
- if(!S.streetsEmbedUrl||!(S.session&&S.me?.registered&&hasPlayIdentity(S.session,S.config)))return;
+ if(!S.streetsEmbedUrl)return;
+ if(!S.session){authModal();return}
+ if(!hasPlayIdentity(S.session,S.config)){
+  section("home");el("accountTools").open=true;
+  notice("Return through Underworld to use your character.","error");return;
+ }
+ if(!S.me?.registered){
+  section("home");notice("Register your character at Headquarters to join chat.","error");return;
+ }
  const frame=el("streetsChatFrame");
  if(!S.streetsChatOpen){
    frame.src=S.streetsEmbedUrl;
