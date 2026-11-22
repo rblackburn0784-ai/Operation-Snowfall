@@ -299,6 +299,10 @@ jobs:
                   expect(page.locator("#streetsChatEmbed")).to_be_visible()
                   assert frame.evaluate("n=>n.getBoundingClientRect().width>=280")
                   page.evaluate("window.__originalChatFrame=document.getElementById('streetsChatFrame')")
+                  if w>980:
+                      chat_top=dock.evaluate("n=>n.getBoundingClientRect().top")
+                      status_bottom=page.locator("#playStatus").evaluate("n=>n.getBoundingClientRect().bottom")
+                      assert chat_top>=status_bottom-3,(chat_top,status_bottom)
                   dock.screenshot(path=f"qa-screenshots/{label}-persistent-chat.png")
                   if w<=980:
                       page.locator("#streetsChatClose").click()

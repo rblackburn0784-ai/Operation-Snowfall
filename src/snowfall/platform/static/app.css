@@ -675,3 +675,11 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
  .side-chat-shell .streets-chat-notice{font-size:.63rem}
 }
 @media(prefers-reduced-motion:reduce){.sidebar>.side-chat-shell{transition:none}}
+
+/* v2.9.8b3 desktop visual QA: never let the global sticky resource bar cover chat header. */
+@media(min-width:981px){
+ .sidebar>.side-chat-shell{
+  top:72px;
+  height:clamp(440px,calc(100dvh - 92px),760px);
+ }
+}
