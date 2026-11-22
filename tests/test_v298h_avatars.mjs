@@ -69,6 +69,8 @@ test("rival changes update actual portrait, frame, trail and banner name",()=>{
 test("market equipped trail and combat throwing style stay visually separate",()=>{
  run('S.session={player_id:"101"};S.me={registered:true};S.shop={unlocked:["snow_trail","candy_trail"],equipped:{trail:"candy_trail"}};S.progress={inventory:{golden:0}};showSnowballLoadout("standard")');
  assert.equal(el("alleyLoadoutIcon").dataset.trail,"candy_trail");
+ assert.match(el("alleyLoadoutTrail").getAttribute("src"),/candy_trail\.png$/);
+ assert.equal(el("alleyLoadoutTrail").classList.contains("hidden"),false);
  assert.equal(el("alleyLoadoutIcon").dataset.style,"standard");
  assert.match(el("alleyLoadoutName").textContent,/Standard Throw/);
  assert.match(el("alleyLoadoutDetail").textContent,/Candy Cane Trail equipped/);
@@ -77,8 +79,11 @@ test("market equipped trail and combat throwing style stay visually separate",()
  assert.match(el("alleyLoadoutDetail").textContent,/required in inventory/);
  run('S.shop={unlocked:["snow_trail"],equipped:{trail:"candy_trail"}};showSnowballLoadout("power")');
  assert.equal(el("alleyLoadoutIcon").dataset.trail,"none"); // unowned: no cosmetic
+ assert.equal(el("alleyLoadoutTrail").classList.contains("hidden"),true);
+ assert.equal(el("alleyLoadoutTrail").getAttribute("src"),undefined);
  run('S.shop={unlocked:["snow_trail"],equipped:{trail:"snow_trail"}};showSnowballLoadout("quick")');
  assert.equal(el("alleyLoadoutIcon").dataset.trail,"snow_trail");
+ assert.match(el("alleyLoadoutTrail").getAttribute("src"),/snow_trail\.png$/);
 });
 
 test("HQ and Market name banners sit directly above correctly fitted portrait",()=>{
