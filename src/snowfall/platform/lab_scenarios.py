@@ -101,7 +101,7 @@ class LabScenarios:
                                   (self.s.key, self.s.day)).fetchone()
                 if row is None or hp > row[0]:
                     raise ValueError("Snow Don HP cannot exceed today's starting HP")
-                con.execute("UPDATE world_days SET boss_hp=?,cleared_at_utc=NULL "
+                con.execute("UPDATE world_days SET boss_hp=? "
                             "WHERE season_key=? AND day=?",
                             (hp, self.s.key, self.s.day))
         return {"player_index": player_index, "settings": fields,
