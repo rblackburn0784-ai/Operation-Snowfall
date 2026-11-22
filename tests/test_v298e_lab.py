@@ -2,11 +2,10 @@
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from fastapi.testclient import TestClient
 
 from snowfall.db.store import Store
-from snowfall.platform.staff_lab import TEST_IDS, WebStaffTestLab
-from test_v298d_lab import STAFF, OTHER, _client
+from snowfall.platform.staff_lab import WebStaffTestLab
+from test_v298d_lab import STAFF, _client
 
 
 NOW = datetime(2026, 12, 22, 19, tzinfo=timezone.utc)
