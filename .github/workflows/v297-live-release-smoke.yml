@@ -379,7 +379,10 @@ jobs:
                   expect(page.locator("#staffLabStart")).to_be_enabled(timeout=30000)
                   expect(page.locator("#staffLabStatus")).to_contain_text("No disposable web test",timeout=30000)
                   expect(page.locator("#staffLabStats")).to_contain_text("Shared QA")
-                  # Assert actual navigation keeps the title below the sticky resource bar.
+                  # The lab buttons scroll deep within the page; return to the staff
+                  # heading before checking that sticky status does not cover it.
+                  page.evaluate("window.scrollTo({top:Math.max(0,document.getElementById('page-staff').getBoundingClientRect().top+scrollY-180),behavior:'instant'})")
+                  page.wait_for_timeout(75)
                   staff_top=page.locator("#staffTitle").evaluate("n=>n.getBoundingClientRect().top")
                   bar_bottom=page.locator("#playStatus").evaluate("n=>n.getBoundingClientRect().bottom")
                   assert staff_top>=bar_bottom-3,(staff_top,bar_bottom)
