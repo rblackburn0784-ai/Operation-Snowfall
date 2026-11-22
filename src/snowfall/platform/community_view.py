@@ -26,7 +26,7 @@ def community_view(game, now=None):
     with store.connect() as con:
         con.execute("BEGIN")
         for city in CITIES:
-            values = dict(totals.fromkeys(totals, 0))
+            values = dict.fromkeys(totals, 0)
             members = con.execute("""SELECT COUNT(*) FROM players
                 WHERE season_key=? AND city=? AND review_state NOT IN ('flagged','disqualified')""",
                 (season, city)).fetchone()[0]
@@ -56,7 +56,7 @@ def community_view(game, now=None):
                                         "unit": "damage", "latest": row["latest"]})
                 for key, table, stamp, extra, unit in (
                     ("quests", "quest_claims", "claimed_at_utc", "", "assignments claimed"),
-                    ("gifts", "mystery_gifts", "opened_at_utc", "", "presents opened"),
+                    ("gifts", "mystery_gifts", "claimed_at_utc", "", "presents opened"),
                     ("arcade", "social_arcade_runs", "finished_at_utc",
                      " AND e.status='finished'", "arcade runs completed"),
                 ):

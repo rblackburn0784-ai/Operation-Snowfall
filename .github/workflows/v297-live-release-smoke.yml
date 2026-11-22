@@ -156,6 +156,12 @@ jobs:
                                          "clues":[{"key":"window","label":"Window","found":found,"text":"Fictional clue discovered." if found else None}],
                                          "suspects":[{"key":"suspect","label":"Suspect"}],"guesses":0,"max_guesses":2,"solved":False,"locked":False,"secret_ready":False}})
                       elif path=="/v1/game/headquarters":reply({"registered":True,"phase":"live","day":2,"server_time":datetime.now(timezone.utc).isoformat(),"daily_points":12,"rank":3,"season_points":state["score"],"caps":{"snowballs":12,"warmth":100,"pvp":300},"today_pvp":0,"timers":{},"title":"Snowball Recruit","rarity":"Common","quests":[],"trophies":[],"records":{},"next_action":"Find a rival","next_action_route":"fight","daily_gift":"Opened","bonus_gift":"Not today"})
+                      elif path=="/v1/web/community":
+                          city_names=["Chicago","Detroit","Las Vegas","Los Angeles","New York","Philadelphia"]
+                          totals={"throws":4,"hits":2,"boss_damage":16,"siege_damage":8,"quests":1,"gifts":0,"arcade":1}
+                          reply({"phase":"live","day":2,"theme":"Fortification frenzy","verified_only":True,"chat_relay":False,
+                                 "totals":totals,"objectives_met":1,"updates":[{"city":"Chicago","kind":"arcade","count":1,"unit":"arcade runs completed"}],
+                                 "cities":[{"city":city,"rival":None,"members":1,"activity":totals if city=="Chicago" else {},"objective":{"name":"Fortress Breakers","detail":"Work together","progress":12 if city=="Chicago" else 0,"target":12,"unit":"damage","completed":city=="Chicago"}} for city in city_names]})
                       elif path=="/v1/web/wire":
                           day=int(parse_qs(url.query).get("day",[2])[0])
                           reply({"phase":"live","current_day":2,"day":day,"complete":day==1,
@@ -270,6 +276,8 @@ jobs:
                   page.locator("#page-home [data-nav='community']").click()
                   expect(page.locator("#communityCities .activity-card")).to_have_count(6,timeout=30000)
                   expect(page.locator("#communityTotals .activity-card")).to_have_count(6)
+                  expect(page.locator("#communityMilestones")).to_contain_text("1 / 6")
+                  expect(page.locator("#communityFeed")).to_contain_text("Chicago")
                   page.locator("#communityRefresh").click()
                   expect(page.locator("#communityRefresh")).to_be_enabled(timeout=30000)
                   page.locator("#page-community").screenshot(path=f"qa-screenshots/{label}-community.png")

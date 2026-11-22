@@ -317,8 +317,8 @@ function section(name,{record=true,focus=true}={}){
  el("menuToggle").setAttribute("aria-expanded","false");
  if(name==="shop")showShop();
  if(name==="community"){showCommunity();void refreshCommunity()}
- if(name==="arcade"){showArcade();if(S.session&&!S.busy)void loadPrivate().catch(e=>notice(e.message,"error"));else if(S.session&&S.privatePending)S.privateQueued=true}
- if(name==="activities"){showActivities();if(S.session&&!S.busy)void loadPrivate().catch(e=>notice(e.message,"error"));else if(S.session&&S.privatePending)S.privateQueued=true}
+ if(name==="arcade"){showArcade();if(S.session){if(S.busy||S.privatePending)S.privateQueued=true;else void loadPrivate().catch(e=>notice(e.message,"error"))}}
+ if(name==="activities"){showActivities();if(S.session){if(S.busy||S.privatePending)S.privateQueued=true;else void loadPrivate().catch(e=>notice(e.message,"error"))}}
  if(name==="cities"){showCities();showBoard();if(!S.territoryPending&&!S.busy)void refreshTerritory();if(S.session&&!S.privatePending&&!S.busy)void loadPrivate().catch(e=>notice(e.message,"error"))}
  if(name==="boss"){showBoss();if(!S.bossPending&&!S.busy)void refreshBossVisual()}
  if(name==="wire"){showWire();if(!S.wirePending&&!S.busy)void refreshWire()}
@@ -951,7 +951,7 @@ async function loadPublic(){
 async function loadPrivate(){
  if(S.privatePending){S.privateQueued=true;return;}
  S.privatePending=true;updatePlayControls();
- try{await readPrivate();S.privateFresh=!!S.session&&!!S.me}catch(e){S.privateFresh=false;throw e}finally{S.privatePending=false;showActivities();showArcade();updatePlayControls();if(S.privateQueued){S.privateQueued=false;if(S.session)void loadPrivate().catch(e=>notice(e.message,"error"))}}
+ try{await readPrivate();S.privateFresh=!!S.session&&!!S.me}catch(e){S.privateFresh=false;throw e}finally{S.privatePending=false;showActivities();showArcade();updatePlayControls();if(S.privateQueued&&!S.busy){S.privateQueued=false;if(S.session)void loadPrivate().catch(e=>notice(e.message,"error"))}}
 }
 async function readPrivate(){
  syncPlayIdentity();
@@ -1032,7 +1032,7 @@ async function act(fn){
   try{await refresh()}catch(e){S.privateFresh=false;playFeedback("Action recorded. Refresh to see updated resources.", "warning");notice("Action recorded; refresh failed.","error")}
  }catch(e){playFeedback(e.message,"error");notice(e.message,"error");if(S.lastThrow&&S.pendingActions.has(requestKey("/v1/game/throw",S.lastThrow.body)))showTargets()}
 
- finally{S.busy=false;document.querySelectorAll(".actions-inline button,.craft-card button").forEach(b=>b.disabled=false);showBoss();showShop();showActivities();showArcade();updatePlayControls()}
+ finally{S.busy=false;document.querySelectorAll(".actions-inline button,.craft-card button").forEach(b=>b.disabled=false);showBoss();showShop();showActivities();showArcade();updatePlayControls();if(S.privateQueued&&!S.privatePending){S.privateQueued=false;if(S.session)void loadPrivate().catch(e=>notice(e.message,"error"))}}
 }
 function registered(){
  if(!S.session){authModal();return false}

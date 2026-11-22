@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from snowfall.db.store import Store
 from snowfall.platform.game import SharedGame
 from snowfall.platform.community_view import community_view
-from snowfall.services.winter_fun import WinterFunEngine
+from snowfall.services.social_arcade import SocialArcadeEngine
 
 
 def test_community_is_aggregate_read_only_and_season_scoped(tmp_path):
@@ -26,3 +26,15 @@ def test_community_is_aggregate_read_only_and_season_scoped(tmp_path):
     with db.connect() as con:
         assert con.execute("SELECT COUNT(*) FROM score_ledger").fetchone()[0] == 0
         assert con.execute("SELECT COUNT(*) FROM prize_awards").fetchone()[0] == 0
+
+    engine = SocialArcadeEngine(db)
+    for season in ("qa", "other"):
+        run = engine.begin(season, 101, "safe", now)
+        while not run.finished:
+            run = engine.move(season, 101, run.session_id, run.step,
+                              run.current.choices[0], f"{season}-{run.step}", now).session
+    out = community_view(game, now)
+    assert out["totals"]["arcade"] == 1
+    assert out["updates"] == [{"city": "Chicago", "kind": "arcade", "count": 1,
+                               "unit": "arcade runs completed"}]
+    assert community_view(game, now-timedelta(days=2))["day"] is None
