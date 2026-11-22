@@ -1,6 +1,6 @@
 /* Operation Snowfall v2.9.8c — shared event operations and persistent chat. */
 "use strict";
-const S={staffAllowed:false,staffCheckedIdentity:null,staffAccessCheckedAt:0,staffData:null,staffPending:false,staffStale:false,streetsDrawerOpen:false,streetsReturnFocus:null,streetsEmbedUrl:null,streetsChatOpen:false,community:null,communityPending:false,communityStale:false,privateQueued:false,arcade:null,arcadeRun:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
+const S={staffLab:null,staffLabPending:false,staffAllowed:false,staffCheckedIdentity:null,staffAccessCheckedAt:0,staffData:null,staffPending:false,staffStale:false,streetsDrawerOpen:false,streetsReturnFocus:null,streetsEmbedUrl:null,streetsChatOpen:false,community:null,communityPending:false,communityStale:false,privateQueued:false,arcade:null,arcadeRun:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
 const txt=(id,v)=>{const node=el(id),value=v==null?"—":String(v);if(node&&node.textContent!==value)node.textContent=value};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -394,7 +394,7 @@ function section(name,{record=true,focus=true}={}){
  });
  el("primaryNav").classList.remove("open");
  el("menuToggle").setAttribute("aria-expanded","false");
- if(name==="staff")void refreshStaffDashboard();
+ if(name==="staff"){void refreshStaffDashboard();void refreshStaffLab()}
  if(name==="shop")showShop();
  if(name==="community"){updateStreetsChat();showCommunity();void refreshCommunity()}
  if(name==="arcade"){showArcade();if(S.session){if(S.busy||S.privatePending)S.privateQueued=true;else void loadPrivate().catch(e=>notice(e.message,"error"))}}
@@ -431,7 +431,7 @@ function hasPlayIdentity(session,config){return !!session&&(!config?.staging||se
 function syncPlayIdentity(){
  const id=S.session?String(S.session.player_id):null;
  if(id===S.playIdentity)return;
- S.playIdentity=id;S.staffAllowed=false;S.staffCheckedIdentity=null;S.staffAccessCheckedAt=0;S.staffData=null;updateStaffNavigation();closeStreetsDock(false);disconnectStreetsChat();S.arcade=null;S.arcadeRun=null;S.arcadeBoard=null;S.arcadeBoardSeq++;showArcade();S.activities=null;el("activitiesResult")?.classList.add("hidden");showActivities();S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
+ S.playIdentity=id;S.staffLab=null;S.staffAllowed=false;S.staffCheckedIdentity=null;S.staffAccessCheckedAt=0;S.staffData=null;updateStaffNavigation();closeStreetsDock(false);disconnectStreetsChat();S.arcade=null;S.arcadeRun=null;S.arcadeBoard=null;S.arcadeBoardSeq++;showArcade();S.activities=null;el("activitiesResult")?.classList.add("hidden");showActivities();S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
  S.pendingActions.clear();restorePending();
  el("targetSelect").value="";el("combatOutcome").classList.add("hidden");el("siegeOutcome").classList.add("hidden");el("bossRecap").classList.add("hidden");el("playFeedback").classList.add("hidden");
 }
@@ -1212,6 +1212,10 @@ function bind(){
  bindActivities();bindArcade();
  if(el("communityRefresh"))el("communityRefresh").onclick=()=>void refreshCommunity();
  if(el("staffRefresh"))el("staffRefresh").onclick=()=>void refreshStaffDashboard();
+ if(el("staffLabRefresh"))el("staffLabRefresh").onclick=()=>void refreshStaffLab();
+ for(const btn of document.querySelectorAll("[data-lab-action]"))btn.onclick=()=>void staffLabAction(btn.dataset.labAction);
+ for(const btn of document.querySelectorAll("[data-staff-copy]"))btn.onclick=()=>navigator.clipboard.writeText(btn.dataset.staffCopy).then(()=>notice("Discord command copied.","success")).catch(()=>notice("Clipboard permission required.","error"));
+ if(el("staffExportDiagnostics"))el("staffExportDiagnostics").onclick=downloadStaffDiagnostics;
  if(el("streetsChatEnable"))el("streetsChatEnable").onclick=openStreetsChat;
  if(el("streetsChatDisconnect"))el("streetsChatDisconnect").onclick=disconnectStreetsChat;
  for(const btn of document.querySelectorAll("[data-chat-open],#streetsChatLauncher"))btn.addEventListener("click",openStreetsDock);
@@ -1402,7 +1406,7 @@ async function init(){
    if(!S.wirePending)void refreshWire();
    if(el("page-community").classList.contains("active"))void refreshCommunity();
    if(S.session)void refreshStaffAccess();
-   if(S.staffAllowed&&el("page-staff").classList.contains("active"))void refreshStaffDashboard();
+   if(S.staffAllowed&&el("page-staff").classList.contains("active")){void refreshStaffDashboard();void refreshStaffLab()}
    if(S.session&&["home","combat","boss","cities","activities","arcade"].some(name=>el("page-"+name).classList.contains("active"))&&!document.activeElement?.matches("input,select,textarea")&&el("authDialog").classList.contains("hidden"))
     void loadPrivate().catch(()=>{});
   };
@@ -1681,4 +1685,79 @@ async function refreshStaffDashboard(){
    if(e.status===401||e.status===403){S.staffAllowed=false;S.staffData=null;updateStaffNavigation()}
   }
  }finally{S.staffPending=false;showStaffDashboard()}
+}
+
+
+/* v2.9.8d — isolated disposable staff test lab, never a shared-game mutation. */
+function showStaffLab(){
+ const root=el("staffLabStatus");if(!root)return;
+ const d=S.staffAllowed?S.staffLab:null,active=!!d?.active;
+ txt("staffLabStatus",S.staffLabPending?"Running or refreshing your private test…":!S.staffAllowed?"Staff sign-in required.":!d?"Press Refresh lab to retrieve your session.":active?"WEB TEST ONLY · Day "+d.day+"/7 · "+d.theme+" · "+d.last_action:"No disposable web test is running.");
+ for(const btn of document.querySelectorAll("[data-lab-action]")){
+  const action=btn.dataset.labAction;
+  btn.disabled=S.staffLabPending||!S.staffAllowed||(action==="start"?active:!active);
+ }
+ el("staffLabRefresh").disabled=S.staffLabPending||!S.staffAllowed;
+ el("staffLabDay").disabled=active&&S.staffLabPending;
+ if(!d){el("staffLabStats").innerHTML="";el("staffLabPlayers").innerHTML="";el("staffLabHistory").innerHTML="";return}
+ const totals=d.totals||{};
+ el("staffLabStats").innerHTML=(active?[
+  ["Test Day",d.day+"/7"],["Snow Don HP",d.boss?fmt(d.boss.boss_hp)+" / "+fmt(d.boss.boss_initial_hp):"—"],
+  ["PvP throws",fmt(totals.pvp)],["Boss & siege actions",fmt(totals.pve)],
+  ["Test ledger rows",fmt(totals.ledger)],["Test awards",fmt(totals.awards)]
+ ]:[["Test Lab", "Inactive"],["Shared QA", "Unchanged"]]).map(([label,value])=>"<div class='activity-card'><small>"+esc(label)+"</small><strong>"+esc(value)+"</strong></div>").join("");
+ el("staffLabPlayers").innerHTML=(d.players||[]).map(x=>staffRow(x.mr_username+" · "+x.city,fmt(x.score)+" pts")).join("")||"<p>No active fictional test players.</p>";
+ el("staffLabHistory").innerHTML=(d.history||[]).slice(0,10).map(x=>"<div class='staff-audit-line'><strong>"+esc(x.action)+"</strong><span>"+staffTime(x.at)+"</span><p>"+esc(x.detail)+" · "+esc(x.reason)+"</p></div>").join("")||"<p>No test actions yet.</p>";
+}
+async function refreshStaffLab(){
+ if(!S.staffAllowed||S.staffLabPending)return;
+ const id=String(S.session?.player_id||"");
+ S.staffLabPending=true;showStaffLab();
+ try{
+  const data=await get("/v1/staff/lab");
+  if(String(S.session?.player_id)!==id||!S.staffAllowed)return;
+  if(data.scope!=="DISPOSABLE_WEB_TEST_LAB"||data.shared_game_unchanged!==true||data.official_prizes_enabled!==false)throw Error("Unrecognised QA lab scope");
+  S.staffLab=data;
+ }catch(e){if(String(S.session?.player_id)===id)notice("Test Lab: "+e.message,"error")}
+ finally{S.staffLabPending=false;showStaffLab()}
+}
+async function staffLabAction(action){
+ if(!S.staffAllowed||S.staffLabPending)return;
+ const active=!!S.staffLab?.active;
+ if(action==="start"&&active)return notice("End the existing test first.","error");
+ if(action!=="start"&&!active)return notice("Start a disposable test day first.","error");
+ const reason=el("staffLabReason").value.trim();
+ if(reason.length<8)return notice("Add a staff reason of at least 8 characters.","error");
+ const confirms={start:"START TEST",day:"RESET TEST DAY",resupply:"RESUPPLY TEST",end:"END TEST"};
+ const expected=confirms[action]||"";
+ if(expected&&el("staffLabConfirm").value.trim().toUpperCase()!==expected)return notice("Type "+expected+" to confirm this test-only action.","error");
+ const day=["start","day"].includes(action)?Number(el("staffLabDay").value):null;
+ const sessionId=action==="start"?null:S.staffLab?.session_id;
+ const identity=String(S.session?.player_id||"");
+ const body={action,day,reason,confirmation:expected,request_id:nextActionId(),session_id:sessionId};
+ S.staffLabPending=true;showStaffLab();
+ try{
+  const result=await post("/v1/staff/lab/action",body,true);
+  if(String(S.session?.player_id)!==identity||!S.staffAllowed)return;
+  if(result.scope!=="DISPOSABLE_WEB_TEST_LAB"||result.shared_game_unchanged!==true)throw Error("Unexpected staff lab scope");
+  S.staffLab=result;
+  el("staffLabConfirm").value="";
+  notice(result.action_result?.message||"Test action completed.","success");
+ }catch(e){
+  notice("Test Lab: "+e.message+" Refresh lab before another action.","error");
+ }finally{S.staffLabPending=false;showStaffLab()}
+}
+function downloadStaffDiagnostics(){
+ if(!S.staffAllowed||!S.staffData)return notice("Refresh Event Control first.","error");
+ const d=S.staffData;
+ const report={scope:"PRIVATE_QA_DIAGNOSTICS",exported_at:new Date().toISOString(),
+  season:d.season,phase:d.phase,game_day:d.game_day,totals:d.totals,
+  risks:d.risks,reconciliation_ok:d.reconciliation_ok,players:d.players,
+  audit:d.audit,prize_preview:d.prize_preview,
+  notice:"STAFF PRIVATE · QA ONLY · NO OFFICIAL PRIZES · DO NOT POST IN PUBLIC CHAT"};
+ const blob=new Blob([JSON.stringify(report,null,2)],{type:"application/json"});
+ const url=URL.createObjectURL(blob);
+ try{const a=document.createElement("a");a.href=url;a.download="snowfall-private-qa-report.json";a.click()}
+ finally{setTimeout(()=>URL.revokeObjectURL(url),1000)}
+ notice("Private QA report prepared. Do not share publicly.","success");
 }

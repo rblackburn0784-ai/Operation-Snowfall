@@ -701,3 +701,21 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
 #staffShortcut{white-space:nowrap}
 .staff-oauth-help{font-size:.73rem;line-height:1.55;margin:.5rem 0 1rem}
 @media(max-width:780px){#staffShortcut{display:none!important}}
+
+/* v2.9.8d — isolated interactive QA drill controls. */
+.staff-lab{border:1px solid #b79a67;background:linear-gradient(160deg,#173241,#0d2531)}
+.staff-lab-title{display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap}
+.staff-lab-title h3{margin:.2rem 0}
+.staff-lab-config{display:grid;grid-template-columns:minmax(125px,.6fr) minmax(170px,1.4fr) minmax(160px,1fr);gap:.75rem;margin:1rem 0}
+.staff-lab-config label{min-width:0;font-size:.78rem;color:#c2d7df;display:flex;flex-direction:column;gap:.38rem}
+.staff-lab-config input,.staff-lab-config select{min-height:45px;width:100%;min-width:0;background:#0d202c;border:1px solid #6a8896;border-radius:3px;color:#eef4f5;padding:.55rem}
+.staff-lab-actions,.staff-lab-encounters{display:flex;flex-wrap:wrap;gap:.6rem;margin:.85rem 0}
+.staff-lab-actions button,.staff-lab-encounters button{flex:1 1 155px;white-space:normal;min-height:44px}
+.staff-lab-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.65rem;margin:.9rem 0}
+.staff-lab-stats small{color:#c5d5dc;display:block;font-size:.72rem}
+.staff-lab-stats strong{display:block;font-size:1.2rem;color:#efcf93;margin-top:.2rem}
+.staff-lab-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.staff-lab-two h4{font-family:Georgia,serif;font-size:1.05rem;margin:.65rem 0}
+.staff-lab p.subtle{font-size:.75rem;line-height:1.55}
+@media(max-width:900px){.staff-lab-config{grid-template-columns:repeat(2,minmax(0,1fr))}.staff-lab-config label:last-child{grid-column:1/-1}}
+@media(max-width:600px){.staff-lab-config,.staff-lab-two{grid-template-columns:minmax(0,1fr)}.staff-lab-config label:last-child{grid-column:auto}.staff-lab-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}

@@ -7,8 +7,8 @@
   <meta name="description" content="Operation Snowfall — the seven-day winter city showdown. Isolated staging preview.">
   <title>Operation Snowfall | The Winter Underworld</title>
   <link rel="icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/static/app.css?v=298c1-r2">
-  <script defer src="/static/app.js?v=298c1-r2"></script>
+  <link rel="stylesheet" href="/static/app.css?v=298d-r2">
+  <script defer src="/static/app.js?v=298d-r2"></script>
 </head>
 <body>
   <a class="skip-link" href="#mainContent">Skip to game content</a>
@@ -216,7 +216,7 @@
             <p class="subtle" style="margin-top:.8rem">This staging database is independent of the live Discord Christmas event. Only linked QA accounts can share its progress.</p>
           </div>
           <details id="crossPlatformPanel" class="side-card hidden" style="margin-top:1.1rem"><summary>Advanced QA verification</summary>
-            <p class="eyebrow">v2.9.8c1 · CROSS-PLATFORM TEST LAB</p>
+            <p class="eyebrow">v2.9.8d · CROSS-PLATFORM TEST LAB</p>
             <h3>One character. One scoreboard. Verified gameplay.</h3>
             <p>Check that Discord and Snowfall Web read and update the same official Snowfall character. Testing never awards extra points.</p>
             <p id="verificationState" role="status"><strong>Not started</strong></p>
@@ -402,10 +402,39 @@
           <button class="button button-outline" data-nav="home">Back to Headquarters</button>
         </section>
         <section id="page-staff" class="panel" aria-labelledby="staffTitle">
-          <div class="section-heading"><div><p class="eyebrow">THE WINTER OPERATIONS BUREAU · STAFF ONLY</p><h2 id="staffTitle">Event Control Centre</h2></div><span class="pill">QA · READ-ONLY</span></div>
-          <div class="staff-heading"><div><h3>Watch the event, protect the players.</h3><p>Live, authoritative shared records from Snowfall PostgreSQL. This page cannot award prizes, change balances or alter the event clock.</p></div><button id="staffRefresh" class="button button-outline">Refresh control centre</button></div>
+          <div class="section-heading"><div><p class="eyebrow">THE WINTER OPERATIONS BUREAU · STAFF ONLY</p><h2 id="staffTitle">Event Control Centre</h2></div><span class="pill">QA · TEST LAB</span></div>
+          <div class="staff-heading"><div><h3>Watch the event, protect the players.</h3><p>Monitor live shared-QA records without changing them. Use the isolated Test Lab below to rehearse all seven days, PvP, Snow Don and city sieges without disturbing Discord or website progress.</p></div><button id="staffRefresh" class="button button-outline">Refresh control centre</button></div>
           <p id="staffStatus" class="play-action-status" role="status">Checking staff authorisation…</p>
           <div id="staffMetrics" class="staff-metrics" aria-label="Event status metrics"></div>
+          <section class="activity-card staff-section staff-lab" aria-labelledby="staffLabTitle">
+            <div class="staff-lab-title"><div><p class="eyebrow">DISPOSABLE STAFF REHEARSALS · SEPARATE DATABASE</p><h3 id="staffLabTitle">Web Test Lab</h3></div><span class="pill">NO SHARED SCORES</span></div>
+            <p>Run temporary Day 1–7 scenarios against the real Snowfall combat engines using fictional test characters. The live Discord bot, mirrored website progression, prizes and shared QA event dates are never changed.</p>
+            <p id="staffLabStatus" class="play-action-status" role="status">Loading your private test session…</p>
+            <div class="staff-lab-config">
+              <label for="staffLabDay">Test event day<select id="staffLabDay"><option value="1">Day 1</option><option value="2">Day 2</option><option value="3">Day 3</option><option value="4">Day 4</option><option value="5">Day 5</option><option value="6">Day 6</option><option value="7">Day 7</option></select></label>
+              <label for="staffLabReason">Staff reason / test reference<input id="staffLabReason" type="text" minlength="8" maxlength="220" value="Event control rehearsal" placeholder="Why are you running this test?"></label>
+              <label for="staffLabConfirm">Confirmation for start, reset or end<input id="staffLabConfirm" type="text" maxlength="40" autocomplete="off" placeholder="Type the confirmation shown below"></label>
+            </div>
+            <div class="staff-lab-actions">
+              <button id="staffLabStart" type="button" class="button button-gold" data-lab-action="start">Start test day</button>
+              <button id="staffLabDayReset" type="button" class="button button-outline" data-lab-action="day">Switch / reset test day</button>
+              <button id="staffLabEnd" type="button" class="button button-outline" data-lab-action="end">End &amp; erase test</button>
+              <button id="staffLabRefresh" type="button" class="button button-outline">Refresh lab</button>
+            </div>
+            <p class="subtle">Confirmation phrases: <strong>START TEST</strong>, <strong>RESET TEST DAY</strong>, <strong>END TEST</strong>. Reset and end permanently discard only this Web Test Lab's temporary data. Test sessions expire after 90 minutes or on service restart.</p>
+            <div id="staffLabStats" class="staff-lab-stats" aria-live="polite"></div>
+            <div class="staff-lab-encounters">
+              <button type="button" class="button button-outline" data-lab-action="pvp">❄ Run PvP throw</button>
+              <button type="button" class="button button-outline" data-lab-action="boss">☃ Test Snow Don</button>
+              <button type="button" class="button button-outline" data-lab-action="siege">🏰 Test city siege</button>
+              <button type="button" class="button button-outline" data-lab-action="resupply">↻ Refill test players</button>
+            </div>
+            <p class="subtle">Refill confirmation: <strong>RESUPPLY TEST</strong>. Individual combat cooldowns and daily scoring caps are respected until the separate test players are refilled or the day is reset.</p>
+            <div class="staff-lab-two">
+              <div><h4>Test player scores</h4><div id="staffLabPlayers"></div></div>
+              <div><h4>Rehearsal action history</h4><div id="staffLabHistory"></div></div>
+            </div>
+          </section>
           <div class="staff-dashboard-columns">
             <section class="activity-card"><h3>Event schedule &amp; lifecycle</h3><div id="staffSchedule"></div><p class="subtle">Lifecycle changes remain in the existing audited Discord /snowadmin controls. No website mutations are enabled.</p></section>
             <section class="activity-card"><h3>Audit &amp; integrity flags</h3><p class="subtle">Potential issues require staff review; flags are not automatic misconduct findings.</p><div id="staffRisks"></div></section>
@@ -416,6 +445,16 @@
             <section class="activity-card"><h3>Daily scoring breakdown</h3><div id="staffDaily"></div></section>
             <section class="activity-card"><h3>Recent staff audit entries</h3><div id="staffAudit"></div></section>
           </div>
+          <section class="activity-card staff-section" aria-labelledby="staffBotToolsTitle"><h3 id="staffBotToolsTitle">Discord bot &amp; QA operations</h3>
+            <p>Discord's separate test-channel rehearsal uses the existing <code>/snowadmin</code> commands. It isn't remotely operated by this website; the live bot worker remains independent and shared-QA host mutations remain disabled.</p>
+            <div class="staff-lab-actions">
+              <button type="button" class="button button-outline" data-staff-copy="/snowadmin status">Copy bot status command</button>
+              <button type="button" class="button button-outline" data-staff-copy="/snowadmin launch-check">Copy bot audit command</button>
+              <button type="button" class="button button-outline" data-staff-copy="/snowadmin test-status">Copy bot test-status command</button>
+              <button id="staffExportDiagnostics" type="button" class="button button-outline">Download private QA diagnostic report</button>
+            </div>
+            <p class="subtle">The diagnostic report contains staff-only player names and audit findings. Keep it private. No official score or prize changes can be performed here.</p>
+          </section>
           <section class="activity-card staff-section"><h3>Provisional individual prize preview</h3><p class="subtle">Preview only. Uses the existing ledger and ranking tie-breaks; excludes flagged and disqualified entries. No prize allocation or payment is performed.</p><div id="staffPrizes"></div><p id="staffPrizeNote" class="subtle"></p></section>
           <div class="staff-footer"><button class="button button-outline" data-nav="home">Back to Headquarters</button><p>All staff information is private and must not be copied into public chat.</p></div>
         </section>
@@ -457,7 +496,7 @@
     <button type="button" id="streetsChatLauncher" class="button button-gold" aria-controls="streetsChatDock" aria-expanded="false" aria-label="Open The Streets chat">💬 Chat</button>
   </main>
 
-  <footer><div class="footer-logo">❄ OPERATION SNOWFALL</div><p>STAGING EXPERIENCE · FICTITIOUS GAMEPLAY · NO LIVE UNDERWORLD ACCOUNT ACCESS</p><div class="footer-preferences"><button id="atmosphereToggle" type="button" class="button button-outline button-small" aria-pressed="true">Atmosphere on</button><button class="tiny-link" data-nav="wire">Newspaper archive</button></div><span>© Winter Operations Bureau · v2.9.8c1</span></footer>
+  <footer><div class="footer-logo">❄ OPERATION SNOWFALL</div><p>STAGING EXPERIENCE · FICTITIOUS GAMEPLAY · NO LIVE UNDERWORLD ACCOUNT ACCESS</p><div class="footer-preferences"><button id="atmosphereToggle" type="button" class="button button-outline button-small" aria-pressed="true">Atmosphere on</button><button class="tiny-link" data-nav="wire">Newspaper archive</button></div><span>© Winter Operations Bureau · v2.9.8d</span></footer>
 
   <div id="authDialog" class="dialog-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="authTitle">
     <div class="dialog"><button class="dialog-close" id="closeAuth" aria-label="Close sign-in">×</button>
