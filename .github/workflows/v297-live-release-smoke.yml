@@ -316,7 +316,13 @@ jobs:
                   expect(page.locator("#staffPlayers")).to_contain_text("QA Tester",timeout=30000)
                   expect(page.locator("#staffRisks")).to_contain_text("Reconciliation: PASS")
                   expect(page.locator("#staffPrizes")).to_contain_text("42 points")
-                  page.locator("#page-staff").screenshot(path=f"qa-screenshots/{label}-staff.png")
+                  # Assert actual navigation keeps the title below the sticky resource bar.
+                  staff_top=page.locator("#staffTitle").evaluate("n=>n.getBoundingClientRect().top")
+                  bar_bottom=page.locator("#playStatus").evaluate("n=>n.getBoundingClientRect().bottom")
+                  assert staff_top>=bar_bottom-3,(staff_top,bar_bottom)
+                  page.screenshot(path=f"qa-screenshots/{label}-staff-viewport.png")
+                  # Element capture auto-scrolls beneath the sticky bar; hide it for this crop only.
+                  page.locator("#page-staff").screenshot(path=f"qa-screenshots/{label}-staff.png",style=".play-status{visibility:hidden!important}")
                   assert page.evaluate("document.documentElement.scrollWidth-innerWidth")<=2
                   state["staff"]=False
                   state["staff_discord_only"]=False
