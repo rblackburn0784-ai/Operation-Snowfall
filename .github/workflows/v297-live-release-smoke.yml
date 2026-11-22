@@ -1,4 +1,4 @@
-name: v2.9.8c1 Discord-only staff smoke
+name: v2.9.8d staff web test lab and bot compatibility smoke
 on:
   push:
     branches: [qa/v2.9.7-live-release-smoke]
@@ -95,6 +95,39 @@ jobs:
                       req=route.request;url=urlsplit(req.url);path=url.path
                       def reply(data,status=200):route.fulfill(status=status,content_type="application/json",body=json.dumps(data))
                       if req.method not in ("GET","HEAD"):
+                          if path=="/v1/staff/lab/action":
+                              assert state.get("staff",False)
+                              assert req.headers.get("x-snowfall-csrf")=="fixture-csrf"
+                              body=req.post_data_json
+                              assert body["request_id"].startswith("web-ui-")
+                              assert body["reason"]=="Event control rehearsal"
+                              action=body["action"]
+                              if action=="start":
+                                  assert body["confirmation"]=="START TEST"
+                                  state.update(lab_active=True,lab_day=body["day"],lab_pvp=0,lab_pve=0)
+                              elif action=="day":
+                                  assert body["confirmation"]=="RESET TEST DAY"
+                                  assert body["session_id"]=="f"*32
+                                  state.update(lab_day=body["day"],lab_pvp=0,lab_pve=0)
+                              elif action=="end":
+                                  assert body["confirmation"]=="END TEST"
+                                  state["lab_active"]=False
+                              elif action=="resupply":
+                                  assert body["confirmation"]=="RESUPPLY TEST"
+                              elif action=="pvp":state["lab_pvp"]=state.get("lab_pvp",0)+1
+                              elif action in ("boss","siege"):state["lab_pve"]=state.get("lab_pve",0)+1
+                              else:assert False,action
+                              reply({"scope":"DISPOSABLE_WEB_TEST_LAB","shared_game_unchanged":True,
+                                     "discord_bot_unchanged":True,"official_prizes_enabled":False,
+                                     "active":state.get("lab_active",False),"session_id":"f"*32,
+                                     "day":state.get("lab_day",1),"theme":"Fixture Day",
+                                     "last_action":action+" recorded",
+                                     "totals":{"pvp":state.get("lab_pvp",0),"pve":state.get("lab_pve",0),"ledger":0,"awards":0},
+                                     "boss":{"boss_hp":130,"boss_initial_hp":150},
+                                     "players":[{"mr_username":"TESTChicago","city":"Chicago","score":0}],
+                                     "history":[{"action":action,"reason":body["reason"],"detail":"Fixture only","at":"2026-12-21T18:00:00+00:00"}],
+                                     "action_result":{"action":action,"message":"Test-only "+action+" complete"}})
+                              return
                           if path in ("/v1/game/arcade/start","/v1/game/arcade/move"):
                               assert req.headers.get("x-snowfall-csrf")=="fixture-csrf"
                               assert req.headers.get("x-snowfall-player")==fake
@@ -140,6 +173,18 @@ jobs:
                       elif path=="/v1/game/progress":reply({"registered":True,"score":state["score"],"snowballs":state["ammo"],"snowflakes":53,"boss_hp":76,"boss_max_hp":150,"inventory":{}})
                       elif path=="/v1/staff/access":
                           reply({"allowed":state.get("staff",False)})
+                      elif path=="/v1/staff/lab":
+                          if not state.get("staff",False):
+                              reply({"detail":"Staff access required"},403)
+                          else:
+                              reply({"scope":"DISPOSABLE_WEB_TEST_LAB","shared_game_unchanged":True,
+                                     "discord_bot_unchanged":True,"official_prizes_enabled":False,
+                                     "active":state.get("lab_active",False),"session_id":"f"*32,
+                                     "day":state.get("lab_day",1),"theme":"Fixture Day",
+                                     "last_action":"Ready for QA testing",
+                                     "totals":{"pvp":state.get("lab_pvp",0),"pve":state.get("lab_pve",0),"ledger":0,"awards":0},
+                                     "boss":{"boss_hp":130,"boss_initial_hp":150},
+                                     "players":[],"history":[]})
                       elif path=="/v1/staff/control":
                           if not state.get("staff",False):
                               reply({"detail":"Staff access required"},403)
@@ -316,6 +361,24 @@ jobs:
                   expect(page.locator("#staffPlayers")).to_contain_text("QA Tester",timeout=30000)
                   expect(page.locator("#staffRisks")).to_contain_text("Reconciliation: PASS")
                   expect(page.locator("#staffPrizes")).to_contain_text("42 points")
+                  expect(page.locator("#staffLabStart")).to_be_enabled(timeout=30000)
+                  expect(page.locator("#staffLabDayReset")).to_be_disabled()
+                  page.locator("#staffLabDay").select_option("2")
+                  page.locator("#staffLabConfirm").fill("START TEST")
+                  page.locator("#staffLabStart").click()
+                  expect(page.locator("#staffLabStatus")).to_contain_text("Day 2/7",timeout=30000)
+                  expect(page.locator("#staffLabDayReset")).to_be_enabled()
+                  page.locator("#page-staff [data-lab-action='pvp']").click()
+                  expect(page.locator("#staffLabStats")).to_contain_text("1",timeout=30000)
+                  page.locator("#staffLabDay").select_option("6")
+                  page.locator("#staffLabConfirm").fill("RESET TEST DAY")
+                  page.locator("#staffLabDayReset").click()
+                  expect(page.locator("#staffLabStatus")).to_contain_text("Day 6/7",timeout=30000)
+                  page.locator("#staffLabConfirm").fill("END TEST")
+                  page.locator("#staffLabEnd").click()
+                  expect(page.locator("#staffLabStart")).to_be_enabled(timeout=30000)
+                  expect(page.locator("#staffLabStatus")).to_contain_text("No disposable web test",timeout=30000)
+                  expect(page.locator("#staffLabStats")).to_contain_text("Shared QA")
                   # Assert actual navigation keeps the title below the sticky resource bar.
                   staff_top=page.locator("#staffTitle").evaluate("n=>n.getBoundingClientRect().top")
                   bar_bottom=page.locator("#playStatus").evaluate("n=>n.getBoundingClientRect().bottom")
@@ -459,6 +522,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: snowfall-v298c1-discord-staff-chat-screenshots
+          name: snowfall-v298d-staff-lab-screenshots
           path: qa-screenshots/
           if-no-files-found: ignore
