@@ -22,7 +22,6 @@ def test_live_chat_uses_guarded_third_party_frame():
     assert 'id="streetsChatDock"' in html
     assert html.count('id="streetsChatFrame"') == 1
     assert html.index('id="streetsChatDock"') > html.index('<aside class="sidebar"')
-    assert html.index('id="streetsChatDock"') > html.index('</div>\n\n      <aside class="sidebar"') if '</div>\n\n      <aside class="sidebar"' in html else True
     assert 'id="streetsChatLauncher"' in html
     assert 'data-chat-open' in html
     assert 'position:sticky' in (ROOT/"app.css").read_text(encoding="utf-8")

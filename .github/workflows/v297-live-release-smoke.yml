@@ -278,16 +278,43 @@ jobs:
                   expect(page.locator("#communityTotals .activity-card")).to_have_count(6)
                   expect(page.locator("#communityMilestones")).to_contain_text("1 / 6")
                   expect(page.locator("#communityFeed")).to_contain_text("Chicago")
-                  # WidgetBot is opt-in: it must not load third-party chat before a click.
+                  # One persistent iframe lives in the sidebar, never inside a changing page.
                   frame=page.locator("#streetsChatFrame")
+                  dock=page.locator("#streetsChatDock")
+                  assert frame.count()==1
+                  assert frame.evaluate("n=>n.closest('aside.sidebar')!==null")
                   assert frame.get_attribute("src") is None
                   page.evaluate("configureStreets('https://discord.com/channels/123456789012345678/987654321012345678')")
+                  if w<=980:
+                      page.locator("#streetsChatLauncher").click()
+                      expect(dock).to_be_visible()
+                      expect(page.locator("#streetsChatLauncher")).to_have_attribute("aria-expanded","true")
+                  else:
+                      page.locator("#streetsTopLink").click()
+                      expect(dock).to_be_visible()
                   expect(page.locator("#streetsChatEnable")).to_be_enabled()
                   page.route("https://e.widgetbot.io/**",lambda route:route.fulfill(status=200,content_type="text/html",body="<p>Widget test frame</p>"))
                   page.locator("#streetsChatEnable").click()
                   expect(frame).to_have_attribute("src","https://e.widgetbot.io/channels/123456789012345678/987654321012345678")
                   expect(page.locator("#streetsChatEmbed")).to_be_visible()
-                  assert page.locator("#streetsChatFrame").evaluate("n=>n.getBoundingClientRect().width>250")
+                  assert frame.evaluate("n=>n.getBoundingClientRect().width>=280")
+                  page.evaluate("window.__originalChatFrame=document.getElementById('streetsChatFrame')")
+                  dock.screenshot(path=f"qa-screenshots/{label}-persistent-chat.png")
+                  if w<=980:
+                      page.locator("#streetsChatClose").click()
+                      expect(dock).to_be_hidden()
+                  nav("combat")
+                  expect(page.locator("#page-combat")).to_be_visible()
+                  assert page.evaluate("window.__originalChatFrame===document.getElementById('streetsChatFrame')")
+                  expect(frame).to_have_attribute("src","https://e.widgetbot.io/channels/123456789012345678/987654321012345678")
+                  nav("home")
+                  page.locator("#page-home [data-nav='community']").click()
+                  expect(page.locator("#page-community")).to_be_visible()
+                  if w<=980:
+                      page.locator("#streetsChatLauncher").click()
+                      expect(dock).to_be_visible()
+                      expect(frame).to_have_attribute("src","https://e.widgetbot.io/channels/123456789012345678/987654321012345678")
+                  # Changing player identities disconnects only this chat session.
                   page.evaluate("S.session=null;updateStreetsChat()")
                   assert frame.get_attribute("src") is None
                   expect(page.locator("#streetsChatEnable")).to_have_text("Sign in to enter chat")
@@ -296,6 +323,11 @@ jobs:
                   page.locator("#closeAuth").click()
                   expect(page.locator("#authDialog")).to_be_hidden()
                   page.evaluate("(id)=>{S.session={player_id:id,csrf:'fixture-csrf',links:[{provider:'underworld'}]};updateStreetsChat()}",fake)
+                  if w<=980:
+                      page.locator("#streetsChatLauncher").click()
+                      expect(dock).to_be_visible()
+                      page.locator("#streetsChatClose").click()
+                      expect(dock).to_be_hidden()
                   page.locator("#communityRefresh").click()
                   expect(page.locator("#communityRefresh")).to_be_enabled(timeout=30000)
                   page.locator("#page-community").screenshot(path=f"qa-screenshots/{label}-community.png")
