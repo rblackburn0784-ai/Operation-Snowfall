@@ -290,7 +290,7 @@ jobs:
                   assert page.locator("#streetsChatFrame").evaluate("n=>n.getBoundingClientRect().width>250")
                   page.evaluate("S.session=null;updateStreetsChat()")
                   assert frame.get_attribute("src") is None
-                  page.evaluate("S.session={player_id:fake,csrf:'fixture-csrf',links:[{provider:'underworld'}]};updateStreetsChat()")
+                  page.evaluate("(id)=>{S.session={player_id:id,csrf:'fixture-csrf',links:[{provider:'underworld'}]};updateStreetsChat()}",fake)
                   page.locator("#communityRefresh").click()
                   expect(page.locator("#communityRefresh")).to_be_enabled(timeout=30000)
                   page.locator("#page-community").screenshot(path=f"qa-screenshots/{label}-community.png")
