@@ -49,8 +49,9 @@ function profileLayers(wardrobe){
  }
  return layers;
 }
+const MARKET_TRAIL_NAMES=Object.freeze({snow_trail:"Snowstorm Trail",candy_trail:"Candy Cane Trail"});
 function cosmeticName(key){return S.items.find(item=>item.key===key)?.name||
-    (key?key.split("_").map(word=>word[0].toUpperCase()+word.slice(1)).join(" "):"None");}
+    MARKET_TRAIL_NAMES[key]||(key?key.split("_").map(word=>word[0].toUpperCase()+word.slice(1)).join(" "):"None");}
 // Portrait landmarks measured on the original 530 × 549 artwork.
  // Coordinates use the square cover crop (9.5 source pixels removed top/bottom).
 const PORTRAIT_FIT=Object.freeze({
