@@ -1,4 +1,4 @@
-name: v2.9.8d staff web test lab and bot compatibility smoke
+name: v2.9.8e Test Lab 2.0 full scenario smoke
 on:
   push:
     branches: [qa/v2.9.7-live-release-smoke]
@@ -114,8 +114,26 @@ jobs:
                                   state["lab_active"]=False
                               elif action=="resupply":
                                   assert body["confirmation"]=="RESUPPLY TEST"
-                              elif action=="pvp":state["lab_pvp"]=state.get("lab_pvp",0)+1
-                              elif action in ("boss","siege"):state["lab_pve"]=state.get("lab_pve",0)+1
+                              elif action=="configure":
+                                  assert body["options"]["snowballs"]==9
+                                  assert body["options"]["armour_hp"]==15
+                              elif action in ("pvp","boss","siege"):
+                                  assert body["options"]["outcome"] in ("random","hit","miss")
+                                  if action=="pvp":state["lab_pvp"]=state.get("lab_pvp",0)+1
+                                  else:state["lab_pve"]=state.get("lab_pve",0)+1
+                                  state.setdefault("lab_checks",[]).insert(0,{"kind":action,"day":state.get("lab_day",2),"expected_points":12,"actual_points":12,"difference":0,"passed":True})
+                              elif action=="arcade":
+                                  assert body["options"]=={"mode":"trivia","scenario":"perfect"}
+                                  state.setdefault("lab_checks",[]).insert(0,{"kind":"arcade","mode":"trivia","day":state.get("lab_day",2),"expected_points":0,"actual_points":0,"difference":0,"passed":True,"arcade_passed":True})
+                              elif action=="mission":
+                                  assert body["options"]=={"quest":"community"}
+                                  state.setdefault("lab_checks",[]).insert(0,{"kind":"mission","quest":"community","day":state.get("lab_day",2),"expected_points":20,"actual_points":20,"difference":0,"passed":True})
+                              elif action=="simulate_week":
+                                  assert body["confirmation"]=="SIMULATE 7 DAYS"
+                                  state["lab_week"]={"days_tested":7,"passed":True,"total_points":420,"official_awards":0,"days":[{"day":i,"theme":"Day "+str(i),"ledger_points":15*i,"checks_passed":True,"checks":[1,2,3,4,5],"awards":0} for i in range(1,8)]}
+                              elif action=="reset_all":
+                                  assert body["confirmation"]=="RESET ALL TEST DATA"
+                                  state.update(lab_active=False,lab_checks=[],lab_week=None)
                               else:assert False,action
                               reply({"scope":"DISPOSABLE_WEB_TEST_LAB","shared_game_unchanged":True,
                                      "discord_bot_unchanged":True,"official_prizes_enabled":False,
@@ -125,6 +143,7 @@ jobs:
                                      "totals":{"pvp":state.get("lab_pvp",0),"pve":state.get("lab_pve",0),"ledger":0,"awards":0},
                                      "boss":{"boss_hp":130,"boss_initial_hp":150},
                                      "players":[{"mr_username":"TESTChicago","city":"Chicago","score":0}],
+                                     "comparisons":state.get("lab_checks",[]),"weekly_report":state.get("lab_week"),
                                      "history":[{"action":action,"reason":body["reason"],"detail":"Fixture only","at":"2026-12-21T18:00:00+00:00"}],
                                      "action_result":{"action":action,"message":"Test-only "+action+" complete"}})
                               return
@@ -184,7 +203,7 @@ jobs:
                                      "last_action":"Ready for QA testing",
                                      "totals":{"pvp":state.get("lab_pvp",0),"pve":state.get("lab_pve",0),"ledger":0,"awards":0},
                                      "boss":{"boss_hp":130,"boss_initial_hp":150},
-                                     "players":[],"history":[]})
+                                     "players":[],"comparisons":state.get("lab_checks",[]),"weekly_report":state.get("lab_week"),"history":[]})
                       elif path=="/v1/staff/control":
                           if not state.get("staff",False):
                               reply({"detail":"Staff access required"},403)
@@ -368,7 +387,18 @@ jobs:
                   page.locator("#staffLabStart").click()
                   expect(page.locator("#staffLabStatus")).to_contain_text("Day 2/7",timeout=30000)
                   expect(page.locator("#staffLabDayReset")).to_be_enabled()
+                  page.locator("#staffLabSnowballs").fill("9")
+                  page.locator("#staffLabArmour").fill("15")
+                  page.locator("#page-staff [data-lab-action='configure']").click()
+                  expect(page.locator("#staffLabStatus")).to_contain_text("Day 2/7",timeout=30000)
+                  page.locator("#staffLabOutcome").select_option("hit")
                   page.locator("#page-staff [data-lab-action='pvp']").click()
+                  expect(page.locator("#staffLabComparisons")).to_contain_text("PASS",timeout=30000)
+                  page.locator("#staffLabArcade").select_option("trivia")
+                  page.locator("#page-staff [data-lab-action='arcade']").click()
+                  expect(page.locator("#staffLabComparisons")).to_contain_text("trivia",timeout=30000)
+                  page.locator("#page-staff [data-lab-action='mission']").click()
+                  expect(page.locator("#staffLabComparisons")).to_contain_text("mission",timeout=30000)
                   expect(page.locator("#staffLabStats")).to_contain_text("1",timeout=30000)
                   page.locator("#staffLabDay").select_option("6")
                   page.locator("#staffLabConfirm").fill("RESET TEST DAY")
@@ -379,6 +409,14 @@ jobs:
                   expect(page.locator("#staffLabStart")).to_be_enabled(timeout=30000)
                   expect(page.locator("#staffLabStatus")).to_contain_text("No disposable web test",timeout=30000)
                   expect(page.locator("#staffLabStats")).to_contain_text("Shared QA")
+                  page.locator("#staffLabConfirm").fill("SIMULATE 7 DAYS")
+                  page.locator("#staffLabWeek").click()
+                  expect(page.locator("#staffLabWeekSummary")).to_contain_text("7 days",timeout=30000)
+                  expect(page.locator("#staffLabWeekSummary tbody tr")).to_have_count(7)
+                  expect(page.locator("#staffLabExport")).to_be_enabled()
+                  page.locator("#staffLabConfirm").fill("RESET ALL TEST DATA")
+                  page.locator("#staffLabResetAll").click()
+                  expect(page.locator("#staffLabWeekSummary")).to_contain_text("No seven-day simulation",timeout=30000)
                   # The lab buttons scroll deep within the page; return to the staff
                   # heading before checking that sticky status does not cover it.
                   page.evaluate("window.scrollTo({top:Math.max(0,document.getElementById('page-staff').getBoundingClientRect().top+scrollY-180),behavior:'instant'})")
@@ -525,6 +563,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: snowfall-v298d-staff-lab-screenshots
+          name: snowfall-v298e-scenario-screenshots
           path: qa-screenshots/
           if-no-files-found: ignore
