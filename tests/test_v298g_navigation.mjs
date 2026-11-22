@@ -56,6 +56,17 @@ test("closing dropdown restores aria state and keyboard focus",()=>{
  assert.equal(groups[1].button.focused,true);
  assert.equal(nav.classList.contains("open"),true);
 });
+test("Escape from an expanded mobile submenu focuses the visible menu button",()=>{
+ nav.classList.add("open");
+ groups[1].classList.add("open");
+ groups[1].button.setAttribute("aria-expanded","true");
+ toggle.focused=false;
+ groups[1].button.focused=false;
+ run("closeNavigationMenus({restoreFocus:true})");
+ assert.equal(toggle.focused,true);
+ assert.equal(groups[1].button.focused,false);
+ assert.equal(nav.classList.contains("open"),false);
+});
 test("closing mobile menu removes open surfaces and stale expanded state",()=>{
  groups[2].classList.add("open");
  groups[2].button.setAttribute("aria-expanded","true");
