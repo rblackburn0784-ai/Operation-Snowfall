@@ -1,4 +1,4 @@
-name: v2.9.8b2 The Streets guest sign-in and embedded chat smoke
+name: v2.9.8b3 persistent right-side chat smoke
 on:
   push:
     branches: [qa/v2.9.7-live-release-smoke]
@@ -362,6 +362,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: snowfall-v298b2-chat-screenshots
+          name: snowfall-v298b3-sidebar-chat-screenshots
           path: qa-screenshots/
           if-no-files-found: ignore

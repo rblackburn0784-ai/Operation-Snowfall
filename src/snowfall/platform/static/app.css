@@ -623,3 +623,55 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
 .streets-chat-embed{margin-top:.8rem;width:100%;overflow:hidden;border:1px solid #536e7a;border-radius:8px;background:#111b24}
 .streets-chat-embed iframe{width:100%;height:min(68vh,720px);min-height:460px;display:block;border:0}
 @media(max-width:780px){.streets-chat-embed iframe{height:65vh;min-height:440px}}
+
+/* v2.9.8b3 — single persistent WidgetBot chat on the right of every page.
+   The iframe is outside .panel so navigation never disconnects it. */
+@media(min-width:981px){
+ .page-grid{grid-template-columns:minmax(0,1fr) minmax(340px,410px);gap:clamp(.75rem,1.4vw,1.4rem)}
+}
+.sidebar{min-width:0;align-self:stretch}
+.side-chat-shell{position:sticky;top:12px;z-index:6;margin:0;padding:.8rem;background:#102431;
+ border:1px solid #668497;border-radius:9px;height:clamp(480px,78dvh,790px);
+ display:flex;flex-direction:column;min-width:0;max-width:100%}
+.side-chat-shell .streets-chat-heading{flex:0 0 auto;align-items:start}
+.side-chat-shell .streets-chat-heading .eyebrow{margin-bottom:.2rem}
+.side-chat-shell .streets-chat-heading h3{font-size:1.13rem}
+.side-chat-shell .streets-chat-embed{flex:1 1 auto;min-height:0;margin-top:.5rem}
+.side-chat-shell .streets-chat-embed iframe{width:100%;height:100%;min-height:0}
+.side-chat-shell #streetsChatStatus{margin:.35rem 0;font-size:.74rem}
+.side-chat-shell #streetsChatEnable{flex:none;white-space:normal;min-height:44px}
+.side-chat-shell .streets-chat-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.3rem;margin-top:.55rem}
+.side-chat-shell .streets-chat-footer .subtle{margin:0;font-size:.68rem}
+.side-chat-shell .streets-chat-notice{margin:.45rem 0 0;font-size:.66rem}
+.community-chat-shortcut{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;
+ gap:.7rem;border:1px solid #597487;background:#182e3d;padding:.8rem 1rem;margin:1rem 0}
+.community-chat-shortcut p{margin:0;flex:1 1 240px;font-size:.83rem}
+#streetsChatClose,#streetsChatLauncher{display:none}
+.streets-chat-backdrop{display:none}
+@media(min-width:981px) and (max-width:1150px){
+ .page-grid{grid-template-columns:minmax(0,1fr) 340px;gap:.75rem}
+}
+@media(max-width:980px){
+ .page-grid{display:block}
+ .sidebar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin-top:1.3rem}
+ .sidebar>.side-chat-shell{position:fixed;z-index:48;top:0;right:0;width:min(100%,470px);
+  height:100dvh;max-height:100dvh;margin:0;padding:clamp(.55rem,1vw,.85rem);
+  border-radius:0;border-left:2px solid #7694a0;transform:translateX(105%);
+  visibility:hidden;pointer-events:none;transition:transform .19s ease;box-shadow:-10px 0 35px #0008}
+ .sidebar>.side-chat-shell.drawer-open{visibility:visible;pointer-events:auto;transform:translateX(0)}
+ .side-chat-shell #streetsChatClose{display:inline-flex;flex:none;min-height:40px}
+ .streets-chat-backdrop:not(.hidden){display:block;position:fixed;inset:0;z-index:47;background:#030c16bb}
+ #streetsChatLauncher{display:inline-flex;position:fixed;bottom:calc(12px + env(safe-area-inset-bottom));right:12px;z-index:20;
+  border:1px solid #f7dba7;box-shadow:0 4px 18px #0009;padding:.65rem .85rem;min-height:46px}
+ body.streets-drawer-open{overflow:hidden}
+ .side-chat-shell .streets-chat-embed iframe{height:100%;min-height:0}
+}
+@media(max-width:780px){
+ #streetsChatLauncher{bottom:calc(67px + env(safe-area-inset-bottom));right:12px}
+}
+@media(max-width:520px){
+ #streetsChatLauncher{display:inline-flex!important}
+ .sidebar{grid-template-columns:minmax(0,1fr)}
+ .side-chat-shell .streets-chat-notice{font-size:.63rem}
+}
+@media(prefers-reduced-motion:reduce){.sidebar>.side-chat-shell{transition:none}}
