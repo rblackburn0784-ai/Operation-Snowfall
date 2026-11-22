@@ -1,4 +1,4 @@
-/* Operation Snowfall v2.9.8h — shared rival cosmetics and avatar layering. */
+/* Operation Snowfall v2.9.8i — borderless single-line character banners. */
 "use strict";
 const S={staffRole:null,staffDirectory:null,staffDossier:null,staffSelected:null,staffDirectoryBusy:false,staffDossierBusy:false,staffReviewBusy:false,staffDirectorySeq:0,staffDossierSeq:0,staffLab:null,staffLabPending:false,staffAllowed:false,staffCheckedIdentity:null,staffAccessCheckedAt:0,staffData:null,staffPending:false,staffStale:false,streetsDrawerOpen:false,streetsReturnFocus:null,streetsEmbedUrl:null,streetsChatOpen:false,community:null,communityPending:false,communityStale:false,privateQueued:false,arcade:null,arcadeRun:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
@@ -82,6 +82,33 @@ function alignProfileLayer(node,placement){
  node.style.height=placement?"auto":"";
  node.style.transform=placement?placement.transform:"";
 }
+/* Fit names into the original banner art without wrapping or clipping. */
+function fitBannerName(prefix){
+ const node=el(prefix+"BannerText");
+ if(!node?.style)return;
+ node.style.fontSize="";
+ node.style.overflow="";
+ node.style.transform="";
+ if(typeof window==="undefined"||typeof window.getComputedStyle!=="function"||
+    !Number.isFinite(node.clientWidth)||node.clientWidth<=0)return;
+ let size=parseFloat(window.getComputedStyle(node).fontSize);
+ if(!Number.isFinite(size)||size<=0)return;
+ const width=node.clientWidth;
+ for(let pass=0;pass<5&&node.scrollWidth>width+1;pass++){
+  const smaller=Math.max(9,size*Math.min(.98,width/node.scrollWidth)*.97);
+  if(smaller>=size)break;
+  size=smaller;
+  node.style.fontSize=size.toFixed(2)+"px";
+ }
+ // Extreme names stay on a single line without hidden characters.
+ if(node.scrollWidth>width+1){
+  node.style.overflow="visible";
+  node.style.transform="scaleX("+(width/node.scrollWidth*.98).toFixed(3)+")";
+ }
+}
+function fitVisibleBannerNames(){
+ for(const name of ["hq","fit","rival"])fitBannerName(name);
+}
 function renderProfileLayers(prefix,layers,displayName="Winter player"){
  const framed=!!layers.frame.key,portrait=layers.portrait.key||"recruit";
  const well=el(prefix+"PortraitWell"),bannerWell=el(prefix+"BannerWell");
@@ -91,6 +118,7 @@ function renderProfileLayers(prefix,layers,displayName="Winter player"){
  bannerWell.classList.remove("hidden");
  bannerWell.classList.toggle("has-banner",!!layers.banner.key);
  txt(prefix+"BannerText",displayName);
+ fitBannerName(prefix);
  for(const slot of Object.keys(layers)){
   const id=slot[0].toUpperCase()+slot.slice(1),node=el(prefix+id),layer=layers[slot];
   if(!node)continue;
@@ -491,6 +519,7 @@ function section(name,{record=true,focus=true}={}){
  if(focus&&heading){heading.tabIndex=-1;heading.focus({preventScroll:true})}
  document.querySelector(".page-grid").scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"});
  updatePlayControls();
+ if(typeof requestAnimationFrame==="function")requestAnimationFrame(fitVisibleBannerNames);
 }
 let authReturnFocus=null;
 function authModal(){
@@ -1353,6 +1382,7 @@ function bind(){
   if(!window.matchMedia("(max-width:1200px)").matches){
    closeNavigationMenus();
   }
+  fitVisibleBannerNames();
  });
  document.querySelectorAll("[data-jump]").forEach(b=>b.addEventListener("click",()=>el(b.dataset.jump)?.scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"})));
  window.addEventListener("popstate",()=>section(location.hash.startsWith("#play-")?location.hash.slice(6):"home",{record:false}));
