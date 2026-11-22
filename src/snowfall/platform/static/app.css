@@ -965,6 +965,7 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
 .alley-loadout strong{display:block;color:#efd3a1;font-size:.8rem;margin-bottom:.18rem}
 .alley-loadout small{display:block;color:#b6cdd5;font-size:.7rem;line-height:1.5}
 .alley-loadout-icon{width:44px;height:44px;position:relative;flex:none;border-radius:50%;background:#223f52;border:1px solid #567381}
+.alley-loadout-icon .alley-loadout-trail{position:absolute;inset:-7px;width:calc(100% + 14px);height:calc(100% + 14px);object-fit:contain;z-index:2;pointer-events:none;filter:drop-shadow(0 1px 3px #001)}
 .alley-loadout-icon .snowball-foreground{width:30px;height:30px;left:6px;top:6px;box-shadow:0 0 12px #0007}
 @media(max-width:1100px){
  .alley-action-card{grid-template-columns:minmax(125px,170px) minmax(0,1fr);gap:.75rem;padding:1rem}
