@@ -6,7 +6,8 @@ staff ID; sessions are retired on reset/end and expire after 90 minutes.
 """
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
+import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -15,7 +16,6 @@ from uuid import uuid4
 
 from snowfall.db.store import CITIES
 from snowfall.practice import PracticeStore
-from snowfall.services.combat import CombatEngine
 from snowfall.services.world import WorldEngine, THEMES
 
 TEST_IDS = tuple(910000000000000001 + n for n in range(6))
@@ -41,6 +41,8 @@ class WebStaffTestLab:
         self.sessions: dict[str, _Session] = {}
         self.receipts: dict[tuple[str, str], tuple[tuple, dict]] = {}
         self.history: dict[str, list[dict]] = {}
+        self.reports: dict[str, list[dict]] = {}
+        self.week_reports: dict[str, dict] = {}
 
     @staticmethod
     def _now(now):
@@ -99,6 +101,8 @@ class WebStaffTestLab:
             "shared_game_unchanged": True, "discord_bot_unchanged": True,
             "official_prizes_enabled": False, "persistent": False,
             "ttl_minutes": 90, "history": list(self.history.get(actor, [])),
+            "comparisons": list(self.reports.get(actor, [])),
+            "weekly_report": self.week_reports.get(actor),
             "active": bool(sess),
         }
         if not sess:
@@ -118,7 +122,8 @@ class WebStaffTestLab:
                 "SELECT city,hp,initial_hp FROM world_sieges WHERE season_key=? AND day=? ORDER BY city",
                 (sess.key, sess.day)).fetchall()]
             resources = [dict(x) for x in con.execute(
-                """SELECT discord_user_id,snowballs,warmth,last_throw_at
+                """SELECT discord_user_id,snowballs,warmth,armour_hp,last_throw_at,
+                          knockout_until,shield_until
                    FROM player_resources WHERE season_key=? ORDER BY discord_user_id""",
                 (sess.key,)).fetchall()]
             totals = {
@@ -153,19 +158,26 @@ class WebStaffTestLab:
 
     def act(self, actor: str, action: str, day: int | None, reason: str,
             confirmation: str, request_id: str, session_id: str | None, *,
-            now=None) -> dict:
+            now=None, options: dict | None = None) -> dict:
         now = self._now(now)
         if not reason or len(reason.strip()) < 8 or len(reason) > 220:
             raise ValueError("A reason of 8–220 characters is required")
         if len(request_id) < 16 or len(request_id) > 96:
             raise ValueError("Invalid request identifier")
-        if action not in {"start", "day", "pvp", "boss", "siege", "resupply", "end"}:
+        if action not in {"start", "day", "pvp", "boss", "siege", "resupply", "end",
+                          "configure", "arcade", "mission", "simulate_week", "reset_all"}:
             raise ValueError("Unknown QA test action")
         expected = {"start": "START TEST", "day": "RESET TEST DAY",
-                    "resupply": "RESUPPLY TEST", "end": "END TEST"}
+                    "resupply": "RESUPPLY TEST", "end": "END TEST",
+                    "reset_all": "RESET ALL TEST DATA",
+                    "simulate_week": "SIMULATE 7 DAYS"}
         if action in expected and confirmation != expected[action]:
             raise ValueError("Type " + expected[action] + " to confirm")
-        signature = (action, day, reason, confirmation, session_id)
+        options = options or {}
+        if not isinstance(options, dict) or len(json.dumps(options)) > 900:
+            raise ValueError("Invalid or oversized test settings")
+        signature = (action, day, reason, confirmation, session_id,
+                     json.dumps(options, sort_keys=True))
         with self.lock:
             self._clean(now)
             receipt_key = (actor, request_id)
@@ -175,7 +187,26 @@ class WebStaffTestLab:
                     raise ValueError("Request identifier reused with different values")
                 return previous[1]
             current = self.sessions.get(actor)
-            if action == "start":
+            from snowfall.platform.lab_scenarios import LabScenarios
+            detail = None
+            if action == "reset_all":
+                # Erase only the caller's disposable games, logs and reports.
+                self._retire(actor)
+                self.history.pop(actor, None)
+                self.reports.pop(actor, None)
+                self.week_reports.pop(actor, None)
+                for key in [k for k in self.receipts if k[0] == actor]:
+                    self.receipts.pop(key, None)
+                message = "All of your disposable test data has been erased"
+            elif action == "simulate_week":
+                report = LabScenarios.simulate_week(self._new, actor, now, TEST_IDS)
+                self.week_reports[actor] = report
+                detail = {"week": report}
+                message = ("Seven-day simulation " +
+                           ("PASS" if report["passed"] else "REVIEW") +
+                           ": " + str(report["total_points"]) +
+                           " temporary ledger points, zero official awards")
+            elif action == "start":
                 if current:
                     raise ValueError("Finish the previous test before starting another")
                 current = self._new(actor, day or 1, now)
@@ -204,28 +235,47 @@ class WebStaffTestLab:
                                 knockout_until=NULL,shield_until=NULL
                             WHERE season_key=?""", (current.key,))
                     message = "Only test players were resupplied; existing test scores remain"
+                elif action == "configure":
+                    detail = LabScenarios(current, TEST_IDS).configure(options, now)
+                    message = "Fictional test resources and boss HP configured"
+                elif action in ("pvp", "boss", "siege"):
+                    if set(options) - {"outcome"}:
+                        raise ValueError("Only a test hit/miss outcome may be chosen")
+                    detail = LabScenarios(current, TEST_IDS).attack(
+                        action, now, outcome=options.get("outcome", "random"))
+                    message = (action.upper()+" test: "+
+                               ("hit" if detail["hit"] else "miss") +
+                               ", ledger comparison " +
+                               ("PASS" if detail["passed"] else "REVIEW"))
+                elif action == "arcade":
+                    if set(options) - {"mode", "scenario"}:
+                        raise ValueError("Unknown arcade settings")
+                    detail = LabScenarios(current, TEST_IDS).arcade(
+                        options.get("mode", "gallery"), now,
+                        scenario=options.get("scenario", "perfect"))
+                    message = ("Arcade "+detail["mode"]+" "+
+                               ("PASS" if detail["passed"] and
+                                detail["arcade_passed"] else "REVIEW"))
+                elif action == "mission":
+                    if set(options) - {"quest"}:
+                        raise ValueError("Unknown mission settings")
+                    detail = LabScenarios(current, TEST_IDS).mission(
+                        options.get("quest", "community"), now)
+                    message = ("Mission "+detail["quest"]+" "+
+                               ("PASS" if detail["passed"] else "REVIEW"))
                 else:
-                    # Run the real mechanics against test players ONLY. They
-                    # have no presence in the shared Postgres QA season.
-                    attack_id = "qa-lab-" + uuid4().hex
-                    if action == "pvp":
-                        combat = CombatEngine(current.store)
-                        combat.ready(current.key, TEST_IDS[1], now)
-                        result = combat.throw(current.key, TEST_IDS[0], TEST_IDS[1],
-                                              "standard", attack_id, now)
-                    else:
-                        result = WorldEngine(current.store).attack(
-                            current.key, TEST_IDS[0], action, attack_id, now)
-                    value = asdict(result)
-                    message = (action.upper() + " test: " +
-                               ("hit" if value.get("hit") else "miss") +
-                               ", " + str(value.get("points_awarded",
-                                                  value.get("points", 0))) + " points")
-            self._history(actor, action, reason.strip(), now, message)
+                    raise ValueError("Unknown test action")
+            if action != "reset_all":
+                self._history(actor, action, reason.strip(), now, message)
+            if detail is not None and action not in {"simulate_week", "configure"}:
+                log = self.reports.setdefault(actor, [])
+                log.insert(0, detail)
+                del log[100:]
             if actor in self.sessions:
                 self.sessions[actor].last_action = message
                 self.sessions[actor].touched = now
             out = self._view(actor, now)
-            out["action_result"] = {"action": action, "message": message}
+            out["action_result"] = {"action": action, "message": message,
+                                    "comparison": detail}
             self.receipts[receipt_key] = (signature, out)
             return out
