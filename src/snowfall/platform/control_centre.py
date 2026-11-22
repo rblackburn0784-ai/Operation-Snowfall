@@ -37,7 +37,11 @@ def control_centre_view(game, now=None) -> dict:
                GROUP BY p.id,p.season_key,p.discord_user_id,
                         p.mr_username,p.city,p.review_state
                ORDER BY score DESC,p.mr_username ASC LIMIT 60""", (key,)).fetchall()]
-        flags = [p for p in players if p["review_state"] in ("flagged", "disqualified")]
+        # Prize exclusions apply to every registered player, not only the
+        # first 60 characters in the visible staff registry.
+        flagged_ids = {int(r[0]) for r in con.execute(
+            """SELECT discord_user_id FROM players WHERE season_key=?
+               AND review_state IN ('flagged','disqualified')""", (key,)).fetchall()}
         totals = {
             "players": count("SELECT COUNT(*) FROM players WHERE season_key=?"),
             "flagged": count("SELECT COUNT(*) FROM players WHERE season_key=? AND review_state='flagged'"),
@@ -89,7 +93,7 @@ def control_centre_view(game, now=None) -> dict:
     # Canonical reconciliation and prize-sort order, not a second score engine.
     checked = reconcile(store, key)
     leaders = CombatEngine(store).leaderboard(key, limit=100)
-    ineligible = {int(p["discord_user_id"]) for p in flags}
+    ineligible = flagged_ids
     preview = []
     for name, city, pid, points in leaders:
         if pid not in ineligible and int(points) > 0:
