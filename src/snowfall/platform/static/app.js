@@ -386,6 +386,7 @@ const post=(path,body,mutate,unique)=>request(path,"POST",body,mutate,unique);
 /* One menu controller for desktop dropdowns, mobile accordions and keyboard access. */
 function closeNavigationMenus({mobile=true,restoreFocus=false}={}){
  const opened=document.querySelector(".nav-group.open .nav-group-trigger");
+ const mobileWasOpen=mobile&&el("primaryNav")?.classList.contains("open");
  for(const group of document.querySelectorAll(".nav-group")){
   group.classList.remove("open");
   group.querySelector(".nav-group-trigger")?.setAttribute("aria-expanded","false");
@@ -395,7 +396,8 @@ function closeNavigationMenus({mobile=true,restoreFocus=false}={}){
   el("menuToggle")?.setAttribute("aria-expanded","false");
  }
  if(restoreFocus){
-  if(opened)opened.focus();
+  if(mobileWasOpen)el("menuToggle")?.focus();
+  else if(opened)opened.focus();
   else if(mobile)el("menuToggle")?.focus();
  }
 }
@@ -1278,7 +1280,10 @@ function bind(){
   });
  }
  document.addEventListener("click",event=>{
-  if(!event.target?.closest?.(".nav-group")&&!event.target?.closest?.("#menuToggle"))closeNavigationMenus({mobile:false});
+  if(event.target?.closest?.(".nav-group")||event.target?.closest?.("#menuToggle"))return;
+  // Clicking anywhere outside the header dismisses a mobile menu as well.
+  const outsideHeader=!event.target?.closest?.(".topbar");
+  closeNavigationMenus({mobile:outsideHeader});
  });
  document.addEventListener("keydown",event=>{
   if(event.key==="Escape"&&(el("primaryNav")?.classList.contains("open")||document.querySelector(".nav-group.open"))){
