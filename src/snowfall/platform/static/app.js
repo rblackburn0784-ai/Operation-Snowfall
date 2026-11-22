@@ -213,7 +213,6 @@ function configureStreets(value){
   link.classList.toggle("hidden",!url);
   if(url)link.href=url;else link.removeAttribute("href");
  }
- el("streetsUnavailable").classList.toggle("hidden",!!url);
  el("communityStreetsUnavailable")?.classList.toggle("hidden",!!url);
  S.streetsEmbedUrl=streetsEmbedUrl(url);
  updateStreetsChat();

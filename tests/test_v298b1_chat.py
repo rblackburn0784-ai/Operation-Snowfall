@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[1] / "src/snowfall/platform/static"
 def test_live_chat_uses_guarded_third_party_frame():
     html = (ROOT/"index.html").read_text(encoding="utf-8")
     js = (ROOT/"app.js").read_text(encoding="utf-8")
-    assert WEB_RELEASE == "2.9.8b3"
+    assert WEB_RELEASE == "2.9.8b4"
     assert 'id="streetsChatFrame"' in html
     assert 'referrerpolicy="no-referrer"' in html
     assert 'id="streetsChatEnable"' in html
@@ -25,6 +25,10 @@ def test_live_chat_uses_guarded_third_party_frame():
     assert 'id="streetsChatLauncher"' in html
     assert 'data-chat-open' in html
     assert 'position:sticky' in (ROOT/"app.css").read_text(encoding="utf-8")
+    assert 'community-chat-shortcut' not in html
+    assert 'side-card streets-card' not in html
+    assert 'id="streetsChatDock"' in html
+    assert 'id="streetsChatLauncher"' in html
 
 def test_csp_only_allows_named_widget_frame():
     api = (ROOT.parent/"api.py").read_text(encoding="utf-8")

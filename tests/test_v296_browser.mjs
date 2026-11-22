@@ -29,12 +29,13 @@ test("The Streets chat stays in-site and embeds only the configured genuine Disc
  }
  assert.equal(run("streetsEmbedUrl("+JSON.stringify(ok)+")"),"https://e.widgetbot.io/channels/123456789012345678/234567890123456789");
  assert.equal(run('streetsEmbedUrl("https://evil.test/")'),"");
- assert.match(html,/id="streetsLink"[^>]*data-chat-open/);
+ assert.doesNotMatch(html,/class="community-chat-shortcut"/);
+ assert.doesNotMatch(html,/class="side-card streets-card"/);
  assert.match(html,/id="streetsTopLink"[^>]*data-chat-open/);
  assert.match(html,/id="streetsChatLauncher"/);
  assert.equal((html.match(/id="streetsChatFrame"/g)||[]).length,1);
  assert.match(html,/id="streetsChatFrame"[^>]*referrerpolicy="no-referrer"/);
- assert.doesNotMatch(html,/id="streetsLink"[^>]*target="_blank"/);
+ assert.doesNotMatch(html,/id="streetsLink"/);
 });
 test("all static artwork used directly in page markup is committed",()=>{
  const refs=[...html.matchAll(/(?:src|href)="\/art\/([^"]+)"/g)].map(m=>m[1]);

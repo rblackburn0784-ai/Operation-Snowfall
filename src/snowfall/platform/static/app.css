@@ -39,9 +39,6 @@
 .territory-art figcaption{padding:.6rem .9rem;border-top:1px solid #395361;font-size:.75rem;color:var(--muted)}
 .city-crest{height:44px;width:44px;object-fit:contain;filter:drop-shadow(0 4px 9px rgba(0,0,0,.4))}
 .city-row{grid-template-columns:46px minmax(0,1fr) auto}
-.streets-card{background:linear-gradient(145deg,#243746,#152a37)}
-.streets-card>.button{margin:.95rem 0 .4rem;max-width:100%;white-space:normal;text-align:center}
-.streets-card .subtle{margin-top:.7rem;font-size:.76rem}
 #streetsTopLink{white-space:nowrap}
 @media(max-width:1120px){.topbar-actions{margin-left:auto}.topbar{gap:.7rem}}
 @media(max-width:780px){
@@ -643,9 +640,6 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
 .side-chat-shell .streets-chat-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.3rem;margin-top:.55rem}
 .side-chat-shell .streets-chat-footer .subtle{margin:0;font-size:.68rem}
 .side-chat-shell .streets-chat-notice{margin:.45rem 0 0;font-size:.66rem}
-.community-chat-shortcut{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;
- gap:.7rem;border:1px solid #597487;background:#182e3d;padding:.8rem 1rem;margin:1rem 0}
-.community-chat-shortcut p{margin:0;flex:1 1 240px;font-size:.83rem}
 #streetsChatClose,#streetsChatLauncher{display:none}
 .streets-chat-backdrop{display:none}
 @media(min-width:981px) and (max-width:1150px){
