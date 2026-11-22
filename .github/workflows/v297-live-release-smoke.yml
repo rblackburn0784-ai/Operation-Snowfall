@@ -1,4 +1,4 @@
-name: v2.9.8b3 persistent right-side chat smoke
+name: v2.9.8c staff-only control centre live smoke
 on:
   push:
     branches: [qa/v2.9.7-live-release-smoke]
@@ -135,6 +135,24 @@ jobs:
                       elif path=="/v1/game/wardrobe":reply({"balance":53,"unlocked":list(set(state["equipped"].values())|set(keys[1:])), "equipped":state["equipped"]})
                       elif path=="/v1/game/world":reply({"day":2,"city":"Chicago","boss_hp":76,"boss_max_hp":150,"boss_attempts":1,"boss_points":5,"siege_hp":state["hp"],"siege_max_hp":72,"siege_attempts":state["attempts"],"siege_points":state["points"],"boss_enabled":True})
                       elif path=="/v1/game/progress":reply({"registered":True,"score":state["score"],"snowballs":state["ammo"],"snowflakes":53,"boss_hp":76,"boss_max_hp":150,"inventory":{}})
+                      elif path=="/v1/staff/access":
+                          reply({"allowed":state.get("staff",False)})
+                      elif path=="/v1/staff/control":
+                          if not state.get("staff",False):
+                              reply({"detail":"Staff access required"},403)
+                          else:
+                              reply({"scope":"ISOLATED_QA_ONLY","read_only":True,"official_prizes_enabled":False,
+                                     "phase":"live","game_day":2,"server_time":"2026-12-21T18:00:00+00:00",
+                                     "schedule":{"planned_start":"2026-12-20T18:00:00+00:00","started_at":"2026-12-20T18:00:00+00:00","projected_end":"2026-12-27T18:00:00+00:00","pause_seconds":0},
+                                     "totals":{"players":2,"flagged":1,"score_rows":4,"combat":2,"boss_siege":1,"award_rows":0,"unlinked":1,"disqualified":0},
+                                     "risks":{"flagged_players":1,"invalid_balances":0,"pvp_ledger_mismatches":0},
+                                     "reconciliation_ok":True,"boss":{"day":2,"theme":"The Snow Don","boss_hp":110,"boss_initial_hp":150},
+                                     "sieges":[{"city":"Chicago","hp":70,"initial_hp":100}],
+                                     "players":[{"mr_username":"QA Tester","city":"Chicago","score":42,"review_state":"self_declared","player_id":fake}],
+                                     "days":[{"day":2,"category":"pvp","points":42,"entries":2}],
+                                     "audit":[{"action":"player:flag","reason":"Fixture staff review","created_at_utc":"2026-12-21T18:00:00+00:00"}],
+                                     "prize_preview":[{"place":1,"name":"QA Tester","city":"Chicago","points":42}],
+                                     "prize_policy":"No real prizes."})
                       elif path=="/v1/game/arcade":
                           started=state.get("arcade_started",False);finished=state.get("arcade_step",0)==5
                           reply({"player_id":fake,"day":2,"phase":"live","daily_cap":3,"completed":int(finished),"bests_total":100 if finished else 0,
@@ -272,6 +290,25 @@ jobs:
                   expect(page.locator("#arcadeBoard")).to_contain_text("City Cup")
                   page.locator("#arcadeLobby").screenshot(path=f"qa-screenshots/{label}-arcade.png")
                   assert page.evaluate("document.documentElement.scrollWidth-innerWidth")<=2
+                  assert page.locator("#staffNav").is_hidden()
+                  assert page.locator("#page-staff").is_hidden()
+                  state["staff"]=True
+                  page.evaluate("S.staffCheckedIdentity=null;refreshStaffAccess()")
+                  expect(page.locator("#staffNav")).to_be_visible(timeout=30000)
+                  if w>780:
+                      page.locator("#staffNav").click()
+                  else:
+                      page.evaluate("section('staff')")
+                  expect(page.locator("#page-staff")).to_be_visible()
+                  expect(page.locator("#staffPlayers")).to_contain_text("QA Tester",timeout=30000)
+                  expect(page.locator("#staffRisks")).to_contain_text("Reconciliation: PASS")
+                  expect(page.locator("#staffPrizes")).to_contain_text("42 points")
+                  page.locator("#page-staff").screenshot(path=f"qa-screenshots/{label}-staff.png")
+                  assert page.evaluate("document.documentElement.scrollWidth-innerWidth")<=2
+                  state["staff"]=False
+                  page.evaluate("S.staffCheckedIdentity=null;refreshStaffAccess()")
+                  expect(page.locator("#staffNav")).to_be_hidden(timeout=30000)
+                  expect(page.locator("#page-staff")).to_be_hidden()
                   nav("home")
                   page.locator("#page-home [data-nav='community']").click()
                   expect(page.locator("#communityCities .activity-card")).to_have_count(6,timeout=30000)
@@ -398,6 +435,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: snowfall-v298b3-sidebar-chat-screenshots
+          name: snowfall-v298c-control-and-chat-screenshots
           path: qa-screenshots/
           if-no-files-found: ignore
