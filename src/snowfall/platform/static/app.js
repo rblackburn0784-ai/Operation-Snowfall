@@ -1,4 +1,4 @@
-/* Operation Snowfall v2.9.8f — secure staff review desk and game operations. */
+/* Operation Snowfall v2.9.8g — responsive grouped navigation and staff controls. */
 "use strict";
 const S={staffRole:null,staffDirectory:null,staffDossier:null,staffSelected:null,staffDirectoryBusy:false,staffDossierBusy:false,staffReviewBusy:false,staffDirectorySeq:0,staffDossierSeq:0,staffLab:null,staffLabPending:false,staffAllowed:false,staffCheckedIdentity:null,staffAccessCheckedAt:0,staffData:null,staffPending:false,staffStale:false,streetsDrawerOpen:false,streetsReturnFocus:null,streetsEmbedUrl:null,streetsChatOpen:false,community:null,communityPending:false,communityStale:false,privateQueued:false,arcade:null,arcadeRun:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
@@ -383,6 +383,34 @@ async function request(path,method,body,mutation,unique){
 }
 const get=path=>request(path);
 const post=(path,body,mutate,unique)=>request(path,"POST",body,mutate,unique);
+/* One menu controller for desktop dropdowns, mobile accordions and keyboard access. */
+function closeNavigationMenus({mobile=true,restoreFocus=false}={}){
+ const opened=document.querySelector(".nav-group.open .nav-group-trigger");
+ for(const group of document.querySelectorAll(".nav-group")){
+  group.classList.remove("open");
+  group.querySelector(".nav-group-trigger")?.setAttribute("aria-expanded","false");
+ }
+ if(mobile){
+  el("primaryNav")?.classList.remove("open");
+  el("menuToggle")?.setAttribute("aria-expanded","false");
+ }
+ if(restoreFocus){
+  if(opened)opened.focus();
+  else if(mobile)el("menuToggle")?.focus();
+ }
+}
+function reflectNavigationGroup(name){
+ for(const group of document.querySelectorAll(".nav-group")){
+  const active=(group.dataset.navGroup||"").split(" ").includes(name);
+  const trigger=group.querySelector(".nav-group-trigger");
+  group.classList.toggle("active",active);
+  if(trigger){
+   trigger.classList.toggle("active",active);
+   if(active)trigger.setAttribute("aria-current","true");
+   else trigger.removeAttribute("aria-current");
+  }
+ }
+}
 function section(name,{record=true,focus=true}={}){
  if(!["home","combat","boss","shop","cities","wire","activities","arcade","community","staff"].includes(name))name="home";
  if(name==="staff"&&S.staffAllowed!==true)name="home";
@@ -392,8 +420,8 @@ function section(name,{record=true,focus=true}={}){
   n.classList.toggle("active",active);
   n.setAttribute("aria-pressed",String(active));
  });
- el("primaryNav").classList.remove("open");
- el("menuToggle").setAttribute("aria-expanded","false");
+ closeNavigationMenus();
+ reflectNavigationGroup(name);
  if(name==="staff"){void refreshStaffDashboard();void refreshStaffLab();void refreshStaffDirectory(1)}
  if(name==="shop")showShop();
  if(name==="community"){updateStreetsChat();showCommunity();void refreshCommunity()}
@@ -1226,12 +1254,42 @@ function bind(){
  if(el("staffExportDiagnostics"))el("staffExportDiagnostics").onclick=downloadStaffDiagnostics;
  if(el("streetsChatEnable"))el("streetsChatEnable").onclick=openStreetsChat;
  if(el("streetsChatDisconnect"))el("streetsChatDisconnect").onclick=disconnectStreetsChat;
- for(const btn of document.querySelectorAll("[data-chat-open],#streetsChatLauncher"))btn.addEventListener("click",openStreetsDock);
+ for(const btn of document.querySelectorAll("[data-chat-open],#streetsChatLauncher"))btn.addEventListener("click",()=>{closeNavigationMenus();openStreetsDock()});
  if(el("streetsChatClose"))el("streetsChatClose").onclick=()=>closeStreetsDock();
  if(el("streetsChatBackdrop"))el("streetsChatBackdrop").onclick=()=>closeStreetsDock();
  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.streetsDrawerOpen)closeStreetsDock()});
  window.addEventListener("resize",()=>{if(S.streetsDrawerOpen&&!window.matchMedia("(max-width:980px)").matches)closeStreetsDock(false)});
  document.querySelectorAll("[data-nav]").forEach(b=>b.addEventListener("click",()=>section(b.dataset.nav)));
+ for(const group of document.querySelectorAll(".nav-group")){
+  const trigger=group.querySelector(".nav-group-trigger");
+  if(!trigger)continue;
+  trigger.addEventListener("click",()=>{
+   const expand=trigger.getAttribute("aria-expanded")!=="true";
+   closeNavigationMenus({mobile:false});
+   group.classList.toggle("open",expand);
+   trigger.setAttribute("aria-expanded",String(expand));
+  });
+  trigger.addEventListener("keydown",event=>{
+   if(event.key==="ArrowDown"){
+    event.preventDefault();
+    if(trigger.getAttribute("aria-expanded")!=="true")trigger.click();
+    group.querySelector(".nav-popover .nav-item:not(.hidden)")?.focus();
+   }
+  });
+ }
+ document.addEventListener("click",event=>{
+  if(!event.target?.closest?.(".nav-group")&&!event.target?.closest?.("#menuToggle"))closeNavigationMenus({mobile:false});
+ });
+ document.addEventListener("keydown",event=>{
+  if(event.key==="Escape"&&(el("primaryNav")?.classList.contains("open")||document.querySelector(".nav-group.open"))){
+   event.preventDefault();closeNavigationMenus({restoreFocus:true});
+  }
+ });
+ window.addEventListener("resize",()=>{
+  if(!window.matchMedia("(max-width:1200px)").matches){
+   closeNavigationMenus();
+  }
+ });
  document.querySelectorAll("[data-jump]").forEach(b=>b.addEventListener("click",()=>el(b.dataset.jump)?.scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"})));
  window.addEventListener("popstate",()=>section(location.hash.startsWith("#play-")?location.hash.slice(6):"home",{record:false}));
  el("playPrimary").onclick=()=>{const dest=el("playPrimary").dataset.destination||"boss";if(dest==="account"){el("accountTools").open=true;el("accountTools").scrollIntoView({block:"start"})}else section(dest)};
@@ -1240,10 +1298,13 @@ function bind(){
  el("targetSelect").onchange=()=>{S.chosenTarget=true;updatePlayControls()};
  el("throwStyle").onchange=updatePlayControls;
  el("menuToggle").onclick=()=>{
-  const open=el("primaryNav").classList.toggle("open");
+  const open=!el("primaryNav").classList.contains("open");
+  closeNavigationMenus();
+  if(open)el("primaryNav").classList.add("open");
   el("menuToggle").setAttribute("aria-expanded",String(open));
  };
  document.querySelectorAll(".nav-item").forEach(b=>b.setAttribute("aria-pressed",String(b.classList.contains("active"))));
+ reflectNavigationGroup("home");
  el("heroPlay").onclick=()=>eventPresentation(S.wireStale?null:S.wire,S.raid,S.bossStale).ended?section("wire"):S.session?section("home"):authModal();
  el("wireDay").onchange=()=>{S.wireDay=el("wireDay").value;void refreshWire()};
  el("refreshWire").onclick=()=>{if(!S.wirePending)void refreshWire()};
