@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#101b25">
-  <meta name="snowfall-web-release" content="2.9.8f">
+  <meta name="snowfall-web-release" content="2.9.8g">
   <meta name="description" content="Operation Snowfall — the seven-day winter city showdown. Isolated staging preview.">
   <title>Operation Snowfall | The Winter Underworld</title>
   <link rel="icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/static/app.css?v=298f-r1">
-  <script defer src="/static/app.js?v=298f-r1"></script>
+  <link rel="stylesheet" href="/static/app.css?v=298g-r1">
+  <script defer src="/static/app.js?v=298g-r1"></script>
 </head>
 <body>
   <a class="skip-link" href="#mainContent">Skip to game content</a>
@@ -21,16 +21,32 @@
       <span class="brand-lines" id="bannerFallback"><strong>OPERATION<br>SNOWFALL</strong><small>THE WINTER UNDERWORLD</small></span>
     </a>
     <nav class="topnav" id="primaryNav" aria-label="Game sections">
-      <button class="nav-item active" data-nav="home">Headquarters</button>
-      <button class="nav-item" data-nav="combat">Snowball Alley</button>
-      <button class="nav-item" data-nav="boss">The Snow Don</button>
-      <button class="nav-item" data-nav="shop">Winter Market</button>
-      <button class="nav-item" data-nav="cities">City Wars</button>
-      <button class="nav-item" data-nav="wire">Snowfall Wire</button>
-      <button class="nav-item" data-nav="activities">Activities</button>
-      <button class="nav-item" data-nav="arcade">Winter Arcade</button>
-      <button class="nav-item" data-nav="community">The Streets</button>
-      <button class="nav-item hidden" id="staffNav" data-nav="staff" aria-label="Staff event control centre">Event Control</button>
+      <button class="nav-item nav-home active" type="button" data-nav="home">Headquarters</button>
+      <div class="nav-group" data-nav-group="combat boss cities">
+        <button class="nav-group-trigger" type="button" aria-controls="navBattles" aria-expanded="false">Snowball Wars <span class="nav-chevron" aria-hidden="true">⌄</span></button>
+        <div class="nav-popover" id="navBattles" role="group" aria-label="Snowball Wars sections">
+          <button class="nav-item" type="button" data-nav="combat"><strong>Snowball Alley</strong><small>Player battles and targets</small></button>
+          <button class="nav-item" type="button" data-nav="boss"><strong>The Snow Don</strong><small>Boss fights and raids</small></button>
+          <button class="nav-item" type="button" data-nav="cities"><strong>City Wars</strong><small>Rivalries and sieges</small></button>
+        </div>
+      </div>
+      <div class="nav-group" data-nav-group="shop activities arcade">
+        <button class="nav-group-trigger" type="button" aria-controls="navWinter" aria-expanded="false">Winter Fun <span class="nav-chevron" aria-hidden="true">⌄</span></button>
+        <div class="nav-popover" id="navWinter" role="group" aria-label="Winter Fun sections">
+          <button class="nav-item" type="button" data-nav="shop"><strong>Winter Market</strong><small>Shop and customise</small></button>
+          <button class="nav-item" type="button" data-nav="activities"><strong>Activities</strong><small>Daily missions and mysteries</small></button>
+          <button class="nav-item" type="button" data-nav="arcade"><strong>Winter Arcade</strong><small>Seasonal games and records</small></button>
+        </div>
+      </div>
+      <div class="nav-group" data-nav-group="wire community staff">
+        <button class="nav-group-trigger" type="button" aria-controls="navCommunity" aria-expanded="false">Community <span class="nav-chevron" aria-hidden="true">⌄</span></button>
+        <div class="nav-popover" id="navCommunity" role="group" aria-label="Community sections">
+          <button class="nav-item" type="button" data-nav="community"><strong>The Streets</strong><small>Gather with your city</small></button>
+          <button class="nav-item" type="button" data-nav="wire"><strong>Snowfall Wire</strong><small>News and event stories</small></button>
+          <button class="nav-item nav-chat-action" type="button" data-chat-open><strong>Open Streets Chat</strong><small>Join the conversation</small></button>
+          <button class="nav-item hidden" id="staffNav" type="button" data-nav="staff" aria-label="Staff event control centre"><strong>Event Control</strong><small>Staff-only operations</small></button>
+        </div>
+      </div>
     </nav>
     <div class="topbar-actions">
       <button id="streetsTopLink" class="button button-outline button-small" data-chat-open>💬 The Streets chat</button>
