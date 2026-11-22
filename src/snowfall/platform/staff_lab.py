@@ -13,7 +13,7 @@ from tempfile import TemporaryDirectory
 from threading import RLock
 from uuid import uuid4
 
-from snowfall.db.store import CITIES, Store
+from snowfall.db.store import CITIES
 from snowfall.practice import PracticeStore
 from snowfall.services.combat import CombatEngine
 from snowfall.services.world import WorldEngine, THEMES
