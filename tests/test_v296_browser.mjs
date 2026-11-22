@@ -21,13 +21,17 @@ test("Snow Don portrait thresholds cover 100 to 0 without inventing health",()=>
  assert.equal(run("bossArtTier(0,150)"),0);
  assert.equal(run("bossArtTier(0,0)"),100);
 });
-test("Discord chat is external and only opens a configured genuine channel",()=>{
+test("The Streets chat stays in-site and embeds only the configured genuine Discord channel",()=>{
  const ok="https://discord.com/channels/123456789012345678/234567890123456789";
  assert.equal(run("safeStreetsUrl("+JSON.stringify(ok)+")"),ok);
  for(const bad of ["javascript:alert(1)","https://evil.test/","https://discord.com.evil.test/channels/123456789012345678/234567890123456789"]){
   assert.equal(run("safeStreetsUrl("+JSON.stringify(bad)+")"),"");
  }
- assert.match(html,/id="streetsLink"[^>]*target="_blank"[^>]*rel="noopener noreferrer"/);
+ assert.equal(run("streetsEmbedUrl("+JSON.stringify(ok)+")"),"https://e.widgetbot.io/channels/123456789012345678/234567890123456789");
+ assert.equal(run('streetsEmbedUrl("https://evil.test/")'),"");
+ assert.match(html,/id="streetsLink"[^>]*data-nav="community"/);
+ assert.match(html,/id="streetsChatFrame"[^>]*referrerpolicy="no-referrer"/);
+ assert.doesNotMatch(html,/id="streetsLink"[^>]*target="_blank"/);
 });
 test("all static artwork used directly in page markup is committed",()=>{
  const refs=[...html.matchAll(/(?:src|href)="\/art\/([^"]+)"/g)].map(m=>m[1]);
