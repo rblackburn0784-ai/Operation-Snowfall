@@ -885,7 +885,7 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
 .collector-banner-well::before{left:.45rem}
 .collector-banner-well::after{right:.45rem;transform:translateY(-50%) scaleX(-1)}
 .collector-banner-well .collector-banner{
- position:absolute;inset:0;width:100%;height:100%;object-fit:fill;
+ position:absolute;inset:0;width:100%;height:100%;object-fit:contain;
  display:block;opacity:.96;z-index:0;filter:brightness(.8)
 }
 .collector-banner-well .collector-banner.hidden{display:none!important}
