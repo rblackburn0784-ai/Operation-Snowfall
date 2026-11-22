@@ -1,4 +1,4 @@
-/* Operation Snowfall v2.9.8g — responsive grouped navigation and staff controls. */
+/* Operation Snowfall v2.9.8h — shared rival cosmetics and avatar layering. */
 "use strict";
 const S={staffRole:null,staffDirectory:null,staffDossier:null,staffSelected:null,staffDirectoryBusy:false,staffDossierBusy:false,staffReviewBusy:false,staffDirectorySeq:0,staffDossierSeq:0,staffLab:null,staffLabPending:false,staffAllowed:false,staffCheckedIdentity:null,staffAccessCheckedAt:0,staffData:null,staffPending:false,staffStale:false,streetsDrawerOpen:false,streetsReturnFocus:null,streetsEmbedUrl:null,streetsChatOpen:false,community:null,communityPending:false,communityStale:false,privateQueued:false,arcade:null,arcadeRun:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
@@ -49,8 +49,9 @@ function profileLayers(wardrobe){
  }
  return layers;
 }
+const MARKET_TRAIL_NAMES=Object.freeze({snow_trail:"Snowstorm Trail",candy_trail:"Candy Cane Trail"});
 function cosmeticName(key){return S.items.find(item=>item.key===key)?.name||
-    (key?key.split("_").map(word=>word[0].toUpperCase()+word.slice(1)).join(" "):"None");}
+    MARKET_TRAIL_NAMES[key]||(key?key.split("_").map(word=>word[0].toUpperCase()+word.slice(1)).join(" "):"None");}
 // Portrait landmarks measured on the original 530 × 549 artwork.
  // Coordinates use the square cover crop (9.5 source pixels removed top/bottom).
 const PORTRAIT_FIT=Object.freeze({
@@ -65,14 +66,15 @@ const PORTRAIT_FIT=Object.freeze({
 });
 function cosmeticPlacement(portrait,gear,framed){
  const p=Object.hasOwn(PORTRAIT_FIT,portrait)?PORTRAIT_FIT[portrait]:PORTRAIT_FIT.recruit;
- // The portrait sits in a 2% inset, or 6% when a frame is equipped.
- const inset=framed?6:2,scale=(100-2*inset)/100;
+ // Keep faces, gear and trails aligned after reducing the portrait size inside
+ // the original frame artwork. These proportions match CSS portrait insets.
+ const inset=framed?10:4,scale=(100-2*inset)/100;
  const point=n=>+(inset+n*scale).toFixed(3),size=n=>+(n*scale).toFixed(3);
  const [ex,ey,ew,angle]=p.eyes,[nx,ny,nw]=p.neck;
  if(gear==="goggles")return {left:point(ex),top:point(ey),width:size(ew),transform:"translate(-50%,-49%) rotate("+angle+"deg)"};
  if(gear==="scarf")return {left:point(nx),top:point(ny),width:size(nw),transform:"translateX(-50%)"};
  if(gear==="boots")return {left:point(7),top:point(67),width:size(26),transform:"none"};
- if(gear==="snow_trail"||gear==="candy_trail")return {left:point(66),top:point(57),width:size(30),transform:"none"};
+ if(gear==="snow_trail"||gear==="candy_trail")return {left:point(66),top:point(61),width:size(30),transform:"none"};
  return null;
 }
 function alignProfileLayer(node,placement){
@@ -80,13 +82,18 @@ function alignProfileLayer(node,placement){
  node.style.height=placement?"auto":"";
  node.style.transform=placement?placement.transform:"";
 }
-function renderProfileLayers(prefix,layers){
+function renderProfileLayers(prefix,layers,displayName="Winter player"){
  const framed=!!layers.frame.key,portrait=layers.portrait.key||"recruit";
- const well=el(prefix+"PortraitWell");
+ const well=el(prefix+"PortraitWell"),bannerWell=el(prefix+"BannerWell");
+ if(!well||!bannerWell)return;
  well.classList.toggle("has-frame",framed);well.dataset.portrait=portrait;
- el(prefix+"BannerWell").classList.toggle("hidden",!layers.banner.key);
+ well.dataset.trail=layers.trail.key||"none";
+ bannerWell.classList.remove("hidden");
+ bannerWell.classList.toggle("has-banner",!!layers.banner.key);
+ txt(prefix+"BannerText",displayName);
  for(const slot of Object.keys(layers)){
   const id=slot[0].toUpperCase()+slot.slice(1),node=el(prefix+id),layer=layers[slot];
+  if(!node)continue;
   if(layer.src){
    if(node.getAttribute("src")!==layer.src)node.setAttribute("src",layer.src);
    node.classList.remove("hidden");
@@ -94,16 +101,63 @@ function renderProfileLayers(prefix,layers){
   node.dataset.cosmetic=layer.key||"";
   if(slot==="gear"||slot==="trail")alignProfileLayer(node,cosmeticPlacement(portrait,layer.key,framed));
   const name=layer.key?cosmeticName(layer.key):slot==="portrait"?"Recruit":"None";
-  if(slot==="portrait")node.alt=name+" profile";
+  if(slot==="portrait")node.alt=displayName+" · "+name+" profile";
   txt(prefix+id+"Name",name);
  }
 }
 function showWardrobe(){
  const wardrobe=S.session&&S.me?.registered?S.shop:null;
- renderProfileLayers("hq",profileLayers(wardrobe));
+ renderProfileLayers("hq",profileLayers(wardrobe),wardrobe?S.me?.mr_username||"Your character":"Your character");
  txt("hqWardrobeStatus",wardrobe?
      fmt(wardrobe.unlocked?.length||0)+" cosmetics owned · shared with Discord":
      "Wardrobe not loaded — refresh to check equipped cosmetics.");
+}
+
+/* PvP preview uses the eligible rival's server-supplied equipped items, never
+   the viewer's wardrobe or client-side Market try-on selections. */
+function rivalWardrobe(appearance){
+ const equipped={},unlocked=[];
+ if(appearance&&typeof appearance==="object"&&!Array.isArray(appearance)){
+  for(const slot of Object.keys(HQ_SLOTS)){
+   const key=appearance[slot];
+   if(HQ_SLOTS[slot].includes(key)&&Object.hasOwn(COSMETIC_ART,key)){
+    equipped[slot]=key;unlocked.push(key);
+   }
+  }
+ }
+ return {unlocked,equipped};
+}
+function showRivalAppearance(selected){
+ if(!el("rivalAppearance"))return;
+ el("rivalAppearance").classList.toggle("hidden",!selected);
+ el("rivalEmpty")?.classList.toggle("hidden",!!selected);
+ if(!selected)return;
+ const wardrobe=rivalWardrobe(selected.appearance),layers=profileLayers(wardrobe);
+ renderProfileLayers("rival",layers,selected.mr_username);
+ const equipped=Object.values(layers).filter(layer=>layer.key).map(layer=>cosmeticName(layer.key));
+ txt("rivalVisualStatus",equipped.length
+  ?"Equipped: "+equipped.join(" · "):"Default recruit outfit · no equipped cosmetics");
+}
+const THROW_STYLE_NAMES=Object.freeze({quick:"Quick Shot",standard:"Standard Throw",power:"Power Shot",golden:"Golden Snowball"});
+function showSnowballLoadout(style){
+ const well=el("alleyLoadoutIcon");
+ if(!well)return;
+ const trail=S.session&&S.me?.registered?ownedEquipped(S.shop,"trail"):null;
+ const title=Object.hasOwn(THROW_STYLE_NAMES,style)?THROW_STYLE_NAMES[style]:THROW_STYLE_NAMES.standard;
+ well.dataset.trail=trail||"none";
+ well.dataset.style=style||"standard";
+ const trailArt=el("alleyLoadoutTrail");
+ if(trailArt){
+  trailArt.classList.toggle("hidden",!trail);
+  if(trail)trailArt.setAttribute("src",COSMETIC_ART[trail]);
+  else trailArt.removeAttribute("src");
+ }
+ txt("alleyLoadoutName","Your snowball · "+title);
+ const addon=trail?cosmeticName(trail)+" equipped from Winter Market":
+    S.shop?"Default snowball · equip a Snowstorm or Candy Cane Trail in Winter Market":
+    "Equip a Snowstorm or Candy Cane Trail in Winter Market";
+ const golden=style==="golden"&&Number(S.progress?.inventory?.golden||0)<1;
+ txt("alleyLoadoutDetail",addon+(golden?" · Golden Snowball required in inventory":""));
 }
 const MEDALS=Object.freeze(["first_flurry","deadeye","rival_hunter","critical_ace","knockout_artist","don_destroyer","boss_regular","fort_breaker","quest_master","gift_collector","golden_legend","seven_days","cocoa_club","first_style","collector","full_outfit"]);
 const RARITIES=["Common","Rare","Epic","Legendary"];
@@ -462,6 +516,9 @@ function syncPlayIdentity(){
  const id=S.session?String(S.session.player_id):null;
  if(id===S.playIdentity)return;
  S.playIdentity=id;S.staffLab=null;S.staffRole=null;S.staffDirectory=null;S.staffDossier=null;S.staffSelected=null;S.staffDirectorySeq++;S.staffDossierSeq++;S.staffDirectoryBusy=false;S.staffDossierBusy=false;S.staffReviewBusy=false;S.staffAllowed=false;S.staffCheckedIdentity=null;S.staffAccessCheckedAt=0;S.staffData=null;updateStaffNavigation();closeStreetsDock(false);disconnectStreetsChat();S.arcade=null;S.arcadeRun=null;S.arcadeBoard=null;S.arcadeBoardSeq++;showArcade();S.activities=null;el("activitiesResult")?.classList.add("hidden");showActivities();S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
+ // Never show the prior account's selected rival or equipped Market style
+ // while the next login's authoritative records are still loading.
+ S.targets=[];S.shop=null;showRivalAppearance(null);
  S.pendingActions.clear();restorePending();
  el("targetSelect").value="";el("combatOutcome").classList.add("hidden");el("siegeOutcome").classList.add("hidden");el("bossRecap").classList.add("hidden");el("playFeedback").classList.add("hidden");
 }
@@ -548,6 +605,8 @@ function updatePlayControls(){
  const price=rules.craft_costs?.[el("craftChoice").value],actual=typeof price==="number"?price-(el("craftChoice").value==="fort"&&S.me?.day===2?2:0):null;
  txt("craftHint",(actual!=null?"Cost: "+actual+" Snowflakes. ":"")+(craftBlock||"Crafted items go into your shared inventory."));
  const selected=S.targets.find(t=>String(t.player_id)===body.target_player_id);
+ showRivalAppearance(selected);
+ showSnowballLoadout(body.style);
  txt("targetDetail",selected?selected.city+" · "+fmt(selected.warmth)+" warmth · "+fmt(selected.hits_remaining)+" scoring hits left today.":"");
  const style=rules.styles?.[body.style];
  txt("throwStyleHint",Array.isArray(style)?"Base accuracy "+Math.round(style[0]*100)+"% · "+style[1]+" damage · "+style[2]+" base points. Modifiers may apply.":"Choose a throwing style.");
@@ -962,7 +1021,7 @@ function syncMarketIdentity(){
 }
 function showFitting(){
  const w=marketWardrobe(),layers=fittingLayers(w,S.market.preview,S.items),actual=profileLayers(w);
- renderProfileLayers("fit",layers);
+ renderProfileLayers("fit",layers,w?S.me?.mr_username||"Winter player":"Guest fitting model");
  const changed=MARKET_SLOTS.filter(slot=>layers[slot].key!==actual[slot].key);
  // A preview becomes normal equipped state after an explicit successful equip.
  for(const slot of MARKET_SLOTS)if(!changed.includes(slot))delete S.market.preview[slot];

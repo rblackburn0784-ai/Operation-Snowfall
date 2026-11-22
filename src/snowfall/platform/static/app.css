@@ -863,3 +863,126 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
  .topbar-actions .button{padding:.48rem .48rem;font-size:.6rem}
 }
 @media(prefers-reduced-motion:reduce){.nav-chevron{transition:none}}
+
+/* v2.9.8h — real equipped portrait layers, correct scale and banner position. */
+#hqCollector .collector-layout,#fitCollector .fitting-layout{align-items:start}
+#hqCollector .collector-profile,#fitCollector .collector-profile{
+ position:relative;gap:.5rem;min-width:0;align-self:start
+}
+.collector-profile .collector-banner-well,.rival-appearance .collector-banner-well{
+ position:relative;isolation:isolate;display:grid;place-items:center;
+ width:100%;min-width:0;aspect-ratio:5/1;margin:0 auto .05rem;
+ padding:.24rem .5rem;background:linear-gradient(125deg,#102634,#254053 47%,#102532);
+ border:1px solid #bf9b61;border-radius:5px 5px 2px 2px;
+ box-shadow:inset 0 0 0 2px #111d28a8,0 4px 12px #0009;
+ overflow:hidden
+}
+.collector-banner-well::before,.collector-banner-well::after{
+ content:"❧";position:absolute;top:50%;transform:translateY(-50%);
+ color:#ddb57a;font-size:clamp(.7rem,2vw,1.4rem);z-index:2;
+ pointer-events:none;text-shadow:0 1px 4px #000
+}
+.collector-banner-well::before{left:.45rem}
+.collector-banner-well::after{right:.45rem;transform:translateY(-50%) scaleX(-1)}
+.collector-banner-well .collector-banner{
+ position:absolute;inset:0;width:100%;height:100%;object-fit:contain;
+ display:block;opacity:.96;z-index:0;filter:brightness(.8)
+}
+.collector-banner-well .collector-banner.hidden{display:none!important}
+.collector-banner-name{
+ position:relative;z-index:3;display:block;max-width:calc(100% - 2.4rem);
+ font-family:"Palatino Linotype","Book Antiqua","URW Palladio L",Georgia,serif;
+ font-style:italic;font-variant:small-caps;
+ font-size:clamp(.82rem,2.2vw,1.47rem);font-weight:750;
+ letter-spacing:.035em;line-height:1.12;text-align:center;color:#ffe4ad;
+ text-shadow:1px 2px 3px #000,0 0 8px #0c1b29,0 0 4px #000;
+ white-space:normal;overflow-wrap:anywhere;text-wrap:balance
+}
+#hqPortraitWell,#fitPortraitWell,#rivalPortraitWell{aspect-ratio:1;isolation:isolate}
+#hqPortraitWell .portrait-layer,#fitPortraitWell .portrait-layer,#rivalPortraitWell .portrait-layer{
+ left:4%;top:4%;width:92%;height:92%;
+ object-fit:cover;object-position:center 45%;
+ border-radius:2px;z-index:1
+}
+#hqPortraitWell.has-frame .portrait-layer,#fitPortraitWell.has-frame .portrait-layer,#rivalPortraitWell.has-frame .portrait-layer{
+ left:10%;top:10%;width:80%;height:80%;
+ object-fit:cover;object-position:center 46%
+}
+#hqPortraitWell .frame-layer,#fitPortraitWell .frame-layer,#rivalPortraitWell .frame-layer{
+ z-index:4;inset:0;width:100%;height:100%;
+ transform:none;object-fit:contain;pointer-events:none
+}
+#hqPortraitWell .trail-layer,#fitPortraitWell .trail-layer,#rivalPortraitWell .trail-layer{
+ z-index:6;opacity:1;filter:drop-shadow(0 2px 4px #061c29);pointer-events:none
+}
+#hqPortraitWell .gear-layer,#fitPortraitWell .gear-layer,#rivalPortraitWell .gear-layer{z-index:3;pointer-events:none}
+/* Snowballs are decorative, never interactable. The highlighted ball is
+   intentionally above the weapon etched in the frame artwork. */
+.snowball-foreground{
+ position:absolute;z-index:7;left:73%;top:66%;width:18%;aspect-ratio:1;
+ display:block;pointer-events:none;border-radius:50%;
+ background:radial-gradient(circle at 29% 23%,#fff 0%,#e4f4fc 20%,#b9d6e7 57%,#567e9f 82%,#152c43 100%);
+ border:1px solid #e3faffbb;
+ box-shadow:inset -5px -7px 9px #22516c88,0 2px 8px #0009,0 0 10px #a9d8ed80
+}
+.portrait-well[data-trail="snow_trail"] .snowball-foreground,
+.alley-loadout-icon[data-trail="snow_trail"] .snowball-foreground{
+ background:radial-gradient(circle at 28% 25%,#fff 0%,#b8faff 28%,#67cbe7 67%,#176184 100%);
+ box-shadow:inset -5px -7px 8px #1f6589,0 2px 8px #0009,0 0 16px #64d8fb
+}
+.portrait-well[data-trail="candy_trail"] .snowball-foreground,
+.alley-loadout-icon[data-trail="candy_trail"] .snowball-foreground{
+ background:repeating-conic-gradient(from 15deg,#fff1eb 0deg 34deg,#d0434e 34deg 65deg,#fff1eb 65deg 95deg);
+ border:2px solid #f8d7c2;
+ box-shadow:inset -6px -8px 8px #8f28337a,0 2px 8px #0009,0 0 14px #e28c9a
+}
+.alley-loadout-icon[data-style="golden"] .snowball-foreground{
+ background:radial-gradient(circle at 27% 22%,#fff7d3,#f1d472 32%,#c18b23 70%,#68430e);
+ border:1px solid #ffeb9b;
+ box-shadow:inset -4px -5px 8px #8d620f,0 0 14px #edc260ad
+}
+.alley-action-card{display:grid;grid-template-columns:minmax(145px,205px) minmax(0,1fr);align-items:start;gap:1.25rem}
+.rival-stage{min-width:0;width:100%;align-self:start;background:linear-gradient(145deg,#0d2532,#142c3b);border:1px solid #476477;padding:.5rem;overflow:hidden}
+.rival-appearance{min-width:0}
+.rival-appearance .collector-banner-well{margin-bottom:.4rem}
+.rival-appearance .collector-banner-name{font-size:clamp(.7rem,1.5vw,1.06rem)}
+.rival-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.75rem;min-height:180px;text-align:center;padding:.75rem}
+.rival-empty img{width:100%;max-width:130px;height:115px;object-fit:contain}
+.rival-empty span,.rival-appearance-note{font-size:.69rem;color:#bed3dc;line-height:1.45;text-align:center}
+.rival-appearance-note{margin:.55rem 0 .1rem}
+.rival-stage .snowball-foreground{width:19%;top:66%;left:71%}
+.alley-action-card .action-main{min-width:0}
+.alley-action-card .controls-grid{gap:clamp(.5rem,1.4vw,1rem);min-width:0}
+.alley-action-card .controls-grid label{min-width:0}
+.alley-action-card select{width:100%;min-width:0;max-width:100%;text-overflow:ellipsis}
+.alley-action-card .actions-inline .button{white-space:normal}
+.alley-loadout{
+ display:flex;align-items:center;gap:.72rem;min-width:0;
+ border:1px solid #456678;background:#0e2533bd;
+ padding:.58rem .68rem;margin:.1rem 0 .65rem;border-radius:4px
+}
+.alley-loadout>div:last-child{min-width:0;overflow-wrap:anywhere}
+.alley-loadout strong{display:block;color:#efd3a1;font-size:.8rem;margin-bottom:.18rem}
+.alley-loadout small{display:block;color:#b6cdd5;font-size:.7rem;line-height:1.5}
+.alley-loadout-icon{width:44px;height:44px;position:relative;flex:none;border-radius:50%;background:#223f52;border:1px solid #567381}
+.alley-loadout-icon .alley-loadout-trail{position:absolute;inset:-7px;width:calc(100% + 14px);height:calc(100% + 14px);object-fit:contain;z-index:2;pointer-events:none;filter:drop-shadow(0 1px 3px #001)}
+.alley-loadout-icon .snowball-foreground{width:30px;height:30px;left:6px;top:6px;box-shadow:0 0 12px #0007}
+@media(max-width:1100px){
+ .alley-action-card{grid-template-columns:minmax(125px,170px) minmax(0,1fr);gap:.75rem;padding:1rem}
+ .alley-action-card .controls-grid{grid-template-columns:minmax(0,1fr)}
+ .alley-action-card .controls-grid label{margin:0}
+}
+@media(max-width:700px){
+ .alley-action-card{grid-template-columns:minmax(0,1fr);gap:.85rem}
+ .rival-stage{max-width:230px;justify-self:center}
+ .rival-empty{min-height:110px}
+ .alley-action-card .controls-grid{grid-template-columns:minmax(0,1fr)}
+ #hqCollector .collector-profile,#fitCollector .collector-profile{max-width:min(100%,340px)}
+ .collector-banner-name{font-size:clamp(.85rem,4vw,1.4rem)}
+}
+@media(max-width:400px){
+ .alley-action-card{padding:.68rem}
+ .alley-loadout{padding:.48rem}
+ .rival-stage{max-width:200px}
+ .collector-banner-well::before,.collector-banner-well::after{font-size:.75rem}
+}
