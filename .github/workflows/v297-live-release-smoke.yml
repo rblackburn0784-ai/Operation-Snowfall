@@ -295,6 +295,7 @@ jobs:
                   assert page.evaluate("document.documentElement.scrollWidth-innerWidth")<=2
                   assert page.locator("#staffNav").is_hidden()
                   assert page.locator("#page-staff").is_hidden()
+                  nav("home")
                   state["staff"]=True
                   state["staff_discord_only"]=True
                   page.reload(wait_until="domcontentloaded")
