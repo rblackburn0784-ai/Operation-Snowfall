@@ -70,6 +70,16 @@ class StaffLabAction(BaseModel):
     options: dict[str, str | int] = Field(default_factory=dict, max_length=8)
 
 
+class StaffReviewAction(BaseModel):
+    player_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    action: Literal["flag", "clear"]
+    expected_state: Literal["self_declared", "cleared", "flagged", "disqualified"]
+    confirmation: str = Field(min_length=12, max_length=40)
+    reason: str = Field(min_length=12, max_length=220)
+    request_id: str = Field(min_length=16, max_length=96,
+                            pattern=r"^[A-Za-z0-9_-]+$")
+
+
 def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None, game=None) -> FastAPI:
     """Add client UI and temporary demo logins; callable with CI fakes."""
     env = dict(os.environ if env is None else env)
@@ -90,6 +100,14 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None, game=
     if len(staff_ids) > 30 or any(not re.fullmatch(r"[0-9]{15,25}", item)
                                   for item in staff_ids):
         raise ValueError("WEB QA REFUSED: invalid staff Discord ID allowlist")
+    # Existing staff IDs retain organiser access and Test Lab access.
+    # Shared-QA review writes require an *additional* explicit host allowlist.
+    # With no host list configured, all web staff operations stay read-only.
+    raw_hosts = env.get("SNOWFALL_WEB_HOST_DISCORD_IDS", "").strip()
+    host_ids = frozenset(part.strip() for part in raw_hosts.split(",") if part.strip())
+    if (len(host_ids) > 10 or not host_ids.issubset(staff_ids) or
+            any(not re.fullmatch(r"[0-9]{15,25}", item) for item in host_ids)):
+        raise ValueError("WEB QA REFUSED: host IDs must be a subset of staff IDs")
 
     def staff_allowed(request: Request, *, strict=False) -> bool:
         from snowfall.platform.api import COOKIE
@@ -144,6 +162,59 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None, game=
             if link["provider"] == "discord" and link["subject"] in staff_ids:
                 return link["subject"]
         raise HTTPException(403, "Staff Discord identity not verified")
+
+    @app.get("/v1/staff/role")
+    def staff_role_status(request: Request, response: Response):
+        actor = staff_lab_actor(request)
+        response.headers["Cache-Control"] = "no-store"
+        return {"scope": "ISOLATED_QA_ONLY",
+                "role": "host" if actor in host_ids else "organiser",
+                "can_review": actor in host_ids,
+                "can_edit_scores": False, "can_pay_prizes": False,
+                "can_reset_event": False}
+
+    @app.get("/v1/staff/players")
+    def staff_player_search(request: Request, response: Response,
+                            q: str = Query(default="", max_length=60),
+                            city: str = Query(default="all", max_length=50),
+                            state: str = Query(default="all", max_length=20),
+                            page: int = Query(default=1, ge=1, le=100)):
+        staff_lab_actor(request)
+        from snowfall.platform.staff_operations import player_directory
+        response.headers["Cache-Control"] = "no-store"
+        try:
+            return player_directory(game, query=q, city=city, state=state, page=page)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+
+    @app.get("/v1/staff/players/{player_id}")
+    def staff_player_details(player_id: str, request: Request, response: Response):
+        staff_lab_actor(request)
+        if not re.fullmatch(r"[1-9][0-9]{0,18}", player_id):
+            raise HTTPException(400, "Invalid QA player ID")
+        from snowfall.platform.staff_operations import player_dossier
+        response.headers["Cache-Control"] = "no-store"
+        try:
+            return player_dossier(game, int(player_id))
+        except ValueError as exc:
+            raise HTTPException(404, str(exc)) from exc
+
+    @app.post("/v1/staff/players/review")
+    def staff_review_player(body: StaffReviewAction, request: Request,
+                            response: Response):
+        actor = staff_lab_actor(request, mutate=True)
+        if actor not in host_ids:
+            raise HTTPException(403, "Only explicitly authorised hosts can review players")
+        from snowfall.platform.staff_operations import apply_player_review
+        response.headers["Cache-Control"] = "no-store"
+        try:
+            return apply_player_review(
+                game, actor_id=int(actor), player_id=int(body.player_id),
+                action=body.action, expected_state=body.expected_state,
+                confirmation=body.confirmation, reason=body.reason,
+                request_id=body.request_id)
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from exc
 
     @app.get("/v1/staff/lab")
     def lab_status(request: Request, response: Response):
