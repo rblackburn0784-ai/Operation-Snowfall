@@ -1,6 +1,6 @@
 /* Operation Snowfall v2.9.8c — shared event operations and persistent chat. */
 "use strict";
-const S={staffAllowed:false,staffCheckedIdentity:null,staffData:null,staffPending:false,staffStale:false,streetsDrawerOpen:false,streetsReturnFocus:null,streetsEmbedUrl:null,streetsChatOpen:false,community:null,communityPending:false,communityStale:false,privateQueued:false,arcade:null,arcadeRun:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
+const S={staffAllowed:false,staffCheckedIdentity:null,staffAccessCheckedAt:0,staffData:null,staffPending:false,staffStale:false,streetsDrawerOpen:false,streetsReturnFocus:null,streetsEmbedUrl:null,streetsChatOpen:false,community:null,communityPending:false,communityStale:false,privateQueued:false,arcade:null,arcadeRun:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
 const txt=(id,v)=>{const node=el(id),value=v==null?"—":String(v);if(node&&node.textContent!==value)node.textContent=value};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -431,7 +431,7 @@ function hasPlayIdentity(session,config){return !!session&&(!config?.staging||se
 function syncPlayIdentity(){
  const id=S.session?String(S.session.player_id):null;
  if(id===S.playIdentity)return;
- S.playIdentity=id;S.staffAllowed=false;S.staffCheckedIdentity=null;S.staffData=null;updateStaffNavigation();closeStreetsDock(false);disconnectStreetsChat();S.arcade=null;S.arcadeRun=null;S.arcadeBoard=null;S.arcadeBoardSeq++;showArcade();S.activities=null;el("activitiesResult")?.classList.add("hidden");showActivities();S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
+ S.playIdentity=id;S.staffAllowed=false;S.staffCheckedIdentity=null;S.staffAccessCheckedAt=0;S.staffData=null;updateStaffNavigation();closeStreetsDock(false);disconnectStreetsChat();S.arcade=null;S.arcadeRun=null;S.arcadeBoard=null;S.arcadeBoardSeq++;showArcade();S.activities=null;el("activitiesResult")?.classList.add("hidden");showActivities();S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
  S.pendingActions.clear();restorePending();
  el("targetSelect").value="";el("combatOutcome").classList.add("hidden");el("siegeOutcome").classList.add("hidden");el("bossRecap").classList.add("hidden");el("playFeedback").classList.add("hidden");
 }
@@ -541,7 +541,7 @@ function showMe(){
  txt("identityStatus",signed?"Signed in":"Guest");
  el("loggedOutNotice").classList.toggle("hidden",signed);
  el("registration").classList.toggle("hidden",!signed||!allowed||!!S.me?.registered||!S.me);
- el("underworldRequired").classList.toggle("hidden",!signed||allowed);
+ el("underworldRequired").classList.toggle("hidden",!signed||allowed||S.staffAllowed);
  el("playerDashboard").classList.toggle("hidden",!signed||!S.me?.registered);
  el("linkedIdentity").classList.toggle("hidden",!signed);
  el("accountTools").classList.toggle("hidden",!signed);
@@ -1389,14 +1389,19 @@ async function init(){
   if(!cfg.discord_oauth)el("discordLogin").textContent="Discord login (not configured)";
   if(!cfg.underworld_assertions)el("underworldForm").querySelector("button").disabled=true;
   txt("sideStatus",(health.status||"unknown").toUpperCase());txt("sideStatusDetail","Isolated staging · "+cfg.season);
-  await resume();S.connection="ready";showEvent();
-  if(!location.search.includes("discord=")){if(location.hash.startsWith("#play-"))section(location.hash.slice(6),{record:false,focus:false});else if(S.me?.registered)section("home",{record:false,focus:false})}
+  await resume();await refreshStaffAccess({force:true});S.connection="ready";showEvent();
+  if(!location.search.includes("discord=")){
+    if(location.hash.startsWith("#play-"))section(location.hash.slice(6),{record:false,focus:false});
+    else if(location.search.includes("login=ok")&&S.staffAllowed)section("staff",{record:false,focus:false});
+    else if(S.me?.registered)section("home",{record:false,focus:false});
+  }
   const poll=()=>{
    if(document.hidden||S.busy||S.privatePending)return;
    if(!S.bossPending)void refreshBossVisual();
    if(el("page-cities").classList.contains("active")&&!S.territoryPending&&S.territoryDay==="current")void Promise.all([refreshTerritory(),refreshCityStandings()]);
    if(!S.wirePending)void refreshWire();
    if(el("page-community").classList.contains("active"))void refreshCommunity();
+   if(S.session)void refreshStaffAccess();
    if(S.staffAllowed&&el("page-staff").classList.contains("active"))void refreshStaffDashboard();
    if(S.session&&["home","combat","boss","cities","activities","arcade"].some(name=>el("page-"+name).classList.contains("active"))&&!document.activeElement?.matches("input,select,textarea")&&el("authDialog").classList.contains("hidden"))
     void loadPrivate().catch(()=>{});
@@ -1605,20 +1610,30 @@ async function refreshCommunity(){
 
 /* Staff-only read-only control centre, v2.9.8c. */
 function updateStaffNavigation(){
- const menu=el("staffNav");
- if(menu)menu.classList.toggle("hidden",S.staffAllowed!==true);
- if(S.staffAllowed!==true&&el("page-staff")?.classList.contains("active"))section("home",{record:false,focus:false});
+ const allowed=S.staffAllowed===true;
+ for(const id of ["staffNav","staffShortcut"]){
+   const item=el(id);if(item)item.classList.toggle("hidden",!allowed);
+ }
+ if(el("staffOnlyNotice"))el("staffOnlyNotice").classList.toggle("hidden",!allowed||!S.session||hasPlayIdentity(S.session,S.config));
+ if(allowed&&el("underworldRequired"))el("underworldRequired").classList.add("hidden");
+ if(!allowed&&S.session&&!hasPlayIdentity(S.session,S.config)&&el("underworldRequired"))el("underworldRequired").classList.remove("hidden");
+ if(!allowed&&el("page-staff")?.classList.contains("active"))section("home",{record:false,focus:false});
 }
-async function refreshStaffAccess(){
+async function refreshStaffAccess({force=false}={}){
  const id=S.session?String(S.session.player_id):null;
- if(!id){S.staffCheckedIdentity=null;S.staffAllowed=false;S.staffData=null;updateStaffNavigation();return}
- if(id===S.staffCheckedIdentity)return;
- S.staffCheckedIdentity=id;S.staffAllowed=false;updateStaffNavigation();
+ if(!id){S.staffCheckedIdentity=null;S.staffAccessCheckedAt=0;S.staffAllowed=false;S.staffData=null;updateStaffNavigation();return}
+ if(!force&&id===S.staffCheckedIdentity&&Date.now()-S.staffAccessCheckedAt<90000)return;
+ S.staffCheckedIdentity=id;
+ S.staffAccessCheckedAt=Date.now();
  try{
    const a=await get("/v1/staff/access");
    if(String(S.session?.player_id)!==id)return;
    S.staffAllowed=a.allowed===true;
- }catch{if(String(S.session?.player_id)===id)S.staffAllowed=false}
+   if(!S.staffAllowed)S.staffData=null;
+ }catch{
+   if(String(S.session?.player_id)!==id)return;
+   S.staffAllowed=false;S.staffData=null;
+ }
  updateStaffNavigation();
 }
 function staffTime(v){

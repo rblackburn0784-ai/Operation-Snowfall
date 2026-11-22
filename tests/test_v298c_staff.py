@@ -44,7 +44,7 @@ def qa_env(staff=STAFF):
     }
 
 
-def test_staff_routes_require_both_underworld_and_explicit_staff_discord():
+def test_staff_routes_require_verified_allowlisted_discord_without_underworld():
     cfg = APISettings("postgresql://unused/db", "web-qa-2026", "https://qa.example")
     store = Store(__import__("tempfile").mkdtemp() + "/authstaff.sqlite3")
     store.initialize()
@@ -52,9 +52,11 @@ def test_staff_routes_require_both_underworld_and_explicit_staff_discord():
     store.ensure_season("web-qa-2026", now)
     store.register("web-qa-2026",101,"StaffFixture","Chicago",now-timedelta(days=1))
     for discord, underworld, allowed in [(STAFF, True, True),
-                                         (STAFF, False, False),
+                                         (STAFF, False, True),
                                          (OTHER, True, False),
-                                         (None, True, False)]:
+                                         (OTHER, False, False),
+                                         (None, True, False),
+                                         (None, False, False)]:
         ids = StaffIdentity(discord=discord, underworld=underworld)
         app = attach_web_ui(FastAPI(), ids, cfg, env=qa_env(),
                             game=SharedGame(store,"web-qa-2026"))

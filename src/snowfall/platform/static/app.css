@@ -696,3 +696,8 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
 .staff-footer p{font-size:.75rem;color:#b8cbd5;margin:0}
 @media(max-width:780px){.staff-dashboard-columns{grid-template-columns:minmax(0,1fr)}.staff-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:360px){.staff-metrics{gap:.35rem}.staff-metrics .activity-card{padding:.65rem}}
+
+/* v2.9.8c1 — staff controls remain visible to verified staff, but not public. */
+#staffShortcut{white-space:nowrap}
+.staff-oauth-help{font-size:.73rem;line-height:1.55;margin:.5rem 0 1rem}
+@media(max-width:780px){#staffShortcut{display:none!important}}
