@@ -120,6 +120,14 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None, game=
                 "districts": [asdict(d) for d in board.districts],
                 "honorary_only": True}
 
+    @app.get("/v1/web/community")
+    def community_status(response: Response):
+        from snowfall.platform.community_view import community_view
+        if game is None:
+            raise HTTPException(503, "Community feed unavailable")
+        response.headers["Cache-Control"] = "no-store"
+        return community_view(game)
+
     @app.get("/v1/web/wire")
     def wire_status(response: Response, day: int | None = Query(default=None, ge=1, le=7)):
         from snowfall.platform.wire_view import wire_view

@@ -1,6 +1,6 @@
 /* Operation Snowfall v2.9.8a — consolidated release and safe recovery. */
 "use strict";
-const S={arcade:null,arcadeRun:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
+const S={community:null,communityPending:false,communityStale:false,privateQueued:false,arcade:null,arcadeRun:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
 const txt=(id,v)=>{const node=el(id),value=v==null?"—":String(v);if(node&&node.textContent!==value)node.textContent=value};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -208,12 +208,13 @@ function safeStreetsUrl(value){
 }
 function configureStreets(value){
  const url=safeStreetsUrl(value);
- for(const id of ["streetsLink","streetsTopLink"]){
+ for(const id of ["streetsLink","streetsTopLink","communityStreetsLink"]){
   const link=el(id);if(!link)continue;
   link.classList.toggle("hidden",!url);
   if(url)link.href=url;else link.removeAttribute("href");
  }
  el("streetsUnavailable").classList.toggle("hidden",!!url);
+ el("communityStreetsUnavailable")?.classList.toggle("hidden",!!url);
 }
 
 let timer;
@@ -305,7 +306,7 @@ async function request(path,method,body,mutation,unique){
 const get=path=>request(path);
 const post=(path,body,mutate,unique)=>request(path,"POST",body,mutate,unique);
 function section(name,{record=true,focus=true}={}){
- if(!["home","combat","boss","shop","cities","wire","activities","arcade"].includes(name))name="home";
+ if(!["home","combat","boss","shop","cities","wire","activities","arcade","community"].includes(name))name="home";
  document.querySelectorAll(".panel").forEach(n=>n.classList.toggle("active",n.id==="page-"+name));
  document.querySelectorAll(".nav-item").forEach(n=>{
   const active=n.dataset.nav===name;
@@ -315,8 +316,9 @@ function section(name,{record=true,focus=true}={}){
  el("primaryNav").classList.remove("open");
  el("menuToggle").setAttribute("aria-expanded","false");
  if(name==="shop")showShop();
- if(name==="arcade"){showArcade();if(S.session&&!S.privatePending&&!S.busy)void loadPrivate().catch(e=>notice(e.message,"error"))}
- if(name==="activities"){showActivities();if(S.session&&!S.privatePending&&!S.busy)void loadPrivate().catch(e=>notice(e.message,"error"))}
+ if(name==="community"){showCommunity();void refreshCommunity()}
+ if(name==="arcade"){showArcade();if(S.session&&!S.busy)void loadPrivate().catch(e=>notice(e.message,"error"));else if(S.session&&S.privatePending)S.privateQueued=true}
+ if(name==="activities"){showActivities();if(S.session&&!S.busy)void loadPrivate().catch(e=>notice(e.message,"error"));else if(S.session&&S.privatePending)S.privateQueued=true}
  if(name==="cities"){showCities();showBoard();if(!S.territoryPending&&!S.busy)void refreshTerritory();if(S.session&&!S.privatePending&&!S.busy)void loadPrivate().catch(e=>notice(e.message,"error"))}
  if(name==="boss"){showBoss();if(!S.bossPending&&!S.busy)void refreshBossVisual()}
  if(name==="wire"){showWire();if(!S.wirePending&&!S.busy)void refreshWire()}
@@ -947,9 +949,9 @@ async function loadPublic(){
  showBoard();showCities();showBoss();showShop();
 }
 async function loadPrivate(){
- if(S.privatePending)return;
+ if(S.privatePending){S.privateQueued=true;return;}
  S.privatePending=true;updatePlayControls();
- try{await readPrivate();S.privateFresh=!!S.session&&!!S.me}catch(e){S.privateFresh=false;throw e}finally{S.privatePending=false;showActivities();showArcade();updatePlayControls()}
+ try{await readPrivate();S.privateFresh=!!S.session&&!!S.me}catch(e){S.privateFresh=false;throw e}finally{S.privatePending=false;showActivities();showArcade();updatePlayControls();if(S.privateQueued){S.privateQueued=false;if(S.session)void loadPrivate().catch(e=>notice(e.message,"error"))}}
 }
 async function readPrivate(){
  syncPlayIdentity();
@@ -1127,6 +1129,7 @@ async function refreshWire(){
 }
 function bind(){
  bindActivities();bindArcade();
+ if(el("communityRefresh"))el("communityRefresh").onclick=()=>void refreshCommunity();
  document.querySelectorAll("[data-nav]").forEach(b=>b.addEventListener("click",()=>section(b.dataset.nav)));
  document.querySelectorAll("[data-jump]").forEach(b=>b.addEventListener("click",()=>el(b.dataset.jump)?.scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"})));
  window.addEventListener("popstate",()=>section(location.hash.startsWith("#play-")?location.hash.slice(6):"home",{record:false}));
@@ -1304,7 +1307,8 @@ async function init(){
    if(!S.bossPending)void refreshBossVisual();
    if(el("page-cities").classList.contains("active")&&!S.territoryPending&&S.territoryDay==="current")void Promise.all([refreshTerritory(),refreshCityStandings()]);
    if(!S.wirePending)void refreshWire();
-   if(S.session&&["home","combat","boss","cities","activities"].some(name=>el("page-"+name).classList.contains("active"))&&!document.activeElement?.matches("input,select,textarea")&&el("authDialog").classList.contains("hidden"))
+   if(el("page-community").classList.contains("active"))void refreshCommunity();
+   if(S.session&&["home","combat","boss","cities","activities","arcade"].some(name=>el("page-"+name).classList.contains("active"))&&!document.activeElement?.matches("input,select,textarea")&&el("authDialog").classList.contains("hidden"))
     void loadPrivate().catch(()=>{});
   };
   setInterval(poll,30000);document.addEventListener("visibilitychange",poll);
@@ -1483,4 +1487,28 @@ function reconcileArcadeMoves(run){
   try{const b=JSON.parse(key.slice(prefix.length));if(b.session_id===run.session_id&&b.step<run.step){S.pendingActions.delete(key);changed=true}}catch{}
  }
  if(changed)savePending();
+}
+
+/* v2.9.8b — read-only community dispatch. No message relay. */
+function showCommunity(){
+ const c=S.community,root=el("communityCities");if(!root)return;
+ el("communityRefresh").disabled=S.communityPending;
+ txt("communityStatus",S.communityPending?"Refreshing verified dispatch…":S.communityStale?"Update unavailable — "+(c?"showing last known community totals.":"retry when connected."):!c?"The streets are awaiting a dispatch.":("Day "+(c.day??"—")+" / 7 · "+String(c.phase).toUpperCase()+" · "+c.theme));
+ if(!c){for(const id of ["communityTotals","communityFeed","communityCities"])el(id).innerHTML="";txt("communityMilestones","No verified milestones yet.");return}
+ const t=c.totals||{};
+ el("communityTotals").innerHTML=[["Snowballs thrown","throws"],["Snow Don damage","boss_damage"],["Siege damage","siege_damage"],["Assignments","quests"],["Presents","gifts"],["Arcade runs","arcade"]].map(([label,key])=>"<div class='activity-card'><span class='subtle'>"+esc(label)+"</span><strong>"+fmt(t[key])+"</strong></div>").join("");
+ const labels={combat:"Snowball Alley",boss:"Snow Don",siege:"City siege",quests:"Assignments",gifts:"Presents",arcade:"Arcade"};
+ el("communityFeed").innerHTML=(c.updates||[]).map(x=>"<div class='activity-line'><div><strong>"+esc(x.city)+" · "+esc(labels[x.kind]||"Activity")+"</strong><p>"+fmt(x.count)+" "+esc(x.unit)+" today</p></div></div>").join("")||"<p>No eligible activity recorded for this edition yet.</p>";
+ txt("communityMilestones",fmt(c.objectives_met)+" / 6 cities met today's cooperative objective · "+fmt(t.hits)+" successful hits · "+fmt(t.arcade)+" arcade runs completed.");
+ root.innerHTML=(c.cities||[]).map(x=>{
+  const o=x.objective,slug=CITY_SLUG[x.city];
+  return "<article class='activity-card'><div class='community-city-head'>"+(slug?"<img alt='' src='/art/v290/cities/crests/"+slug+"_crest.png'>":"")+"<div><h3>"+esc(x.city)+"</h3><p>"+fmt(x.members)+" registered members · "+esc(x.rival?"Rival: "+x.rival:"Awaiting daily pairing")+"</p></div></div>"+(o?"<p><strong>"+esc(o.name)+"</strong> · "+esc(o.detail)+"</p><div class='hq-meter'><span style='width:"+hqPercent(o.progress,o.target)+"%'></span></div><p>"+fmt(o.progress)+" / "+fmt(o.target)+" "+esc(o.unit)+(o.completed?" · Objective complete":"")+"</p>":"<p>Daily objectives open with the event.</p>")+"<p class='subtle'>"+fmt(x.activity?.throws)+" throws · "+fmt(x.activity?.quests)+" assignments · "+fmt(x.activity?.arcade)+" arcade runs</p></article>";
+ }).join("");
+}
+async function refreshCommunity(){
+ if(S.communityPending)return;
+ S.communityPending=true;showCommunity();
+ try{const c=await get("/v1/web/community");if(c.verified_only!==true||c.chat_relay!==false||!Array.isArray(c.cities))throw Error("Invalid community dispatch");S.community=c;S.communityStale=false}
+ catch{S.communityStale=true}
+ finally{S.communityPending=false;showCommunity()}
 }

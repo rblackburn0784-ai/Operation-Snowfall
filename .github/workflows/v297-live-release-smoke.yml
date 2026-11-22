@@ -1,4 +1,4 @@
-name: v2.9.8a live Winter Arcade smoke
+name: v2.9.8b live community and arcade smoke
 on:
   push:
     branches: [qa/v2.9.7-live-release-smoke]
@@ -42,7 +42,7 @@ jobs:
                   for name in ("app.css","app.js"):
                       assert get("/static/"+name)==(static/name).read_bytes(),name
                   assert get("/")== (static/"index.html").read_bytes()
-                  get("/v1/ready");get("/v1/web/boss");get("/v1/web/territory");get("/v1/web/wire")
+                  get("/v1/ready");get("/v1/web/boss");get("/v1/web/territory");get("/v1/web/wire");community=json.loads(get("/v1/web/community"));assert community["verified_only"] and not community["chat_relay"] and len(community["cities"])==6
                   with urllib.request.urlopen(root+"/",timeout=20) as r:
                       assert "script-src 'self'" in r.headers["Content-Security-Policy"]
                       assert r.headers["Strict-Transport-Security"]=="max-age=31536000"
@@ -248,7 +248,7 @@ jobs:
                   assert page.evaluate("document.documentElement.scrollWidth-innerWidth")<=2
                   page.locator("#page-activities [data-nav='arcade']").click()
                   expect(page.locator("#page-arcade")).to_be_visible()
-                  expect(page.locator("#arcadeLobby .arcade-card")).to_have_count(5)
+                  expect(page.locator("#arcadeLobby .arcade-card")).to_have_count(5,timeout=30000)
                   page.locator("#arcadeLobby [data-value='gallery']").click()
                   expect(page.locator("#arcadeRun")).to_contain_text("Round 1 / 5")
                   for step in range(5):
@@ -265,6 +265,14 @@ jobs:
                   page.locator("#arcadeBoardRefresh").click()
                   expect(page.locator("#arcadeBoard")).to_contain_text("City Cup")
                   page.locator("#arcadeLobby").screenshot(path=f"qa-screenshots/{label}-arcade.png")
+                  assert page.evaluate("document.documentElement.scrollWidth-innerWidth")<=2
+                  nav("home")
+                  page.locator("#page-home [data-nav='community']").click()
+                  expect(page.locator("#communityCities .activity-card")).to_have_count(6,timeout=30000)
+                  expect(page.locator("#communityTotals .activity-card")).to_have_count(6)
+                  page.locator("#communityRefresh").click()
+                  expect(page.locator("#communityRefresh")).to_be_enabled(timeout=30000)
+                  page.locator("#page-community").screenshot(path=f"qa-screenshots/{label}-community.png")
                   assert page.evaluate("document.documentElement.scrollWidth-innerWidth")<=2
                   nav("combat");expect(page.locator("#noRivals")).to_be_visible()
                   nav("wire");expect(page.locator("#wirePaper")).to_be_visible()
@@ -328,6 +336,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: snowfall-v298a-release-screenshots
+          name: snowfall-v298b-release-screenshots
           path: qa-screenshots/
           if-no-files-found: ignore

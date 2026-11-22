@@ -605,3 +605,13 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
 .arcade-boards .activity-line{flex-wrap:wrap}
 @media(max-width:780px){.arcade-lobby,.arcade-run,.arcade-boards{grid-template-columns:minmax(0,1fr)}.arcade-run-art{height:auto;min-height:0;aspect-ratio:16/9}.arcade-intro{align-items:flex-start;flex-direction:column}}
 @media(max-width:420px){.arcade-stamps{grid-template-columns:minmax(0,1fr)}.arcade-choices button{flex-basis:100%}}
+
+/* v2.9.8b — the streets, milestones and six noticeboards. */
+.community-toolbar{display:flex;gap:.75rem;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.community-totals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.6rem;margin:1rem 0}
+.community-totals strong{display:block;color:#efcf93;font-size:1.35rem}
+.community-columns{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:1rem;margin-bottom:1rem}
+.community-city-head{display:flex;gap:.75rem;align-items:center}
+.community-city-head img{width:60px;height:60px;object-fit:contain;flex-shrink:0}
+.community-city-head>div{min-width:0}
+@media(max-width:780px){.community-columns{grid-template-columns:minmax(0,1fr)}.community-totals{grid-template-columns:repeat(2,minmax(0,1fr))}}

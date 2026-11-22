@@ -7,8 +7,8 @@
   <meta name="description" content="Operation Snowfall — the seven-day winter city showdown. Isolated staging preview.">
   <title>Operation Snowfall | The Winter Underworld</title>
   <link rel="icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/static/app.css?v=298a">
-  <script defer src="/static/app.js?v=298a"></script>
+  <link rel="stylesheet" href="/static/app.css?v=298b">
+  <script defer src="/static/app.js?v=298b"></script>
 </head>
 <body>
   <a class="skip-link" href="#mainContent">Skip to game content</a>
@@ -28,6 +28,7 @@
       <button class="nav-item" data-nav="wire">Snowfall Wire</button>
       <button class="nav-item" data-nav="activities">Activities</button>
       <button class="nav-item" data-nav="arcade">Winter Arcade</button>
+      <button class="nav-item" data-nav="community">The Streets</button>
     </nav>
     <div class="topbar-actions">
       <a id="streetsTopLink" class="button button-outline button-small hidden" target="_blank" rel="noopener noreferrer">#the-streets ↗</a>
@@ -101,7 +102,7 @@
               <div><p class="eyebrow">YOUR NEXT MOVE</p><p id="hqNextMove">Choose your next action.</p></div>
               <button class="button button-outline button-small hidden" id="hqRecommended">Open</button>
             </div>
-            <div class="quick-actions"><button class="button button-gold" data-nav="combat">❄ Throw a snowball</button><button class="button button-outline" id="hqBossLink" data-nav="boss">🎯 Attack Snow Don</button><button class="button button-outline" data-nav="shop">✦ Winter Market</button><button class="button button-outline" data-nav="cities">⚑ City Wars &amp; siege</button><button class="button button-outline" data-nav="activities">🎄 Winter Activities</button><button class="button button-outline" data-nav="arcade">🎮 Winter Arcade</button></div>
+            <div class="quick-actions"><button class="button button-gold" data-nav="combat">❄ Throw a snowball</button><button class="button button-outline" id="hqBossLink" data-nav="boss">🎯 Attack Snow Don</button><button class="button button-outline" data-nav="shop">✦ Winter Market</button><button class="button button-outline" data-nav="cities">⚑ City Wars &amp; siege</button><button class="button button-outline" data-nav="activities">🎄 Winter Activities</button><button class="button button-outline" data-nav="arcade">🎮 Winter Arcade</button><button class="button button-outline" data-nav="community">The Streets &amp; community</button></div>
             <section class="hq-missions" aria-labelledby="hqMissionsTitle" id="hqMissions">
               <div class="hq-section-head"><div><p class="eyebrow">FROM THE DESK OF THE DON</p><h3 id="hqMissionsTitle">Daily assignments</h3></div><span id="hqQuestCount" class="subtle">—</span></div>
               <div id="hqQuestList" class="hq-quest-list"></div>
@@ -212,7 +213,7 @@
             <p class="subtle" style="margin-top:.8rem">This staging database is independent of the live Discord Christmas event. Only linked QA accounts can share its progress.</p>
           </div>
           <details id="crossPlatformPanel" class="side-card hidden" style="margin-top:1.1rem"><summary>Advanced QA verification</summary>
-            <p class="eyebrow">v2.9.8a · CROSS-PLATFORM TEST LAB</p>
+            <p class="eyebrow">v2.9.8b · CROSS-PLATFORM TEST LAB</p>
             <h3>One character. One scoreboard. Verified gameplay.</h3>
             <p>Check that Discord and Snowfall Web read and update the same official Snowfall character. Testing never awards extra points.</p>
             <p id="verificationState" role="status"><strong>Not started</strong></p>
@@ -387,6 +388,16 @@
           <section class="activity-card arcade-rankings" aria-labelledby="arcadeBoardTitle"><h3 id="arcadeBoardTitle">High scores &amp; City Cup</h3><p>Honorary rankings only. No championship points or prizes.</p><div class="arcade-filters"><label>Game<select id="arcadeBoardMode"><option value="gallery">Target Gallery</option><option value="safe">Frozen Safecracker</option><option value="snowman">Snowman Builder</option><option value="catch">Snowflake Catch</option><option value="trivia">Christmas Trivia</option></select></label><label>Period<select id="arcadeBoardPeriod"><option value="season">Season</option><option value="daily">Today</option></select></label><button class="button button-outline" id="arcadeBoardRefresh">View rankings</button></div><div id="arcadeBoard" aria-live="polite"></div></section>
           <button class="button button-outline" data-nav="activities">Back to Winter Activities</button>
         </section>
+        <section id="page-community" class="panel" aria-labelledby="communityTitle">
+          <div class="section-heading"><div><p class="eyebrow">THE WINTER UNDERWORLD · COMMUNITY DISPATCH</p><h2 id="communityTitle">The Streets</h2></div><span class="pill">VERIFIED GAME ACTIVITY</span></div>
+          <div class="activity-intro"><img src="/art/v290/wire/backgrounds/newsroom_editorial.png" alt="The illustrated Snowfall newsroom" loading="lazy"><div><h3>Meet the winter underworld</h3><p>Follow the six cities, see the community's progress and join the conversation in Discord.</p><a id="communityStreetsLink" class="button button-gold hidden" target="_blank" rel="noopener noreferrer">Open #the-streets in Discord ↗</a><p id="communityStreetsUnavailable" class="subtle">The Discord channel link is not configured yet.</p><p class="subtle">Discord chat stays in Discord, with its existing channel permissions and moderation. No private messages or chat history are copied here.</p></div></div>
+          <div class="community-toolbar"><p id="communityStatus" role="status" class="play-action-status">Loading the streets…</p><button id="communityRefresh" class="button button-outline">Refresh dispatch</button></div>
+          <div id="communityTotals" class="community-totals"></div>
+          <div class="community-columns"><section class="activity-card"><h3>Latest city activity</h3><p class="subtle">Today's verified totals, ordered by most recent recorded activity. Not a chat transcript.</p><div id="communityFeed"></div></section>
+          <section class="activity-card"><h3>Community milestones</h3><p id="communityMilestones"></p><p class="subtle">City objectives and arcade records are honorary. Official rewards remain unchanged.</p><div class="activity-actions"><button class="button button-outline" data-nav="cities">City Wars</button><button class="button button-outline" data-nav="arcade">Winter Arcade</button><button class="button button-outline" data-nav="wire">Snowfall Wire</button></div></section></div>
+          <h3>City noticeboards</h3><div id="communityCities" class="activity-grid"></div>
+          <button class="button button-outline" data-nav="home">Back to Headquarters</button>
+        </section>
         <section id="page-wire" class="panel" aria-labelledby="wireTitle">
           <div class="section-heading"><div><p class="eyebrow">AMERICA'S COLDEST UNDERWORLD DISPATCH</p><h2 id="wireTitle">The Snowfall Wire</h2></div><span class="pill">VERIFIED GAME EVENTS</span></div>
           <div class="wire-toolbar"><label>Read an edition<select id="wireDay"><option value="current">Latest edition</option></select></label><button id="refreshWire" class="button button-outline button-small">↻ Refresh edition</button></div>
@@ -406,14 +417,14 @@
 
       <aside class="sidebar">
         <div class="side-card radio wire-side"><img src="/art/v290/wire/banners/breaking_news.png" alt="Breaking news" loading="lazy"><p class="eyebrow">THE SNOWFALL WIRE</p><h3 id="wireSideTitle">Special bulletin</h3><p id="wireSideDetail">Verified dispatches from the shared game.</p><button class="button button-outline full" data-nav="wire">Read the Wire</button><span>📻 WINTER RADIO · QA EDITION</span></div>
-        <div class="side-card streets-card"><p class="eyebrow">COMMUNITY CORNER</p><h3>Meet on #the-streets</h3><p>Talk with the community in the existing Discord server. Chat opens in Discord; Snowfall doesn't copy or publish messages.</p><a id="streetsLink" class="button button-gold hidden" target="_blank" rel="noopener noreferrer">Open #the-streets ↗</a><p id="streetsUnavailable" class="subtle">Discord channel link has not been configured for this QA website.</p></div>
+        <div class="side-card streets-card"><p class="eyebrow">COMMUNITY CORNER</p><h3>Meet on #the-streets</h3><button class="button button-outline full" data-nav="community">Open community hub</button><p>Talk with the community in the existing Discord server. Chat opens in Discord; Snowfall doesn't copy or publish messages.</p><a id="streetsLink" class="button button-gold hidden" target="_blank" rel="noopener noreferrer">Open #the-streets ↗</a><p id="streetsUnavailable" class="subtle">Discord channel link has not been configured for this QA website.</p></div>
         <div class="side-card status"><p class="eyebrow">SEASON STATUS</p><h3 id="sideStatus">Connecting…</h3><p id="sideStatusDetail">Checking the game backend</p><div class="side-divider"></div><div class="side-row"><span>Player identity</span><strong id="identityStatus">Guest</strong></div><div class="side-row"><span>Database</span><strong>PostgreSQL</strong></div><div class="side-row"><span>Service</span><strong>STAGING</strong></div></div>
         <div class="side-card"><p class="eyebrow">THE RULES OF THE GAME</p><h3>Cold hands. Clean records.</h3><p>Unique actions, score caps, anti-spam checks and duplicate reward protection apply to every platform.</p></div>
       </aside>
     </div>
   </main>
 
-  <footer><div class="footer-logo">❄ OPERATION SNOWFALL</div><p>STAGING EXPERIENCE · FICTITIOUS GAMEPLAY · NO LIVE UNDERWORLD ACCOUNT ACCESS</p><div class="footer-preferences"><button id="atmosphereToggle" type="button" class="button button-outline button-small" aria-pressed="true">Atmosphere on</button><button class="tiny-link" data-nav="wire">Newspaper archive</button></div><span>© Winter Operations Bureau · v2.9.8a</span></footer>
+  <footer><div class="footer-logo">❄ OPERATION SNOWFALL</div><p>STAGING EXPERIENCE · FICTITIOUS GAMEPLAY · NO LIVE UNDERWORLD ACCOUNT ACCESS</p><div class="footer-preferences"><button id="atmosphereToggle" type="button" class="button button-outline button-small" aria-pressed="true">Atmosphere on</button><button class="tiny-link" data-nav="wire">Newspaper archive</button></div><span>© Winter Operations Bureau · v2.9.8b</span></footer>
 
   <div id="authDialog" class="dialog-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="authTitle">
     <div class="dialog"><button class="dialog-close" id="closeAuth" aria-label="Close sign-in">×</button>
