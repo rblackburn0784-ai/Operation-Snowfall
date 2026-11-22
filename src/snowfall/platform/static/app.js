@@ -1213,6 +1213,7 @@ function bind(){
  if(el("communityRefresh"))el("communityRefresh").onclick=()=>void refreshCommunity();
  if(el("staffRefresh"))el("staffRefresh").onclick=()=>void refreshStaffDashboard();
  if(el("staffLabRefresh"))el("staffLabRefresh").onclick=()=>void refreshStaffLab();
+ if(el("staffLabExport"))el("staffLabExport").onclick=downloadLabResults;
  for(const btn of document.querySelectorAll("[data-lab-action]"))btn.onclick=()=>void staffLabAction(btn.dataset.labAction);
  for(const btn of document.querySelectorAll("[data-staff-copy]"))btn.onclick=()=>navigator.clipboard.writeText(btn.dataset.staffCopy).then(()=>notice("Discord command copied.","success")).catch(()=>notice("Clipboard permission required.","error"));
  if(el("staffExportDiagnostics"))el("staffExportDiagnostics").onclick=downloadStaffDiagnostics;
@@ -1695,11 +1696,13 @@ function showStaffLab(){
  txt("staffLabStatus",S.staffLabPending?"Running or refreshing your private test…":!S.staffAllowed?"Staff sign-in required.":!d?"Press Refresh lab to retrieve your session.":active?"WEB TEST ONLY · Day "+d.day+"/7 · "+d.theme+" · "+d.last_action:"No disposable web test is running.");
  for(const btn of document.querySelectorAll("[data-lab-action]")){
   const action=btn.dataset.labAction;
-  btn.disabled=S.staffLabPending||!S.staffAllowed||(action==="start"?active:!active);
+  const standalone=["simulate_week","reset_all"].includes(action);
+  btn.disabled=S.staffLabPending||!S.staffAllowed||(!standalone&&(action==="start"?active:!active));
  }
  el("staffLabRefresh").disabled=S.staffLabPending||!S.staffAllowed;
  el("staffLabDay").disabled=active&&S.staffLabPending;
- if(!d){el("staffLabStats").innerHTML="";el("staffLabPlayers").innerHTML="";el("staffLabHistory").innerHTML="";return}
+ el("staffLabExport").disabled=!S.staffAllowed||S.staffLabPending||!d;
+ if(!d){for(const id of ["staffLabStats","staffLabPlayers","staffLabHistory","staffLabWeekSummary","staffLabComparisons"])el(id).innerHTML="";return}
  const totals=d.totals||{};
  el("staffLabStats").innerHTML=(active?[
   ["Test Day",d.day+"/7"],["Snow Don HP",d.boss?fmt(d.boss.boss_hp)+" / "+fmt(d.boss.boss_initial_hp):"—"],
@@ -1708,6 +1711,10 @@ function showStaffLab(){
  ]:[["Test Lab", "Inactive"],["Shared QA", "Unchanged"]]).map(([label,value])=>"<div class='activity-card'><small>"+esc(label)+"</small><strong>"+esc(value)+"</strong></div>").join("");
  el("staffLabPlayers").innerHTML=(d.players||[]).map(x=>staffRow(x.mr_username+" · "+x.city,fmt(x.score)+" pts")).join("")||"<p>No active fictional test players.</p>";
  el("staffLabHistory").innerHTML=(d.history||[]).slice(0,10).map(x=>"<div class='staff-audit-line'><strong>"+esc(x.action)+"</strong><span>"+staffTime(x.at)+"</span><p>"+esc(x.detail)+" · "+esc(x.reason)+"</p></div>").join("")||"<p>No test actions yet.</p>";
+ const rows=d.comparisons||[];
+ el("staffLabComparisons").innerHTML=rows.slice(0,35).map(x=>"<tr><td>"+esc(x.kind+(x.mode?" · "+x.mode:"")+(x.quest?" · "+x.quest:""))+"</td><td>"+fmt(x.day)+"</td><td>"+fmt(x.expected_points)+"</td><td>"+fmt(x.actual_points)+"</td><td>"+fmt(x.difference)+"</td><td>"+(x.passed&&x.arcade_passed!==false?"PASS":"REVIEW")+"</td></tr>").join("")||"<tr><td colspan='6'>No scoring checks recorded.</td></tr>";
+ const week=d.weekly_report;
+ el("staffLabWeekSummary").innerHTML=week?("<p><strong>"+(week.passed?"PASS":"REVIEW")+"</strong> · "+fmt(week.days_tested)+" days · "+fmt(week.total_points)+" temporary ledger points · "+fmt(week.official_awards)+" real awards</p><div class='staff-table-wrap'><table><thead><tr><th>Day</th><th>Theme</th><th>Checks</th><th>Score</th><th>Result</th></tr></thead><tbody>"+week.days.map(x=>"<tr><td>"+fmt(x.day)+"</td><td>"+esc(x.theme)+"</td><td>"+fmt(x.checks.length)+"</td><td>"+fmt(x.ledger_points)+"</td><td>"+(x.checks_passed?"PASS":"REVIEW")+"</td></tr>").join("")+"</tbody></table></div>"):"<p class='subtle'>No seven-day simulation recorded yet.</p>";
 }
 async function refreshStaffLab(){
  if(!S.staffAllowed||S.staffLabPending)return;
@@ -1725,16 +1732,28 @@ async function staffLabAction(action){
  if(!S.staffAllowed||S.staffLabPending)return;
  const active=!!S.staffLab?.active;
  if(action==="start"&&active)return notice("End the existing test first.","error");
- if(action!=="start"&&!active)return notice("Start a disposable test day first.","error");
+ if(!["start","simulate_week","reset_all"].includes(action)&&!active)return notice("Start a disposable test day first.","error");
  const reason=el("staffLabReason").value.trim();
  if(reason.length<8)return notice("Add a staff reason of at least 8 characters.","error");
- const confirms={start:"START TEST",day:"RESET TEST DAY",resupply:"RESUPPLY TEST",end:"END TEST"};
+ const confirms={start:"START TEST",day:"RESET TEST DAY",resupply:"RESUPPLY TEST",end:"END TEST",simulate_week:"SIMULATE 7 DAYS",reset_all:"RESET ALL TEST DATA"};
  const expected=confirms[action]||"";
  if(expected&&el("staffLabConfirm").value.trim().toUpperCase()!==expected)return notice("Type "+expected+" to confirm this test-only action.","error");
  const day=["start","day"].includes(action)?Number(el("staffLabDay").value):null;
- const sessionId=action==="start"?null:S.staffLab?.session_id;
+ const sessionId=["start","simulate_week","reset_all"].includes(action)?null:S.staffLab?.session_id;
  const identity=String(S.session?.player_id||"");
- const body={action,day,reason,confirmation:expected,request_id:nextActionId(),session_id:sessionId};
+ const options={};
+ if(action==="configure"){
+  options.player_index=Number(el("staffLabPlayer").value);
+  for(const [id,key] of [["staffLabSnowballs","snowballs"],["staffLabWarmth","warmth"],["staffLabArmour","armour_hp"],["staffLabCooldown","cooldown_seconds"],["staffLabBossHp","boss_hp"]]){
+    const raw=el(id).value.trim();
+    if(raw!==""){if(!/^\d+$/.test(raw))return notice("Use nonnegative whole numbers for test resources.","error");options[key]=Number(raw)}
+  }
+  if(Object.keys(options).length===1)return notice("Enter at least one resource or boss HP value.","error");
+ }
+ if(["pvp","boss","siege"].includes(action))options.outcome=el("staffLabOutcome").value;
+ if(action==="arcade"){options.mode=el("staffLabArcade").value;options.scenario=el("staffLabArcadeOutcome").value}
+ if(action==="mission")options.quest=el("staffLabMission").value;
+ const body={action,day,reason,confirmation:expected,request_id:nextActionId(),session_id:sessionId,options};
  S.staffLabPending=true;showStaffLab();
  try{
   const result=await post("/v1/staff/lab/action",body,true);
@@ -1742,6 +1761,7 @@ async function staffLabAction(action){
   if(result.scope!=="DISPOSABLE_WEB_TEST_LAB"||result.shared_game_unchanged!==true)throw Error("Unexpected staff lab scope");
   S.staffLab=result;
   el("staffLabConfirm").value="";
+  if(action==="configure"){for(const name of ["staffLabSnowballs","staffLabWarmth","staffLabArmour","staffLabCooldown","staffLabBossHp"])el(name).value=""}
   notice(result.action_result?.message||"Test action completed.","success");
  }catch(e){
   notice("Test Lab: "+e.message+" Refresh lab before another action.","error");
@@ -1760,4 +1780,15 @@ function downloadStaffDiagnostics(){
  try{const a=document.createElement("a");a.href=url;a.download="snowfall-private-qa-report.json";a.click()}
  finally{setTimeout(()=>URL.revokeObjectURL(url),1000)}
  notice("Private QA report prepared. Do not share publicly.","success");
+}
+
+function downloadLabResults(){
+ if(!S.staffAllowed||!S.staffLab)return notice("Open an authorised Test Lab first.","error");
+ const result={...S.staffLab,exported_at:new Date().toISOString(),
+  notice:"DISPOSABLE TEST-ONLY DATA · NOT A REAL GAME OR PRIZE REPORT"};
+ const blob=new Blob([JSON.stringify(result,null,2)],{type:"application/json"});
+ const url=URL.createObjectURL(blob);
+ try{const a=document.createElement("a");a.href=url;a.download="snowfall-test-lab-v298e.json";a.click()}
+ finally{setTimeout(()=>URL.revokeObjectURL(url),1000)}
+ notice("Your private Test Lab report was downloaded.","success");
 }
