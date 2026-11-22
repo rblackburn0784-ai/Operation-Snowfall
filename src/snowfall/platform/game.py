@@ -174,3 +174,13 @@ class SharedGame:
         return {"message": WinterFunEngine(self.store).equip(
             self.season, player_id, item, now or _time(),
         )}
+
+    def activities(self, player_id: int, *, now=None) -> dict:
+        from snowfall.platform.player_activities import activities_view
+        return activities_view(self.store, self.season, player_id, now or _time())
+
+    def activity_action(self, player_id: int, action: str, item: str, day: int | None,
+                        interaction_id: str, *, now=None) -> dict:
+        from snowfall.platform.player_activities import perform_activity
+        return perform_activity(self.store, self.season, player_id, action, item,
+                                day, interaction_id, now or _time())

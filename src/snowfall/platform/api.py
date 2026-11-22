@@ -121,6 +121,12 @@ class ItemBody(BaseModel):
     item: str = Field(min_length=1, max_length=60)
 
 
+class ActivityBody(BaseModel):
+    action: Literal["clue", "accuse", "secret", "encounter", "quest", "gift", "use", "guard", "title"]
+    item: str = Field(min_length=1, max_length=60)
+    day: int | None = Field(default=None, ge=1, le=7)
+
+
 class OAuthStart(BaseModel):
     mode: Literal["login", "link"] = "login"
 
@@ -565,6 +571,18 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
     @app.get("/v1/game/raid")
     def raid(day: int = Query(ge=1, le=7)):
         return jsonable_encoder(shared.raid(day=day))
+
+    @app.get("/v1/game/activities")
+    def activities(response: Response, principal: int = Depends(player)):
+        response.headers["Cache-Control"] = "no-store"
+        return jsonable_encoder(shared.activities(principal))
+
+    @app.post("/v1/game/activities/action")
+    def activity_action(body: ActivityBody, idempotency_key: str | None = Header(default=None),
+                        principal: int = Depends(game_writer)):
+        iid = _idempotency(principal, "activities:" + body.action, idempotency_key)
+        return jsonable_encoder(shared.activity_action(
+            principal, body.action, body.item, body.day, iid))
 
     @app.get("/v1/game/inventory")
     def inventory(principal: int = Depends(player)):

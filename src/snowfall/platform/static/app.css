@@ -568,3 +568,15 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
 /* v2.9.7d r3 — extra vertical room for wrapped article copy at 320px.
    Keep the width constrained and all four panel positions unchanged. */
 @media(max-width:360px){.wire-paper.has-wire-template .wire-frontpage{min-height:850px}.wire-paper.has-wire-template .wire-edition-body .wire-story{padding-top:.1rem;padding-bottom:.1rem}}
+
+/* v2.9.8 — activity dossier, existing illustrations only. */
+.activity-intro{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:1rem;padding:1rem;background:#152e3c;border:1px solid #456174;align-items:center;margin-bottom:1rem}
+.activity-intro img,.activity-art{width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;border:1px solid #587181}
+.activity-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin:1rem 0}
+.activity-card{min-width:0;background:#142a37;border:1px solid #456174;padding:1rem;overflow-wrap:anywhere}
+.activity-card h3{margin:.25rem 0 .6rem}.activity-card p{margin:.4rem 0;color:#bfd0d6;line-height:1.5}
+.activity-line{display:flex;align-items:center;justify-content:space-between;gap:.6rem;border-bottom:1px solid #48616d;padding:.65rem 0}
+.activity-line>div{min-width:0}.activity-line button{flex-shrink:0}
+.activity-actions{display:flex;flex-wrap:wrap;gap:.55rem;margin:.6rem 0}
+.activity-card .button{white-space:normal;text-align:center;min-height:44px}
+@media(max-width:780px){.activity-grid{grid-template-columns:minmax(0,1fr)}.activity-intro{grid-template-columns:minmax(0,1fr)}.activity-line{align-items:flex-start;flex-wrap:wrap}}

@@ -1,6 +1,6 @@
-/* Operation Snowfall v2.9.7d — consolidated release and safe recovery. */
+/* Operation Snowfall v2.9.8 — consolidated release and safe recovery. */
 "use strict";
-const S={session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
+const S={activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
 const txt=(id,v)=>{const node=el(id),value=v==null?"—":String(v);if(node&&node.textContent!==value)node.textContent=value};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -165,8 +165,8 @@ function showHq(){
  recommendation.textContent=next?.[1]||"Open";
  if(h)txt("hqNextMove",h.next_action+(["arcade","guide"].includes(h.next_action_route)?" See Discord for this feature.":""));
  txt("hqQuestCount",h?quests.filter(q=>q.claimed).length+" / "+quests.length+" claimed":"Unavailable");
- el("hqQuestList").innerHTML=quests.length?quests.map(q=>"<article class='hq-quest'><strong>"+esc(q.name)+"</strong><span>"+(q.claimed?"Claimed":Number(q.progress)>=Number(q.target)?"Ready to claim in Discord":"In progress")+"</span><div class='hq-meter'><span style='width:"+hqPercent(q.progress,q.target)+"%'></span></div><small>"+fmt(q.progress)+" / "+fmt(q.target)+"</small></article>").join(""):"<p class='subtle'>"+(h?"No daily assignments are available.":"Refresh to load your assignments.")+"</p>";
- txt("hqGiftStatus",h?"Daily gift: "+h.daily_gift+" · Bonus: "+h.bonus_gift+" · Open gifts in Discord.":"Gift status unavailable.");
+ el("hqQuestList").innerHTML=quests.length?quests.map(q=>"<article class='hq-quest'><strong>"+esc(q.name)+"</strong><span>"+(q.claimed?"Claimed":Number(q.progress)>=Number(q.target)?"Ready to claim":"In progress")+"</span><div class='hq-meter'><span style='width:"+hqPercent(q.progress,q.target)+"%'></span></div><small>"+fmt(q.progress)+" / "+fmt(q.target)+"</small></article>").join(""):"<p class='subtle'>"+(h?"No daily assignments are available.":"Refresh to load your assignments.")+"</p>";
+ txt("hqGiftStatus",h?"Daily gift: "+h.daily_gift+" · Bonus: "+h.bonus_gift+" · Open gifts in Winter Activities.":"Gift status unavailable.");
  txt("hqTrophyCount",h?earned.length+" / "+trophies.length+" collected":"Achievements unavailable — refresh to retry.");
  el("hqTrophyGrid").innerHTML=trophies.map(t=>hqMedal(t)).join("");
  el("hqFeatured").innerHTML=earned.slice().sort((a,b)=>(Number(b.title===h.title)-Number(a.title===h.title))||RARITIES.indexOf(b.rarity)-RARITIES.indexOf(a.rarity)||String(a.badge).localeCompare(String(b.badge))).slice(0,3).map(t=>hqMedal(t,true)).join("");
@@ -231,7 +231,7 @@ function nextActionId(){
 }
 // Store only pending operation keys and their opaque IDs in this browser tab.
  // No passwords, session cookies, CSRF values or names are persisted.
-const RECOVERABLE_ACTIONS=new Set(["/v1/game/throw","/v1/game/boss","/v1/game/siege","/v1/game/craft","/v1/game/wardrobe/purchase"]);
+const RECOVERABLE_ACTIONS=new Set(["/v1/game/throw","/v1/game/boss","/v1/game/siege","/v1/game/craft","/v1/game/wardrobe/purchase","/v1/game/activities/action"]);
 function pendingStoreKey(){
  const id=String(S.session?.player_id||"");
  return /^[1-9][0-9]{0,18}$/.test(id)?"snowfall-pending-v1:"+String(S.config?.season||"qa")+":"+id:null;
@@ -305,7 +305,7 @@ async function request(path,method,body,mutation,unique){
 const get=path=>request(path);
 const post=(path,body,mutate,unique)=>request(path,"POST",body,mutate,unique);
 function section(name,{record=true,focus=true}={}){
- if(!["home","combat","boss","shop","cities","wire"].includes(name))name="home";
+ if(!["home","combat","boss","shop","cities","wire","activities"].includes(name))name="home";
  document.querySelectorAll(".panel").forEach(n=>n.classList.toggle("active",n.id==="page-"+name));
  document.querySelectorAll(".nav-item").forEach(n=>{
   const active=n.dataset.nav===name;
@@ -315,6 +315,7 @@ function section(name,{record=true,focus=true}={}){
  el("primaryNav").classList.remove("open");
  el("menuToggle").setAttribute("aria-expanded","false");
  if(name==="shop")showShop();
+ if(name==="activities"){showActivities();if(S.session&&!S.privatePending&&!S.busy)void loadPrivate().catch(e=>notice(e.message,"error"))}
  if(name==="cities"){showCities();showBoard();if(!S.territoryPending&&!S.busy)void refreshTerritory();if(S.session&&!S.privatePending&&!S.busy)void loadPrivate().catch(e=>notice(e.message,"error"))}
  if(name==="boss"){showBoss();if(!S.bossPending&&!S.busy)void refreshBossVisual()}
  if(name==="wire"){showWire();if(!S.wirePending&&!S.busy)void refreshWire()}
@@ -347,7 +348,7 @@ function hasPlayIdentity(session,config){return !!session&&(!config?.staging||se
 function syncPlayIdentity(){
  const id=S.session?String(S.session.player_id):null;
  if(id===S.playIdentity)return;
- S.playIdentity=id;S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
+ S.playIdentity=id;S.activities=null;el("activitiesResult")?.classList.add("hidden");showActivities();S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
  S.pendingActions.clear();restorePending();
  el("targetSelect").value="";el("combatOutcome").classList.add("hidden");el("siegeOutcome").classList.add("hidden");el("bossRecap").classList.add("hidden");el("playFeedback").classList.add("hidden");
 }
@@ -951,14 +952,14 @@ async function loadPrivate(){
 }
 async function readPrivate(){
  syncPlayIdentity();
- if(!S.session){S.me=null;S.world=null;S.hq=null;S.shop=null;S.targetsReady=false;S.targets=[];S.progress=null;S.verification=null;S.pendingActions.clear();showMe();showShop();showTargets();showSiege();return}
+ if(!S.session){S.activities=null;showActivities();S.me=null;S.world=null;S.hq=null;S.shop=null;S.targetsReady=false;S.targets=[];S.progress=null;S.verification=null;S.pendingActions.clear();showMe();showShop();showTargets();showSiege();return}
  try{
   S.me=await get("/v1/game/me");
   if(String(S.me?.player_id)!==String(S.session?.player_id)){const err=Error("Account changed in another tab; sign in again");err.status=409;throw err}
  }
  catch(e){if(e.status===401||e.message==="Account changed in another tab; sign in again"){S.session=null;S.me=null;S.world=null;S.hq=null;S.shop=null;S.progress=null;S.targetsReady=false;S.targets=[];S.verification=null;showMe();showShop();showTargets();showSiege();return}throw e}
  if(S.me.registered){
-  const results=await Promise.allSettled([get("/v1/game/world"),get("/v1/game/wardrobe"),get("/v1/game/targets"),get("/v1/game/progress"),get("/v1/game/headquarters")]);
+  const results=await Promise.allSettled([get("/v1/game/world"),get("/v1/game/wardrobe"),get("/v1/game/targets"),get("/v1/game/progress"),get("/v1/game/headquarters"),el("page-activities")?.classList.contains("active")?get("/v1/game/activities"):Promise.resolve(null)]);
   if(results.some(r=>r.status==="rejected"&&(r.reason?.status===401||r.reason?.message==="Account changed in another tab; sign in again"))){
    S.session=null;return readPrivate();
   }
@@ -968,6 +969,7 @@ async function readPrivate(){
   S.targets=S.targetsReady?results[2].value.targets:[];
   S.progress=results[3].status==="fulfilled"?results[3].value:null;
   S.hq=results[4].status==="fulfilled"?results[4].value:null;
+  S.activities=results[5]?.status==="fulfilled"?results[5].value:null;
   S.hqClock=Number.isFinite(Date.parse(S.hq?.server_time))?Date.parse(S.hq.server_time)-Date.now():0;
   const linked=(S.session.links||[]).some(x=>x.provider==="discord")&&
                (S.session.links||[]).some(x=>x.provider==="underworld");
@@ -976,7 +978,7 @@ async function readPrivate(){
     catch{S.verification=null}
   }else S.verification=null;
  }else{S.shop=null;S.world=null;S.hq=null;S.progress=null;S.targetsReady=false;S.targets=[];S.verification=null;}
- showMe();showTargets();showBoss();showShop();showCities();
+ showMe();showTargets();showBoss();showShop();showCities();showActivities();
 }
 function updateDiscardSubmit(){
  el("discardConfirm").disabled=!S.discard||!el("discardAcknowledge").checked||
@@ -1021,7 +1023,7 @@ async function act(fn){
   try{await refresh()}catch(e){S.privateFresh=false;playFeedback("Action recorded. Refresh to see updated resources.", "warning");notice("Action recorded; refresh failed.","error")}
  }catch(e){playFeedback(e.message,"error");notice(e.message,"error");if(S.lastThrow&&S.pendingActions.has(requestKey("/v1/game/throw",S.lastThrow.body)))showTargets()}
 
- finally{S.busy=false;document.querySelectorAll(".actions-inline button,.craft-card button").forEach(b=>b.disabled=false);showBoss();showShop();updatePlayControls()}
+ finally{S.busy=false;document.querySelectorAll(".actions-inline button,.craft-card button").forEach(b=>b.disabled=false);showBoss();showShop();showActivities();updatePlayControls()}
 }
 function registered(){
  if(!S.session){authModal();return false}
@@ -1117,6 +1119,7 @@ async function refreshWire(){
  }finally{if(seq===S.wireRequest){S.wirePending=false;showWire();showEvent()}}
 }
 function bind(){
+ bindActivities();
  document.querySelectorAll("[data-nav]").forEach(b=>b.addEventListener("click",()=>section(b.dataset.nav)));
  document.querySelectorAll("[data-jump]").forEach(b=>b.addEventListener("click",()=>el(b.dataset.jump)?.scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"})));
  window.addEventListener("popstate",()=>section(location.hash.startsWith("#play-")?location.hash.slice(6):"home",{record:false}));
@@ -1294,7 +1297,7 @@ async function init(){
    if(!S.bossPending)void refreshBossVisual();
    if(el("page-cities").classList.contains("active")&&!S.territoryPending&&S.territoryDay==="current")void Promise.all([refreshTerritory(),refreshCityStandings()]);
    if(!S.wirePending)void refreshWire();
-   if(S.session&&["home","combat","boss","cities"].some(name=>el("page-"+name).classList.contains("active"))&&!document.activeElement?.matches("input,select,textarea")&&el("authDialog").classList.contains("hidden"))
+   if(S.session&&["home","combat","boss","cities","activities"].some(name=>el("page-"+name).classList.contains("active"))&&!document.activeElement?.matches("input,select,textarea")&&el("authDialog").classList.contains("hidden"))
     void loadPrivate().catch(()=>{});
   };
   setInterval(poll,30000);document.addEventListener("visibilitychange",poll);
@@ -1328,3 +1331,58 @@ async function init(){
  }catch(e){S.connection="offline";txt("eventConnectionText","Connection unavailable. Retry to reconnect.");el("eventRetry").classList.remove("hidden");txt("sideStatus","OFFLINE");txt("sideStatusDetail",e.message);notice("Staging service unavailable: "+e.message,"error")}
 }
 document.addEventListener("DOMContentLoaded",init);
+
+/* v2.9.8 — server-authoritative player activities. */
+function activityButton(action,item,label,disabled=false){
+ return "<button type='button' class='button button-outline' data-activity='"+esc(action)+"' data-item='"+esc(item)+"'"+(disabled?" disabled":"")+">"+esc(label)+"</button>";
+}
+function activityCard(title,body,art=""){
+ return "<article class='activity-card'>"+(art?"<img class='activity-art' src='"+esc(art)+"' alt='' loading='lazy'>":"")+"<h3>"+esc(title)+"</h3>"+body+"</article>";
+}
+function showActivities(){
+ const root=el("activitiesContent");if(!root)return;
+ const a=S.session&&S.me?.registered&&String(S.activities?.player_id)===String(S.session.player_id)?S.activities:null;
+ const locked=!!(S.busy||S.privatePending||a?.phase!=="live"||!hasPlayIdentity(S.session,S.config));
+ txt("activitiesStatus",!S.session?"Sign in to open your dossier.":!S.me?.registered?"Register at Headquarters first.":!a?"Refresh to load today's activities.":("Day "+(a.day??"—")+" / 7 · "+String(a.phase).toUpperCase()+" · Shared with Discord"));
+ if(!a){root.innerHTML="";return}
+ const list=Array.isArray(a.quests)?a.quests:[];
+ const quests=list.map(q=>"<div class='activity-line'><div><strong>"+esc(q.name)+"</strong><p>"+fmt(q.progress)+" / "+fmt(q.target)+(q.claimed?" · Claimed":"")+"</p></div>"+activityButton("quest",q.key,q.claimed?"Claimed":"Claim reward",locked||q.claimed||Number(q.progress)<Number(q.target))+"</div>").join("");
+ const gifts="<p>Daily present: "+esc(a.daily_gift)+" · Bonus: "+esc(a.bonus_gift)+"</p><div class='activity-actions'>"+activityButton("gift","daily","Open daily present",locked||a.daily_gift!=="Ready")+activityButton("gift","bonus","Open bonus present",locked||a.bonus_gift!=="Ready")+"</div>";
+ const inv=a.inventory||{};
+ const items=["cocoa","fort","mittens","bomb","golden"].map(k=>{
+  const n=Number(inv.quantities?.[k]||0),used=Number(inv.uses_today?.[k]||0),cap=Number(a.use_caps?.[k]||0);
+  return "<div class='activity-line'><div><strong>"+esc(a.item_names?.[k]||k)+" × "+fmt(n)+"</strong><p>"+(k==="golden"?"Use through Snowball Alley":used+" / "+cap+" used today")+"</p></div>"+(k==="golden"?"":activityButton("use",k,"Use",locked||n<1||used>=cap))+"</div>";
+ }).join("");
+ const guard="<p>Guard: "+(inv.guard_active?"Active":"Inactive")+" · Armour: "+fmt(inv.armour_hp)+" · Mittens: "+(inv.mittens_armed?"Armed":"Not armed")+" · Bomb: "+(inv.bomb_armed?"Armed":"Not armed")+"</p>"+activityButton("guard",inv.guard_active?"off":"on",inv.guard_active?"Lower guard":"Activate guard",locked);
+ const titles="<p>Equipped: "+esc(a.equipped_title)+"</p><div class='activity-actions'>"+activityButton("title","none","Default title",S.busy||S.privatePending||!hasPlayIdentity(S.session,S.config))+(a.titles||[]).map(t=>activityButton("title",t.key,t.label,S.busy||S.privatePending||!hasPlayIdentity(S.session,S.config)||t.label===a.equipped_title)).join("")+"</div>";
+ const c=a.case,e=a.encounter;
+ let caseBody="<p>Today's case is not open.</p>";
+ if(c){
+  const clues=(c.clues||[]).map(x=>"<div class='activity-line'><div><strong>"+esc(x.label)+"</strong><p>"+esc(x.found?x.text:"Evidence not yet examined")+"</p></div>"+activityButton("clue",x.key,x.found?"Found":"Investigate",locked||x.found)+"</div>").join("");
+  const count=(c.clues||[]).filter(x=>x.found).length;
+  caseBody="<p>"+esc(c.scene)+"</p>"+clues+"<p>"+(c.solved?"Case closed":c.locked?"No accusations remain":fmt(c.guesses)+" / "+fmt(c.max_guesses)+" accusations used · Find two clues first")+"</p>"+(c.conclusion?"<p>"+esc(c.conclusion)+"</p>":"")+"<div class='activity-actions'>"+(c.suspects||[]).map(x=>activityButton("accuse",x.key,x.label,locked||count<2||c.solved||c.locked)).join("")+"</div>";
+ }
+ const dayArt=Number.isInteger(a.day)&&a.day>=1&&a.day<=7?"/art/v290/mysteries/day_"+a.day+".webp":"/art/v290/mysteries/classified_dossier.webp";
+ const encounter=e?"<p>"+esc(e.scene)+"</p>"+(e.completed?"<p>Collected: "+esc(e.completed.souvenir)+"</p>":"<div class='activity-actions'>"+(e.choices||[]).map(x=>activityButton("encounter",x.key,x.label,locked)).join("")+"</div>"):"<p>Available once the event opens.</p>";
+ const secret=c?.secret?"<p>"+esc(c.secret.scene)+"</p><p>Collected: "+esc(c.secret.souvenir)+"</p>":c?.secret_ready?"<p>"+esc(c.secret_title)+" · "+esc(c.secret_scene)+"</p><div class='activity-actions'>"+(c.secret_choices||[]).map(x=>activityButton("secret",x.key,x.label,locked)).join("")+"</div>":"<p>Find two clues and earn daily points or complete today's surprise encounter.</p>";
+ const history=(a.history||[]).map(x=>"<div class='activity-line'><div><strong>Day "+fmt(x.day)+" · "+esc(x.title)+"</strong><p>"+fmt(x.clues)+" / 3 clues · "+(x.solved?"Solved":"Unsolved")+(x.secret?" · "+esc(x.secret):"")+"</p></div></div>").join("")||"<p>No case history yet.</p>";
+ root.innerHTML=activityCard("Daily assignments & presents",quests+gifts)+activityCard("Inventory & protection",items+guard)+activityCard(c?.title||"Christmas mysteries",caseBody,dayArt)+activityCard(e?.title||"Surprise encounter",encounter)+activityCard("Secret encounter",secret,"/art/v290/mysteries/secret_encounter.webp")+activityCard("Casebook",history,"/art/v290/mysteries/classified_dossier.webp")+activityCard("Earned titles",titles);
+}
+function bindActivities(){
+ const root=el("activitiesContent"),refreshButton=el("activitiesRefresh");
+ if(!root||!refreshButton)return;
+ refreshButton.onclick=()=>{if(registered()&&!S.busy&&!S.privatePending)void loadPrivate().catch(e=>notice(e.message,"error"))};
+ root.addEventListener("click",event=>{
+  const b=event.target.closest("button[data-activity]");
+  if(!b||!root.contains(b)||b.disabled||!registered()||S.busy||S.privatePending)return;
+  const body={action:b.dataset.activity,item:b.dataset.item,day:S.activities?.day??null};
+  if(!S.activities||String(S.activities.player_id)!==String(S.session.player_id))return;
+  if(body.action==="accuse"&&!window.confirm("Accuse "+b.textContent+"? This uses one of today's limited guesses."))return;
+  act(async()=>{
+   const result=await post("/v1/game/activities/action",body,true,true);
+   const n=el("activitiesResult");n.textContent=result.message||"Activity recorded.";n.classList.remove("hidden");
+   notice(result.message||"Activity recorded.","success");
+  });
+  showActivities();
+ });
+}
