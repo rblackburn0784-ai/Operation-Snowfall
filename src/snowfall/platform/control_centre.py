@@ -9,7 +9,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from snowfall.services.combat import CombatEngine
 from snowfall.ops import reconcile
-from snowfall.db.store import Store
 
 
 def _iso(dt):

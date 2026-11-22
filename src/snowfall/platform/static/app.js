@@ -1,6 +1,6 @@
-/* Operation Snowfall v2.9.8b3 — consolidated release and persistent chat. */
+/* Operation Snowfall v2.9.8c — shared event operations and persistent chat. */
 "use strict";
-const S={streetsDrawerOpen:false,streetsReturnFocus:null,streetsEmbedUrl:null,streetsChatOpen:false,community:null,communityPending:false,communityStale:false,privateQueued:false,arcade:null,arcadeRun:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
+const S={staffAllowed:false,staffCheckedIdentity:null,staffData:null,staffPending:false,staffStale:false,streetsDrawerOpen:false,streetsReturnFocus:null,streetsEmbedUrl:null,streetsChatOpen:false,community:null,communityPending:false,communityStale:false,privateQueued:false,arcade:null,arcadeRun:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
 const txt=(id,v)=>{const node=el(id),value=v==null?"—":String(v);if(node&&node.textContent!==value)node.textContent=value};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -384,7 +384,8 @@ async function request(path,method,body,mutation,unique){
 const get=path=>request(path);
 const post=(path,body,mutate,unique)=>request(path,"POST",body,mutate,unique);
 function section(name,{record=true,focus=true}={}){
- if(!["home","combat","boss","shop","cities","wire","activities","arcade","community"].includes(name))name="home";
+ if(!["home","combat","boss","shop","cities","wire","activities","arcade","community","staff"].includes(name))name="home";
+ if(name==="staff"&&S.staffAllowed!==true)name="home";
  document.querySelectorAll(".panel").forEach(n=>n.classList.toggle("active",n.id==="page-"+name));
  document.querySelectorAll(".nav-item").forEach(n=>{
   const active=n.dataset.nav===name;
@@ -393,6 +394,7 @@ function section(name,{record=true,focus=true}={}){
  });
  el("primaryNav").classList.remove("open");
  el("menuToggle").setAttribute("aria-expanded","false");
+ if(name==="staff")void refreshStaffDashboard();
  if(name==="shop")showShop();
  if(name==="community"){updateStreetsChat();showCommunity();void refreshCommunity()}
  if(name==="arcade"){showArcade();if(S.session){if(S.busy||S.privatePending)S.privateQueued=true;else void loadPrivate().catch(e=>notice(e.message,"error"))}}
@@ -429,7 +431,7 @@ function hasPlayIdentity(session,config){return !!session&&(!config?.staging||se
 function syncPlayIdentity(){
  const id=S.session?String(S.session.player_id):null;
  if(id===S.playIdentity)return;
- S.playIdentity=id;closeStreetsDock(false);disconnectStreetsChat();S.arcade=null;S.arcadeRun=null;S.arcadeBoard=null;S.arcadeBoardSeq++;showArcade();S.activities=null;el("activitiesResult")?.classList.add("hidden");showActivities();S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
+ S.playIdentity=id;S.staffAllowed=false;S.staffCheckedIdentity=null;S.staffData=null;updateStaffNavigation();closeStreetsDock(false);disconnectStreetsChat();S.arcade=null;S.arcadeRun=null;S.arcadeBoard=null;S.arcadeBoardSeq++;showArcade();S.activities=null;el("activitiesResult")?.classList.add("hidden");showActivities();S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
  S.pendingActions.clear();restorePending();
  el("targetSelect").value="";el("combatOutcome").classList.add("hidden");el("siegeOutcome").classList.add("hidden");el("bossRecap").classList.add("hidden");el("playFeedback").classList.add("hidden");
 }
@@ -1066,6 +1068,7 @@ async function readPrivate(){
   }else S.verification=null;
  }else{S.shop=null;S.world=null;S.hq=null;S.progress=null;S.targetsReady=false;S.targets=[];S.verification=null;}
  showMe();showTargets();showBoss();showShop();showCities();showActivities();showArcade();
+ void refreshStaffAccess();
 }
 function updateDiscardSubmit(){
  el("discardConfirm").disabled=!S.discard||!el("discardAcknowledge").checked||
@@ -1208,6 +1211,7 @@ async function refreshWire(){
 function bind(){
  bindActivities();bindArcade();
  if(el("communityRefresh"))el("communityRefresh").onclick=()=>void refreshCommunity();
+ if(el("staffRefresh"))el("staffRefresh").onclick=()=>void refreshStaffDashboard();
  if(el("streetsChatEnable"))el("streetsChatEnable").onclick=openStreetsChat;
  if(el("streetsChatDisconnect"))el("streetsChatDisconnect").onclick=disconnectStreetsChat;
  for(const btn of document.querySelectorAll("[data-chat-open],#streetsChatLauncher"))btn.addEventListener("click",openStreetsDock);
@@ -1393,6 +1397,7 @@ async function init(){
    if(el("page-cities").classList.contains("active")&&!S.territoryPending&&S.territoryDay==="current")void Promise.all([refreshTerritory(),refreshCityStandings()]);
    if(!S.wirePending)void refreshWire();
    if(el("page-community").classList.contains("active"))void refreshCommunity();
+   if(S.staffAllowed&&el("page-staff").classList.contains("active"))void refreshStaffDashboard();
    if(S.session&&["home","combat","boss","cities","activities","arcade"].some(name=>el("page-"+name).classList.contains("active"))&&!document.activeElement?.matches("input,select,textarea")&&el("authDialog").classList.contains("hidden"))
     void loadPrivate().catch(()=>{});
   };
@@ -1596,4 +1601,69 @@ async function refreshCommunity(){
  try{const c=await get("/v1/web/community");if(c.verified_only!==true||c.chat_relay!==false||!Array.isArray(c.cities))throw Error("Invalid community dispatch");S.community=c;S.communityStale=false}
  catch{S.communityStale=true}
  finally{S.communityPending=false;showCommunity()}
+}
+
+/* Staff-only read-only control centre, v2.9.8c. */
+function updateStaffNavigation(){
+ const menu=el("staffNav");
+ if(menu)menu.classList.toggle("hidden",S.staffAllowed!==true);
+ if(S.staffAllowed!==true&&el("page-staff")?.classList.contains("active"))section("home",{record:false,focus:false});
+}
+async function refreshStaffAccess(){
+ const id=S.session?String(S.session.player_id):null;
+ if(!id){S.staffCheckedIdentity=null;S.staffAllowed=false;S.staffData=null;updateStaffNavigation();return}
+ if(id===S.staffCheckedIdentity)return;
+ S.staffCheckedIdentity=id;S.staffAllowed=false;updateStaffNavigation();
+ try{
+   const a=await get("/v1/staff/access");
+   if(String(S.session?.player_id)!==id)return;
+   S.staffAllowed=a.allowed===true;
+ }catch{if(String(S.session?.player_id)===id)S.staffAllowed=false}
+ updateStaffNavigation();
+}
+function staffTime(v){
+ const t=Date.parse(v);return Number.isFinite(t)?new Date(t).toLocaleString([],{dateStyle:"medium",timeStyle:"short"}):"—";
+}
+function staffRow(label,value){
+ return "<div class='activity-line'><strong>"+esc(label)+"</strong><span>"+esc(value??"—")+"</span></div>";
+}
+function showStaffDashboard(){
+ const d=S.staffAllowed?S.staffData:null;
+ if(!el("staffStatus"))return;
+ el("staffRefresh").disabled=!!(S.staffPending||!S.staffAllowed);
+ txt("staffStatus",!S.staffAllowed?"Authorised staff only.":S.staffPending?"Refreshing audited game records…":S.staffStale?"Refresh failed — showing last retrieved data.":!d?"Select Refresh control centre to load records.":("Verified "+staffTime(d.server_time)+" · "+String(d.phase).toUpperCase()+" · Day "+(d.game_day??"—")+" / 7 · Read-only QA"));
+ if(!d){
+  for(const id of ["staffMetrics","staffSchedule","staffRisks","staffBoss","staffPlayers","staffDaily","staffAudit","staffPrizes"])el(id).innerHTML="";
+  txt("staffPlayersStatus","");txt("staffPrizeNote","");return;
+ }
+ const t=d.totals||{},risk=d.risks||{},times=d.schedule||{};
+ el("staffMetrics").innerHTML=[["Registered",t.players],["Flagged",t.flagged],["Ledger entries",t.score_rows],["Snowball attacks",t.combat],["Boss & siege actions",t.boss_siege],["Recorded awards",t.award_rows]].map(([k,v])=>"<div class='activity-card'><small>"+esc(k)+"</small><strong>"+fmt(v)+"</strong></div>").join("");
+ el("staffSchedule").innerHTML=staffRow("Current phase",String(d.phase).toUpperCase())+staffRow("Registration opens",staffTime(times.registration_opens))+staffRow("Scheduled kickoff",staffTime(times.planned_start))+staffRow("Actual kickoff",staffTime(times.started_at))+staffRow("Paused since",staffTime(times.paused_at))+staffRow("Projected completion",staffTime(times.projected_end))+staffRow("Accumulated pause",fmt(times.pause_seconds)+" seconds");
+ const risks=[["Flagged players","flagged_players"],["Invalid resource balances","invalid_balances"],["Combat–ledger mismatches","pvp_ledger_mismatches"],["PvP over-cap days","pvp_over_cap"],["Quest over-cap days","quest_over_cap"],["Unbacked quest credits","quest_unbacked"],["Missing quest credits","quest_missing"],["Defense mismatches","defense_mismatches"],["Arcade attempt violations","arcade_over_limit"]];
+ el("staffRisks").innerHTML="<p><strong>Reconciliation: "+(d.reconciliation_ok?"PASS":"REVIEW REQUIRED")+"</strong></p>"+risks.map(([name,key])=>staffRow(name,fmt(risk[key]))).join("")+"<p class='subtle'>"+fmt(t.unlinked)+" QA characters without Underworld links (may include intentional fixtures).</p>";
+ const boss=d.boss;
+ const bs=boss?"<p>"+esc(boss.theme)+" · Day "+fmt(boss.day)+"</p>"+staffRow("Snow Don HP",fmt(boss.boss_hp)+" / "+fmt(boss.boss_initial_hp)):"<p>The Snow Don has not been initialised for this event day.</p>";
+ el("staffBoss").innerHTML=bs+(d.sieges||[]).map(s=>staffRow(s.city,fmt(s.hp)+" / "+fmt(s.initial_hp)+" HP")).join("");
+ el("staffPlayers").innerHTML=(d.players||[]).map(p=>"<tr><td>"+esc(p.mr_username)+"</td><td>"+esc(p.city)+"</td><td>"+fmt(p.score)+"</td><td>"+esc(p.review_state)+"</td></tr>").join("")||"<tr><td colspan='4'>No registered characters.</td></tr>";
+ txt("staffPlayersStatus",fmt((d.players||[]).length)+" shown · "+fmt(t.players)+" registered · "+fmt(t.disqualified)+" disqualified. No automatic sanctions.");
+ el("staffDaily").innerHTML=(d.days||[]).map(x=>staffRow("Day "+fmt(x.day)+" · "+x.category,fmt(x.points)+" points · "+fmt(x.entries)+" entries")).join("")||"<p>No ledger entries yet.</p>";
+ el("staffAudit").innerHTML=(d.audit||[]).map(x=>"<div class='staff-audit-line'><strong>"+esc(x.action)+"</strong><span>"+staffTime(x.created_at_utc)+"</span><p>"+esc(x.reason)+"</p></div>").join("")||"<p>No staff audit events recorded.</p>";
+ el("staffPrizes").innerHTML=(d.prize_preview||[]).map(x=>staffRow("Place "+fmt(x.place)+" · "+x.name+" ("+x.city+")",fmt(x.points)+" points")).join("")||"<p>No eligible positive-score candidates yet.</p>";
+ txt("staffPrizeNote",d.prize_policy+" · "+fmt(t.award_rows)+" existing award rows.");
+}
+async function refreshStaffDashboard(){
+ if(!S.staffAllowed||S.staffPending)return;
+ const id=String(S.session?.player_id||"");
+ S.staffPending=true;showStaffDashboard();
+ try{
+  const data=await get("/v1/staff/control");
+  if(String(S.session?.player_id)!==id||!S.staffAllowed)return;
+  if(data.read_only!==true||data.scope!=="ISOLATED_QA_ONLY"||data.official_prizes_enabled!==false)throw Error("Unexpected control centre permissions");
+  S.staffData=data;S.staffStale=false;
+ }catch(e){
+  if(String(S.session?.player_id)===id){
+   S.staffStale=true;
+   if(e.status===401||e.status===403){S.staffAllowed=false;S.staffData=null;updateStaffNavigation()}
+  }
+ }finally{S.staffPending=false;showStaffDashboard()}
 }
