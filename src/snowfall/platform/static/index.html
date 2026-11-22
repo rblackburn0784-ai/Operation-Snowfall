@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#101b25">
-  <meta name="snowfall-web-release" content="2.9.8g">
+  <meta name="snowfall-web-release" content="2.9.8h">
   <meta name="description" content="Operation Snowfall — the seven-day winter city showdown. Isolated staging preview.">
   <title>Operation Snowfall | The Winter Underworld</title>
   <link rel="icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/static/app.css?v=298g-r1">
-  <script defer src="/static/app.js?v=298g-r1"></script>
+  <link rel="stylesheet" href="/static/app.css?v=298h-r1">
+  <script defer src="/static/app.js?v=298h-r1"></script>
 </head>
 <body>
   <a class="skip-link" href="#mainContent">Skip to game content</a>
@@ -142,14 +142,15 @@
             <div class="collector-card" id="hqCollector" data-rarity="Common">
               <img class="collector-office" src="/art/v290/cosmetics/backgrounds/headquarters.webp" alt="" loading="lazy">
               <div class="collector-shade"></div>
-              <div id="hqBannerWell" class="collector-banner-well hidden"><img id="hqBanner" class="collector-banner hidden" alt=""></div>
               <div class="collector-layout">
                 <div class="collector-profile">
+                  <div id="hqBannerWell" class="collector-banner-well"><img id="hqBanner" class="collector-banner hidden" alt=""><strong id="hqBannerText" class="collector-banner-name">Your character</strong></div>
                   <div class="portrait-well" id="hqPortraitWell">
                     <img id="hqPortrait" class="portrait-layer" src="/art/v290/portraits/recruit_m.webp" alt="Recruit profile">
                     <img id="hqTrail" class="trail-layer hidden" alt="">
                     <img id="hqGear" class="gear-layer hidden" alt="">
                     <img id="hqFrame" class="frame-layer hidden" alt="">
+                    <span id="hqSnowball" class="snowball-foreground" aria-hidden="true"></span>
                   </div>
                   <button class="button button-outline button-small" data-nav="shop">Edit appearance</button>
                 </div>
@@ -266,12 +267,29 @@
         <section id="page-combat" class="panel" aria-labelledby="combatTitle">
           <div class="section-heading"><div><p class="eyebrow">THE STREETS ARE GETTING SLIPPERY</p><h2 id="combatTitle">Snowball Alley</h2></div><span class="pill">PvP / REAL GAME RULES</span></div>
           <p class="section-desc">Choose a rival and throw. Standard is a balanced shot; the game handles the rules.</p><div class="play-action-status" id="combatStatus" role="status">Sign in to find rivals.</div>
-          <div class="action-card">
-            <img class="mode-art" src="/art/v290/combat/snowball_volley.png" alt="Illustrated snowball volley" loading="lazy">
+          <div class="action-card alley-action-card">
+            <div class="rival-stage" aria-label="Selected rival's actual equipped appearance">
+              <div id="rivalEmpty" class="rival-empty"><img src="/art/v290/combat/snowball_volley.png" alt="" loading="lazy"><span>Choose an eligible rival to see their outfit.</span></div>
+              <div id="rivalAppearance" class="rival-appearance hidden">
+                <div id="rivalBannerWell" class="collector-banner-well"><img id="rivalBanner" class="collector-banner hidden" alt=""><strong id="rivalBannerText" class="collector-banner-name">Rival</strong></div>
+                <div id="rivalPortraitWell" class="portrait-well">
+                  <img id="rivalPortrait" class="portrait-layer" src="/art/v290/portraits/recruit_m.webp" alt="Selected rival portrait">
+                  <img id="rivalTrail" class="trail-layer hidden" alt="">
+                  <img id="rivalGear" class="gear-layer hidden" alt="">
+                  <img id="rivalFrame" class="frame-layer hidden" alt="">
+                  <span id="rivalSnowball" class="snowball-foreground" aria-hidden="true"></span>
+                </div>
+                <p id="rivalVisualStatus" class="rival-appearance-note" role="status">Verified equipped outfit</p>
+              </div>
+            </div>
             <div class="action-main"><h3>Choose your rival</h3><p>Only currently eligible opponents appear. Entering the arena allows rivals to challenge you.</p>
               <div class="controls-grid">
                 <label>Rival<select id="targetSelect"><option value="">Sign in to discover rivals</option></select></label>
                 <label>Throwing style<select id="throwStyle"><option value="quick">Quick Shot</option><option value="standard" selected>Standard Throw</option><option value="power">Power Shot</option><option value="golden">Golden Snowball</option></select></label>
+              </div>
+              <div id="alleyLoadout" class="alley-loadout">
+                <div id="alleyLoadoutIcon" class="alley-loadout-icon" data-style="standard" aria-hidden="true"><span class="snowball-foreground"></span></div>
+                <div><strong id="alleyLoadoutName">Your snowball: Standard Throw</strong><small id="alleyLoadoutDetail">Equip a Snowstorm or Candy Cane Trail in Winter Market to customise its appearance.</small></div>
               </div>
               <p id="targetDetail" class="subtle" role="status"></p><p id="throwStyleHint" class="subtle"></p>
               <div class="actions-inline"><button class="button button-gold" id="throwButton">❄ Throw snowball</button><button class="button button-outline" id="readyButton">Enter arena</button><button class="button button-ghost" id="findTargets">Find rivals ↻</button></div>
@@ -314,11 +332,13 @@
             <p class="section-desc" id="fitStatus" role="status">Preview any item for free. Your equipped outfit is unchanged.</p>
             <div class="fitting-stage" id="fitCollector" data-rarity="Common">
               <img class="collector-office" src="/art/v290/cosmetics/backgrounds/headquarters.webp" alt="" loading="lazy"><div class="collector-shade"></div>
-              <div id="fitBannerWell" class="collector-banner-well hidden"><img id="fitBanner" class="collector-banner hidden" alt=""></div>
               <div class="fitting-layout">
-                <div class="collector-profile"><div class="portrait-well" id="fitPortraitWell">
+                <div class="collector-profile">
+                  <div id="fitBannerWell" class="collector-banner-well"><img id="fitBanner" class="collector-banner hidden" alt=""><strong id="fitBannerText" class="collector-banner-name">Guest fitting model</strong></div>
+                  <div class="portrait-well" id="fitPortraitWell">
                   <img id="fitPortrait" class="portrait-layer" src="/art/v290/portraits/recruit_m.webp" alt="Recruit profile">
                   <img id="fitTrail" class="trail-layer hidden" alt=""><img id="fitGear" class="gear-layer hidden" alt=""><img id="fitFrame" class="frame-layer hidden" alt="">
+                  <span id="fitSnowball" class="snowball-foreground" aria-hidden="true"></span>
                 </div><p id="fitRarity" class="hq-rarity">Common style preview</p></div>
                 <div class="fit-outfit"><p class="eyebrow">PREVIEW ONLY · NOT EQUIPPED</p><h3 id="fitPlayerName">Guest fitting model</h3><dl class="equipped-list">
                   <div><dt>Portrait</dt><dd id="fitPortraitName">Recruit</dd></div><div><dt>Frame</dt><dd id="fitFrameName">None</dd></div><div><dt>Banner</dt><dd id="fitBannerName">None</dd></div><div><dt>Gear</dt><dd id="fitGearName">None</dd></div><div><dt>Trail</dt><dd id="fitTrailName">None</dd></div>
