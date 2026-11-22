@@ -59,13 +59,15 @@ class DemoLogin(BaseModel):
 
 
 class StaffLabAction(BaseModel):
-    action: Literal["start", "day", "pvp", "boss", "siege", "resupply", "end"]
+    action: Literal["start", "day", "pvp", "boss", "siege", "resupply", "end",
+                    "configure", "arcade", "mission", "simulate_week", "reset_all"]
     day: int | None = Field(default=None, ge=1, le=7)
     reason: str = Field(min_length=8, max_length=220)
     confirmation: str = Field(default="", max_length=40)
     request_id: str = Field(min_length=16, max_length=96,
                             pattern=r"^[A-Za-z0-9_-]+$")
     session_id: str | None = Field(default=None, pattern=r"^[0-9a-f]{32}$")
+    options: dict[str, str | int] = Field(default_factory=dict, max_length=8)
 
 
 def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None, game=None) -> FastAPI:
@@ -156,7 +158,8 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None, game=
         # All operations run against a disposable per-staff SQLite file.
         # Not a bot control relay and never a command against shared QA.
         return lab.act(actor, body.action, body.day, body.reason,
-                       body.confirmation, body.request_id, body.session_id)
+                       body.confirmation, body.request_id, body.session_id,
+                       options=body.options)
 
     @app.get("/v1/web/config")
     def config():
