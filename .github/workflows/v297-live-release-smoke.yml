@@ -294,11 +294,14 @@ jobs:
                   assert page.locator("#page-staff").is_hidden()
                   state["staff"]=True
                   page.evaluate("S.staffCheckedIdentity=null;refreshStaffAccess()")
-                  expect(page.locator("#staffNav")).to_be_visible(timeout=30000)
+                  page.wait_for_function("!document.getElementById('staffNav').classList.contains('hidden')")
                   if w>780:
+                      expect(page.locator("#staffNav")).to_be_visible()
                       page.locator("#staffNav").click()
                   else:
-                      page.evaluate("section('staff')")
+                      page.locator("#menuToggle").click()
+                      expect(page.locator("#staffNav")).to_be_visible()
+                      page.locator("#staffNav").click()
                   expect(page.locator("#page-staff")).to_be_visible()
                   expect(page.locator("#staffPlayers")).to_contain_text("QA Tester",timeout=30000)
                   expect(page.locator("#staffRisks")).to_contain_text("Reconciliation: PASS")
@@ -307,7 +310,8 @@ jobs:
                   assert page.evaluate("document.documentElement.scrollWidth-innerWidth")<=2
                   state["staff"]=False
                   page.evaluate("S.staffCheckedIdentity=null;refreshStaffAccess()")
-                  expect(page.locator("#staffNav")).to_be_hidden(timeout=30000)
+                  page.wait_for_function("document.getElementById('staffNav').classList.contains('hidden')")
+                  expect(page.locator("#staffNav")).to_be_hidden()
                   expect(page.locator("#page-staff")).to_be_hidden()
                   nav("home")
                   page.locator("#page-home [data-nav='community']").click()
