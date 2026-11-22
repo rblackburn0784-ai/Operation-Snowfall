@@ -760,3 +760,106 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
 @media(max-width:980px){.staff-search-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.staff-search-controls label:first-child{grid-column:1/-1}}
 @media(max-width:680px){.staff-dossier-facts,.staff-dossier-columns,.staff-review-form .staff-lab-config{grid-template-columns:minmax(0,1fr)}.staff-review-form .staff-lab-config label:last-child{grid-column:auto}.staff-search-controls{grid-template-columns:minmax(0,1fr)}.staff-search-controls label:first-child{grid-column:auto}.staff-case-desk .staff-player-pager button{min-width:0;flex:1 1 90px}}
 @media(max-width:360px){.staff-dossier,.staff-review-form{padding:.7rem}.staff-case-desk .staff-player-pager{gap:.25rem}.staff-case-desk #staffPlayerPage{font-size:.65rem}}
+
+/* v2.9.8g — navigation grouped by task. No artwork or gameplay changes.
+   A single-row desktop header switches to a stacked, accessible menu before
+   the brand, navigation and staff actions can collide. */
+.topbar,.topbar.has-city-header{
+ display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr) auto;
+ align-items:center;column-gap:clamp(.5rem,1.4vw,1.2rem);row-gap:.5rem;
+ min-height:86px;padding:.65rem max(2.5%,calc((100vw - 1440px)/2));
+}
+.topbar .brand{min-width:0;justify-self:start}
+.topbar.has-city-title .brand .header-banner{width:clamp(190px,18vw,286px);max-width:100%}
+.topbar .topnav{display:flex;min-width:0;flex:1 1 auto;flex-basis:auto;align-items:center;justify-content:center;flex-wrap:nowrap;gap:clamp(.1rem,.6vw,.5rem);width:100%;border:0;padding:0;order:initial}
+.topbar-actions{display:flex;flex-wrap:nowrap;min-width:0;gap:.4rem;justify-self:end;margin-left:0}
+.topbar-actions .button{white-space:nowrap}
+.topbar .nav-home,.topbar .nav-group-trigger{
+ min-height:44px;padding:.76rem clamp(.55rem,.8vw,.9rem);
+ border-radius:4px;font-size:.7rem;font-weight:850;letter-spacing:.07em;
+ text-transform:uppercase;white-space:nowrap;color:#edf3f4;
+ text-shadow:0 1px 3px #000;background:rgba(12,28,39,.48);
+ border:1px solid transparent
+}
+.topbar .nav-home{width:auto}
+.topbar .nav-group-trigger{display:flex;align-items:center;justify-content:center;gap:.5rem}
+.topbar .nav-group-trigger:hover,.topbar .nav-group-trigger.active,.topbar .nav-group.open .nav-group-trigger,.topbar .nav-home:hover,.topbar .nav-home.active{
+ color:#f6d99d;background:#203d4eea;border-color:#8d744a;
+ box-shadow:inset 0 -2px #e3bb73
+}
+.nav-chevron{display:inline-block;font-size:1.1rem;font-weight:650;line-height:1;transition:transform .16s ease;transform:translateY(-2px)}
+.nav-group.open .nav-chevron{transform:rotate(180deg) translateY(2px)}
+.nav-group{position:relative;min-width:0}
+.nav-popover{
+ display:none;position:absolute;top:calc(100% + 7px);left:50%;
+ transform:translateX(-50%);width:270px;max-width:calc(100vw - 30px);
+ padding:.35rem;background:#102735;border:1px solid #8a785a;border-radius:6px;
+ box-shadow:0 18px 40px rgba(0,0,0,.55);z-index:50;gap:.15rem
+}
+.nav-group.open .nav-popover{display:grid}
+.topbar .nav-popover .nav-item{
+ display:block;min-height:54px;text-align:left;width:100%;padding:.7rem .85rem;
+ border-radius:3px;white-space:normal;font-size:.8rem;letter-spacing:0;
+ text-transform:none;line-height:1.25;color:#ecf4f4
+}
+.nav-popover .nav-item strong{display:block;font:800 .85rem system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+.nav-popover .nav-item small{display:block;font-size:.71rem;font-weight:450;letter-spacing:0;color:#b4c9d0;margin-top:.3rem}
+.topbar .nav-popover .nav-item.active,.topbar .nav-popover .nav-item:hover,.topbar .nav-popover .nav-item:focus-visible{
+ background:#29495a;color:#f6daab;box-shadow:inset 3px 0 #dfb471
+}
+.nav-popover .nav-chat-action{border-top:1px solid #46606c;border-radius:0;margin-top:.2rem}
+@media(max-width:1480px){#streetsTopLink{display:none!important}}
+@media(max-width:1200px){
+ .topbar,.topbar.has-city-header{
+  grid-template-columns:minmax(0,1fr) auto;column-gap:.5rem;
+  min-height:76px;padding:.6rem 3%;position:relative
+ }
+ .topbar.has-city-title .brand .header-banner{width:clamp(172px,23vw,260px)}
+ .topbar-actions{grid-column:2;grid-row:1;margin:0}
+ .topbar .menu-toggle{display:inline-flex}
+ .topbar .topnav{display:none!important;order:initial;grid-column:1 / -1;grid-row:2}
+ .topbar .topnav.open{
+  display:flex!important;position:absolute;left:0;right:0;top:100%;
+  width:100%;max-height:min(76vh,680px);overflow-y:auto;overflow-x:hidden;
+  flex-direction:column;align-items:stretch;justify-content:flex-start;gap:.2rem;
+  padding:.7rem max(3%,14px) 1rem;background:#0d222fee;
+  border:1px solid #677b84;border-top:2px solid #cda263;
+  box-shadow:0 22px 36px #010910bd;z-index:60
+ }
+ .topbar .topnav.open .nav-home{width:100%;text-align:left;min-height:48px}
+ .topbar .topnav.open .nav-group{position:static;width:100%}
+ .topbar .topnav.open .nav-group-trigger{
+  width:100%;min-height:48px;text-align:left;justify-content:space-between;
+  padding:.75rem 1rem
+ }
+ .topbar .topnav.open .nav-popover{
+  position:static;left:auto;top:auto;transform:none;
+  width:100%;max-width:none;box-shadow:none;border:0;
+  border-left:2px solid #9b814f;background:#162e3d;
+  border-radius:2px;padding:.3rem .35rem .35rem .6rem;margin:.15rem 0 .35rem;
+  grid-template-columns:repeat(2,minmax(0,1fr));gap:.35rem
+ }
+ .topbar .topnav.open .nav-popover .nav-item{min-height:52px}
+}
+@media(max-width:780px){
+ .topbar,.topbar.has-city-header{padding:.45rem 3%;min-height:70px}
+ .topbar.has-city-title .brand .header-banner{width:clamp(135px,31vw,215px)}
+ .topbar-actions{gap:.32rem}
+ .topbar .topnav.open .nav-popover{grid-template-columns:1fr}
+}
+@media(max-width:560px){
+ #staffShortcut{display:none!important}
+ .topbar .brand-icon{width:36px;height:36px}
+ .topbar.has-city-title .brand .header-banner{width:clamp(115px,30vw,175px)}
+ .topbar-actions .button{min-height:40px;font-size:.64rem;padding:.55rem .65rem;letter-spacing:.02em}
+ .topbar .topnav.open{max-height:calc(100dvh - 95px)}
+}
+@media(max-width:380px){
+ .topbar,.topbar.has-city-header{column-gap:.24rem}
+ .topbar .brand{gap:.24rem}
+ .topbar .brand-icon{width:30px;height:30px}
+ .topbar.has-city-title .brand .header-banner{width:108px}
+ .topbar-actions{gap:.22rem}
+ .topbar-actions .button{padding:.48rem .48rem;font-size:.6rem}
+}
+@media(prefers-reduced-motion:reduce){.nav-chevron{transition:none}}
