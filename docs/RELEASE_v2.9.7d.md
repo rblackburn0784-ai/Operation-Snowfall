@@ -10,3 +10,6 @@ This is a staging release, not a production event launch. Shared API and schema 
 Release gates: green CI (Linux, Windows, PostgreSQL), green real-browser smoke, latest Railway deployment, QA_RELEASE_AUDIT without blockers, manual desktop/mobile visual review and real linked fictional-player Discord/Underworld round trip plus daily rollover. No duplicate reward or exploit guarantee beyond tested cases. Do not promote the QA database or award prizes.
 
 Rollback QA web to 0c0e25ee99b5e0d12d6d7445ab2212b6374d0a33 if required.
+
+### Manual screenshot review follow-up
+The first browser run passed internal geometry, but the mobile newspaper was visibly clipped on the right. Explicitly constrain the aspect-ratio front page to its parent width; add an independent outer-width and overflow assertion and suppress transient fixed UI only in newspaper screenshot capture. A fresh browser run and screenshot review are required before visual sign-off.

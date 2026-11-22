@@ -202,6 +202,12 @@ jobs:
                   expect(page.locator("#wireLead")).to_contain_text("QA Winter Player")
                   page.locator("#wireDay").select_option("current")
                   expect(page.locator("#wireEdition")).to_contain_text("DAY 2 / 7")
+                  # A child can be internally well aligned yet clipped by its parent.
+                  width=page.locator(".wire-frontpage").evaluate("""n=>{
+                      const p=n.parentElement.getBoundingClientRect(),r=n.getBoundingClientRect();
+                      return {left:r.left-p.left,right:r.right-p.right,width:r.width,parent:p.width,scroll:n.scrollWidth-n.clientWidth};
+                  }""")
+                  assert abs(width["left"])<=2 and abs(width["right"])<=2 and abs(width["width"]-width["parent"])<=2 and width["scroll"]<=2,width
                   geometry=page.locator(".wire-frontpage").evaluate("""n=>{
                       const box=n.getBoundingClientRect();
                       return [...n.querySelectorAll('.wire-edition-line,.wire-lead-block,.wire-story')].map(e=>{
@@ -214,7 +220,7 @@ jobs:
                       assert b["overflow"]<=3,b
                   assert .12<geometry[0]["y"]<.16 and .25<geometry[1]["y"]<.31,geometry
                   assert geometry[2]["x"]<geometry[3]["x"] and geometry[2]["y"]<geometry[4]["y"],geometry
-                  page.locator("#wirePaper").screenshot(path=f"qa-screenshots/{label}-newspaper.png")
+                  page.locator("#wirePaper").screenshot(path=f"qa-screenshots/{label}-newspaper.png",style=".play-status,.play-feedback,.play-dock,.toast{visibility:hidden!important}")
                   expect(page.locator("#siteBanner")).to_be_visible()
                   assert page.locator("#siteBanner").evaluate("n=>n.complete&&n.naturalWidth>0")
                   assert page.locator(".topbar").evaluate("n=>getComputedStyle(n).backgroundImage.includes('snowfall-header-city.webp')")
