@@ -20,7 +20,7 @@ The persistent chat shortcut remains available on extra-wide screens. Staff reta
 - **Desktop (>1200px):** a one-line, three-column header keeps the original city artwork and logo left, four primary navigation choices centred, and account/staff actions right. Submenus are aligned below their trigger and are not squashed into a second row.
 - **Tablet and small browser windows (<=1200px):** compact Menu button replaces the middle navigation bar. The expandable, scrollable menu opens beneath the header without moving the underlying game content.
 - **Small screens (<=780px):** one-column menu choices, readable labels and generous touch targets.
-- **Narrow phones (<=560px):** redundant staff/chat action buttons leave the header; the same actions remain available inside the menu, avoiding collisions with the logo and Sign In/Out.
+- **Narrow screens (<=680px):** redundant staff/chat action buttons leave the header; the same actions remain available inside the menu, avoiding collisions with the logo and Sign In/Out.
 - **320–380px:** compact brand and controls; no squeezed multi-row top navigation.
 
 Group cards include a short description for each section. The selected section highlights its parent group. Menu entries remain real buttons with the same `data-nav` routes as prior releases, so deep links, ordinary page navigation and staff access checks remain unchanged.
