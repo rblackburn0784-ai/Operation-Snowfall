@@ -847,8 +847,8 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
  .topbar-actions{gap:.32rem}
  .topbar .topnav.open .nav-popover{grid-template-columns:1fr}
 }
+@media(max-width:680px){#staffShortcut{display:none!important}}
 @media(max-width:560px){
- #staffShortcut{display:none!important}
  .topbar .brand-icon{width:36px;height:36px}
  .topbar.has-city-title .brand .header-banner{width:clamp(115px,30vw,175px)}
  .topbar-actions .button{min-height:40px;font-size:.64rem;padding:.55rem .65rem;letter-spacing:.02em}
