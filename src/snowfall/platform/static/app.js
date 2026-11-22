@@ -146,6 +146,12 @@ function showSnowballLoadout(style){
  const title=Object.hasOwn(THROW_STYLE_NAMES,style)?THROW_STYLE_NAMES[style]:THROW_STYLE_NAMES.standard;
  well.dataset.trail=trail||"none";
  well.dataset.style=style||"standard";
+ const trailArt=el("alleyLoadoutTrail");
+ if(trailArt){
+  trailArt.classList.toggle("hidden",!trail);
+  if(trail)trailArt.setAttribute("src",COSMETIC_ART[trail]);
+  else trailArt.removeAttribute("src");
+ }
  txt("alleyLoadoutName","Your snowball · "+title);
  const addon=trail?cosmeticName(trail)+" equipped from Winter Market":
     S.shop?"Default snowball · equip a Snowstorm or Candy Cane Trail in Winter Market":
