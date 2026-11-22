@@ -974,7 +974,7 @@ async function readPrivate(){
   S.arcade=results[6]?.status==="fulfilled"?results[6].value:null;
   if(S.arcadeRun&&S.arcade&&String(S.arcade.player_id)===String(S.session.player_id)){
    if(S.arcadeRun.day!==S.arcade.day)S.arcadeRun=null;
-   else try{S.arcadeRun=await get("/v1/game/arcade/session/"+encodeURIComponent(S.arcadeRun.session_id))}
+   else try{S.arcadeRun=await get("/v1/game/arcade/session/"+encodeURIComponent(S.arcadeRun.session_id));reconcileArcadeMoves(S.arcadeRun)}
    catch{S.arcadeRun=null}
   }
   S.hqClock=Number.isFinite(Date.parse(S.hq?.server_time))?Date.parse(S.hq.server_time)-Date.now():0;
@@ -1463,7 +1463,7 @@ function bindArcade(){
       await post("/v1/game/arcade/start",{mode:value,day:a.day,attempts_today:record.attempts_today},true);
     S.arcadeRun=run;S.arcadeBoard=null;el("arcadeRun").classList.remove("hidden");
     notice(run.finished?"Run already completed.":"Arcade run ready.","success");
-   });
+   }).then(()=>{if(S.arcadeRun&&el("page-arcade").classList.contains("active"))el("arcadeRun").scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"})});
   }else if(action==="move"&&S.arcadeRun&&!S.arcadeRun.finished&&S.arcadeRun.current?.choices?.includes(value)){
    const body={session_id:S.arcadeRun.session_id,step:S.arcadeRun.step,choice:value};
    act(async()=>{
@@ -1473,4 +1473,14 @@ function bindArcade(){
   }
   showArcade();
  });
+}
+
+function reconcileArcadeMoves(run){
+ const prefix=String(S.session?.player_id)+"|/v1/game/arcade/move|";
+ let changed=false;
+ for(const key of S.pendingActions.keys()){
+  if(!key.startsWith(prefix))continue;
+  try{const b=JSON.parse(key.slice(prefix.length));if(b.session_id===run.session_id&&b.step<run.step){S.pendingActions.delete(key);changed=true}}catch{}
+ }
+ if(changed)savePending();
 }

@@ -1,4 +1,4 @@
-name: v2.9.8 live player experience smoke
+name: v2.9.8a live Winter Arcade smoke
 on:
   push:
     branches: [qa/v2.9.7-live-release-smoke]
@@ -52,7 +52,7 @@ jobs:
                   if i==83: raise
                   time.sleep(5)
           assets=pathlib.Path("src/snowfall/graphics/art")
-          paths=list((assets/"v290/portraits").glob("*.webp"))+list((assets/"v290/cosmetics/gear").glob("*.png"))+list((assets/"v290/cosmetics/trails").glob("*.png"))+list((assets/"v290/cities/crests").glob("*.png"))+list((assets/"cities").glob("*.webp"))+[assets/"v290/items/siege.png"]
+          paths=list((assets/"v290/portraits").glob("*.webp"))+list((assets/"v290/cosmetics/gear").glob("*.png"))+list((assets/"v290/cosmetics/trails").glob("*.png"))+list((assets/"v290/cities/crests").glob("*.png"))+list((assets/"cities").glob("*.webp"))+[assets/"v290/items/siege.png"]+list((assets/"v290/arcade").glob("*.webp"))
           for file in paths:
               assert hashlib.sha256(get("/art/"+str(file.relative_to(assets)))).digest()==hashlib.sha256(file.read_bytes()).digest(),file
           for file in sorted(static.iterdir()):
@@ -85,11 +85,29 @@ jobs:
               for label,w,h in [("desktop",1440,1000),("mobile",390,844),("small-mobile",320,740)]:
                   state={"guest":False,"hp":42,"attempts":1,"points":8,"ammo":10,"score":42,"equipped":{"frame":"gold_frame","gear":"goggles","trail":"snow_trail","portrait":"frost_spectre_f"}}
                   page=browser.new_page(viewport={"width":w,"height":h},device_scale_factor=1,reduced_motion="reduce")
-                  errors=[];writes=[];page.on("pageerror",lambda e:errors.append(str(e)))
+                  errors=[];writes=[];arcade_writes=[];page.on("pageerror",lambda e:errors.append(str(e)))
+                  modes=[("gallery","Snowball Target Gallery",5),("safe","Frozen Safecracker",3),("snowman","Snowman Builder",4),("catch","Snowflake Catch",5),("trivia","Christmas Trivia",5)]
+                  run_id="a"*32
+                  def arcade_run():
+                      step=state.get("arcade_step",0)
+                      return {"session_id":run_id,"mode":"gallery","title":"Snowball Target Gallery","day":2,"attempt":1,"step":step,"total_rounds":5,"score":step*20,"finished":step==5,"feedback":"Fictional correct choice." if step else "","played_choices":["Bell"]*step,"current":None if step==5 else {"index":step+1,"total":5,"prompt":"Choose the bell.","choices":["Bell","Cocoa","Star"],"category":"Gallery"}}
                   def route_request(route):
                       req=route.request;url=urlsplit(req.url);path=url.path
                       def reply(data,status=200):route.fulfill(status=status,content_type="application/json",body=json.dumps(data))
                       if req.method not in ("GET","HEAD"):
+                          if path in ("/v1/game/arcade/start","/v1/game/arcade/move"):
+                              assert req.headers.get("x-snowfall-csrf")=="fixture-csrf"
+                              assert req.headers.get("x-snowfall-player")==fake
+                              body=req.post_data_json
+                              if path.endswith("/start"):
+                                  assert body=={"mode":"gallery","day":2,"attempts_today":0},body
+                                  state["arcade_started"]=True
+                                  reply(arcade_run());return
+                              assert req.headers.get("idempotency-key")
+                              assert body=={"session_id":run_id,"step":state.get("arcade_step",0),"choice":"Bell"},body
+                              arcade_writes.append(req.headers["idempotency-key"])
+                              state["arcade_step"]=state.get("arcade_step",0)+1
+                              reply({"session":arcade_run(),"right":True,"delta":20,"feedback":"Fictional correct choice.","repeated":False,"new_stamps":["played_gallery"] if state["arcade_step"]==5 else []});return
                           if path=="/v1/game/activities/action":
                               body=req.post_data_json
                               assert req.headers.get("x-snowfall-csrf")=="fixture-csrf"
@@ -117,6 +135,15 @@ jobs:
                       elif path=="/v1/game/wardrobe":reply({"balance":53,"unlocked":list(set(state["equipped"].values())|set(keys[1:])), "equipped":state["equipped"]})
                       elif path=="/v1/game/world":reply({"day":2,"city":"Chicago","boss_hp":76,"boss_max_hp":150,"boss_attempts":1,"boss_points":5,"siege_hp":state["hp"],"siege_max_hp":72,"siege_attempts":state["attempts"],"siege_points":state["points"],"boss_enabled":True})
                       elif path=="/v1/game/progress":reply({"registered":True,"score":state["score"],"snowballs":state["ammo"],"snowflakes":53,"boss_hp":76,"boss_max_hp":150,"inventory":{}})
+                      elif path=="/v1/game/arcade":
+                          started=state.get("arcade_started",False);finished=state.get("arcade_step",0)==5
+                          reply({"player_id":fake,"day":2,"phase":"live","daily_cap":3,"completed":int(finished),"bests_total":100 if finished else 0,
+                                 "games":[{"key":key,"title":title,"rounds":rounds,"award_name":"Fixture ribbon","description":"Choose an answer."} for key,title,rounds in modes],
+                                 "records":[{"mode":key,"name":title,"personal_best":100 if key=="gallery" and finished else 0,"games_played":int(key=="gallery" and finished),"attempts_today":int(key=="gallery" and started),"active_id":run_id if key=="gallery" and started and not finished else None} for key,title,rounds in modes],
+                                 "stamps":["played_gallery"] if finished else [],"stamp_labels":{"played_gallery":"Gallery ticket"}})
+                      elif path=="/v1/game/arcade/session/"+run_id:reply(arcade_run())
+                      elif path=="/v1/game/arcade/board":
+                          q=parse_qs(url.query);reply({"mode":q.get("mode",["gallery"])[0],"daily":q.get("daily",["false"])[0]=="true","players":[{"name":"QA Winter Player","city":"Chicago","best":100,"games":1}],"cities":[{"city":"Chicago","score":100,"players":1}]})
                       elif path=="/v1/game/activities":
                           found=state.get("clue_found",False)
                           reply({"player_id":fake,"day":2,"phase":"live",
@@ -219,6 +246,26 @@ jobs:
                   expect(clue).to_be_disabled()
                   page.locator("#activitiesContent").screenshot(path=f"qa-screenshots/{label}-activities.png")
                   assert page.evaluate("document.documentElement.scrollWidth-innerWidth")<=2
+                  page.locator("#page-activities [data-nav='arcade']").click()
+                  expect(page.locator("#page-arcade")).to_be_visible()
+                  expect(page.locator("#arcadeLobby .arcade-card")).to_have_count(5)
+                  page.locator("#arcadeLobby [data-value='gallery']").click()
+                  expect(page.locator("#arcadeRun")).to_contain_text("Round 1 / 5")
+                  for step in range(5):
+                      choice=page.locator("#arcadeRun [data-value='Bell']")
+                      expect(choice).to_be_enabled(timeout=30000)
+                      choice.click()
+                      expect(page.locator("#arcadeRun")).to_contain_text("Run complete!" if step==4 else f"Round {step+2} / 5",timeout=30000)
+                  assert len(set(arcade_writes))==5
+                  expect(page.locator("#arcadeStamps .earned")).to_have_count(1)
+                  expect(page.locator("#arcadeBoardRefresh")).to_be_enabled()
+                  page.locator("#arcadeBoardRefresh").click()
+                  expect(page.locator("#arcadeBoard")).to_contain_text("QA Winter Player")
+                  page.locator("#arcadeBoardPeriod").select_option("daily")
+                  page.locator("#arcadeBoardRefresh").click()
+                  expect(page.locator("#arcadeBoard")).to_contain_text("City Cup")
+                  page.locator("#arcadeLobby").screenshot(path=f"qa-screenshots/{label}-arcade.png")
+                  assert page.evaluate("document.documentElement.scrollWidth-innerWidth")<=2
                   nav("combat");expect(page.locator("#noRivals")).to_be_visible()
                   nav("wire");expect(page.locator("#wirePaper")).to_be_visible()
                   expect(page.locator("#wirePaper")).to_have_class("wire-paper has-wire-template")
@@ -281,6 +328,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: snowfall-v298-release-screenshots
+          name: snowfall-v298a-release-screenshots
           path: qa-screenshots/
           if-no-files-found: ignore
