@@ -7,8 +7,8 @@
   <meta name="description" content="Operation Snowfall — the seven-day winter city showdown. Isolated staging preview.">
   <title>Operation Snowfall | The Winter Underworld</title>
   <link rel="icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/static/app.css?v=298b4-r2">
-  <script defer src="/static/app.js?v=298b4-r2"></script>
+  <link rel="stylesheet" href="/static/app.css?v=298c-r2">
+  <script defer src="/static/app.js?v=298c-r2"></script>
 </head>
 <body>
   <a class="skip-link" href="#mainContent">Skip to game content</a>
@@ -29,6 +29,7 @@
       <button class="nav-item" data-nav="activities">Activities</button>
       <button class="nav-item" data-nav="arcade">Winter Arcade</button>
       <button class="nav-item" data-nav="community">The Streets</button>
+      <button class="nav-item hidden" id="staffNav" data-nav="staff" aria-label="Staff event control centre">Event Control</button>
     </nav>
     <div class="topbar-actions">
       <button id="streetsTopLink" class="button button-outline button-small" data-chat-open>💬 The Streets chat</button>
@@ -213,7 +214,7 @@
             <p class="subtle" style="margin-top:.8rem">This staging database is independent of the live Discord Christmas event. Only linked QA accounts can share its progress.</p>
           </div>
           <details id="crossPlatformPanel" class="side-card hidden" style="margin-top:1.1rem"><summary>Advanced QA verification</summary>
-            <p class="eyebrow">v2.9.8b4 · CROSS-PLATFORM TEST LAB</p>
+            <p class="eyebrow">v2.9.8c · CROSS-PLATFORM TEST LAB</p>
             <h3>One character. One scoreboard. Verified gameplay.</h3>
             <p>Check that Discord and Snowfall Web read and update the same official Snowfall character. Testing never awards extra points.</p>
             <p id="verificationState" role="status"><strong>Not started</strong></p>
@@ -398,6 +399,24 @@
           <h3>City noticeboards</h3><div id="communityCities" class="activity-grid"></div>
           <button class="button button-outline" data-nav="home">Back to Headquarters</button>
         </section>
+        <section id="page-staff" class="panel" aria-labelledby="staffTitle">
+          <div class="section-heading"><div><p class="eyebrow">THE WINTER OPERATIONS BUREAU · STAFF ONLY</p><h2 id="staffTitle">Event Control Centre</h2></div><span class="pill">QA · READ-ONLY</span></div>
+          <div class="staff-heading"><div><h3>Watch the event, protect the players.</h3><p>Live, authoritative shared records from Snowfall PostgreSQL. This page cannot award prizes, change balances or alter the event clock.</p></div><button id="staffRefresh" class="button button-outline">Refresh control centre</button></div>
+          <p id="staffStatus" class="play-action-status" role="status">Checking staff authorisation…</p>
+          <div id="staffMetrics" class="staff-metrics" aria-label="Event status metrics"></div>
+          <div class="staff-dashboard-columns">
+            <section class="activity-card"><h3>Event schedule &amp; lifecycle</h3><div id="staffSchedule"></div><p class="subtle">Lifecycle changes remain in the existing audited Discord /snowadmin controls. No website mutations are enabled.</p></section>
+            <section class="activity-card"><h3>Audit &amp; integrity flags</h3><p class="subtle">Potential issues require staff review; flags are not automatic misconduct findings.</p><div id="staffRisks"></div></section>
+          </div>
+          <section class="activity-card staff-section"><h3>Snow Don &amp; City Sieges</h3><div id="staffBoss"></div></section>
+          <section class="activity-card staff-section"><h3>Player registry &amp; moderation queue</h3><p class="subtle">Up to 60 registered characters, ordered by recorded score. Reviews and corrections are performed through existing audited staff tools.</p><div class="staff-table-wrap"><table><thead><tr><th>Character</th><th>City</th><th>Score</th><th>Review</th></tr></thead><tbody id="staffPlayers"></tbody></table></div><p id="staffPlayersStatus" class="subtle"></p></section>
+          <div class="staff-dashboard-columns">
+            <section class="activity-card"><h3>Daily scoring breakdown</h3><div id="staffDaily"></div></section>
+            <section class="activity-card"><h3>Recent staff audit entries</h3><div id="staffAudit"></div></section>
+          </div>
+          <section class="activity-card staff-section"><h3>Provisional individual prize preview</h3><p class="subtle">Preview only. Uses the existing ledger and ranking tie-breaks; excludes flagged and disqualified entries. No prize allocation or payment is performed.</p><div id="staffPrizes"></div><p id="staffPrizeNote" class="subtle"></p></section>
+          <div class="staff-footer"><button class="button button-outline" data-nav="home">Back to Headquarters</button><p>All staff information is private and must not be copied into public chat.</p></div>
+        </section>
         <section id="page-wire" class="panel" aria-labelledby="wireTitle">
           <div class="section-heading"><div><p class="eyebrow">AMERICA'S COLDEST UNDERWORLD DISPATCH</p><h2 id="wireTitle">The Snowfall Wire</h2></div><span class="pill">VERIFIED GAME EVENTS</span></div>
           <div class="wire-toolbar"><label>Read an edition<select id="wireDay"><option value="current">Latest edition</option></select></label><button id="refreshWire" class="button button-outline button-small">↻ Refresh edition</button></div>
@@ -436,7 +455,7 @@
     <button type="button" id="streetsChatLauncher" class="button button-gold" aria-controls="streetsChatDock" aria-expanded="false" aria-label="Open The Streets chat">💬 Chat</button>
   </main>
 
-  <footer><div class="footer-logo">❄ OPERATION SNOWFALL</div><p>STAGING EXPERIENCE · FICTITIOUS GAMEPLAY · NO LIVE UNDERWORLD ACCOUNT ACCESS</p><div class="footer-preferences"><button id="atmosphereToggle" type="button" class="button button-outline button-small" aria-pressed="true">Atmosphere on</button><button class="tiny-link" data-nav="wire">Newspaper archive</button></div><span>© Winter Operations Bureau · v2.9.8b4</span></footer>
+  <footer><div class="footer-logo">❄ OPERATION SNOWFALL</div><p>STAGING EXPERIENCE · FICTITIOUS GAMEPLAY · NO LIVE UNDERWORLD ACCOUNT ACCESS</p><div class="footer-preferences"><button id="atmosphereToggle" type="button" class="button button-outline button-small" aria-pressed="true">Atmosphere on</button><button class="tiny-link" data-nav="wire">Newspaper archive</button></div><span>© Winter Operations Bureau · v2.9.8c</span></footer>
 
   <div id="authDialog" class="dialog-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="authTitle">
     <div class="dialog"><button class="dialog-close" id="closeAuth" aria-label="Close sign-in">×</button>
