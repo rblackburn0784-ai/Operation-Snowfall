@@ -1,4 +1,4 @@
-name: v2.9.7d live release and browser smoke
+name: v2.9.8 live player experience smoke
 on:
   push:
     branches: [qa/v2.9.7-live-release-smoke]
@@ -90,6 +90,14 @@ jobs:
                       req=route.request;url=urlsplit(req.url);path=url.path
                       def reply(data,status=200):route.fulfill(status=status,content_type="application/json",body=json.dumps(data))
                       if req.method not in ("GET","HEAD"):
+                          if path=="/v1/game/activities/action":
+                              body=req.post_data_json
+                              assert req.headers.get("x-snowfall-csrf")=="fixture-csrf"
+                              assert req.headers.get("x-snowfall-player")==fake
+                              assert req.headers.get("idempotency-key")
+                              assert body=={"action":"clue","item":"window","day":2},body
+                              state["clue_found"]=True
+                              reply({"message":"Fictional clue discovered.","repeated":False});return
                           if path!="/v1/game/siege":route.abort();return
                           assert req.post_data_json=={} and req.headers.get("x-snowfall-csrf")=="fixture-csrf" and req.headers.get("idempotency-key")
                           assert req.headers.get("x-snowfall-player")==fake
@@ -109,6 +117,17 @@ jobs:
                       elif path=="/v1/game/wardrobe":reply({"balance":53,"unlocked":list(set(state["equipped"].values())|set(keys[1:])), "equipped":state["equipped"]})
                       elif path=="/v1/game/world":reply({"day":2,"city":"Chicago","boss_hp":76,"boss_max_hp":150,"boss_attempts":1,"boss_points":5,"siege_hp":state["hp"],"siege_max_hp":72,"siege_attempts":state["attempts"],"siege_points":state["points"],"boss_enabled":True})
                       elif path=="/v1/game/progress":reply({"registered":True,"score":state["score"],"snowballs":state["ammo"],"snowflakes":53,"boss_hp":76,"boss_max_hp":150,"inventory":{}})
+                      elif path=="/v1/game/activities":
+                          found=state.get("clue_found",False)
+                          reply({"player_id":fake,"day":2,"phase":"live",
+                                 "quests":[{"key":"hit","name":"Daily fixture","progress":0,"target":3,"claimed":False}],
+                                 "daily_gift":"Claim a quest","bonus_gift":"Not today",
+                                 "inventory":{"quantities":{"cocoa":1},"uses_today":{}},
+                                 "item_names":{"cocoa":"Hot Chocolate"},"use_caps":{"cocoa":3},
+                                 "equipped_title":"Snowball Recruit","titles":[],"history":[],
+                                 "case":{"title":"Fixture case","scene":"Fictional story",
+                                         "clues":[{"key":"window","label":"Window","found":found,"text":"Fictional clue discovered." if found else None}],
+                                         "suspects":[{"key":"suspect","label":"Suspect"}],"guesses":0,"max_guesses":2,"solved":False,"locked":False,"secret_ready":False}})
                       elif path=="/v1/game/headquarters":reply({"registered":True,"phase":"live","day":2,"server_time":datetime.now(timezone.utc).isoformat(),"daily_points":12,"rank":3,"season_points":state["score"],"caps":{"snowballs":12,"warmth":100,"pvp":300},"today_pvp":0,"timers":{},"title":"Snowball Recruit","rarity":"Common","quests":[],"trophies":[],"records":{},"next_action":"Find a rival","next_action_route":"fight","daily_gift":"Opened","bonus_gift":"Not today"})
                       elif path=="/v1/web/wire":
                           day=int(parse_qs(url.query).get("day",[2])[0])
@@ -188,6 +207,18 @@ jobs:
                           assert t["x"]>.6 and t["x"]+t["w"]<=1.01,t
                           if label=="desktop":
                               page.locator("#fitPortraitWell").screenshot(path=f"qa-screenshots/{portrait}-{gear}.png")
+                  nav("home")
+                  page.locator("#page-home [data-nav='activities']").first.click()
+                  expect(page.locator("#page-activities")).to_be_visible()
+                  clue=page.locator("#activitiesContent [data-activity='clue']")
+                  expect(clue).to_be_enabled(timeout=30000)
+                  expect(page.locator("#activitiesContent [data-activity='accuse']")).to_be_disabled()
+                  clue.click()
+                  expect(page.locator("#activitiesResult")).to_contain_text("Fictional clue discovered.")
+                  expect(clue).to_have_text("Found",timeout=30000)
+                  expect(clue).to_be_disabled()
+                  page.locator("#activitiesContent").screenshot(path=f"qa-screenshots/{label}-activities.png")
+                  assert page.evaluate("document.documentElement.scrollWidth-innerWidth")<=2
                   nav("combat");expect(page.locator("#noRivals")).to_be_visible()
                   nav("wire");expect(page.locator("#wirePaper")).to_be_visible()
                   expect(page.locator("#wirePaper")).to_have_class("wire-paper has-wire-template")
@@ -250,6 +281,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: snowfall-v297d-release-screenshots
+          name: snowfall-v298-release-screenshots
           path: qa-screenshots/
           if-no-files-found: ignore

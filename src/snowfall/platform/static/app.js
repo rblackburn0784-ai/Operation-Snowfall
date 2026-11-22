@@ -948,7 +948,7 @@ async function loadPublic(){
 async function loadPrivate(){
  if(S.privatePending)return;
  S.privatePending=true;updatePlayControls();
- try{await readPrivate();S.privateFresh=!!S.session&&!!S.me}catch(e){S.privateFresh=false;throw e}finally{S.privatePending=false;updatePlayControls()}
+ try{await readPrivate();S.privateFresh=!!S.session&&!!S.me}catch(e){S.privateFresh=false;throw e}finally{S.privatePending=false;showActivities();updatePlayControls()}
 }
 async function readPrivate(){
  syncPlayIdentity();
@@ -1342,7 +1342,7 @@ function activityCard(title,body,art=""){
 function showActivities(){
  const root=el("activitiesContent");if(!root)return;
  const a=S.session&&S.me?.registered&&String(S.activities?.player_id)===String(S.session.player_id)?S.activities:null;
- const locked=!!(S.busy||S.privatePending||a?.phase!=="live"||!hasPlayIdentity(S.session,S.config));
+ const locked=!!(S.busy||S.privatePending||!S.privateFresh||a?.phase!=="live"||!hasPlayIdentity(S.session,S.config));
  txt("activitiesStatus",!S.session?"Sign in to open your dossier.":!S.me?.registered?"Register at Headquarters first.":!a?"Refresh to load today's activities.":("Day "+(a.day??"—")+" / 7 · "+String(a.phase).toUpperCase()+" · Shared with Discord"));
  if(!a){root.innerHTML="";return}
  const list=Array.isArray(a.quests)?a.quests:[];
@@ -1354,7 +1354,7 @@ function showActivities(){
   return "<div class='activity-line'><div><strong>"+esc(a.item_names?.[k]||k)+" × "+fmt(n)+"</strong><p>"+(k==="golden"?"Use through Snowball Alley":used+" / "+cap+" used today")+"</p></div>"+(k==="golden"?"":activityButton("use",k,"Use",locked||n<1||used>=cap))+"</div>";
  }).join("");
  const guard="<p>Guard: "+(inv.guard_active?"Active":"Inactive")+" · Armour: "+fmt(inv.armour_hp)+" · Mittens: "+(inv.mittens_armed?"Armed":"Not armed")+" · Bomb: "+(inv.bomb_armed?"Armed":"Not armed")+"</p>"+activityButton("guard",inv.guard_active?"off":"on",inv.guard_active?"Lower guard":"Activate guard",locked);
- const titles="<p>Equipped: "+esc(a.equipped_title)+"</p><div class='activity-actions'>"+activityButton("title","none","Default title",S.busy||S.privatePending||!hasPlayIdentity(S.session,S.config))+(a.titles||[]).map(t=>activityButton("title",t.key,t.label,S.busy||S.privatePending||!hasPlayIdentity(S.session,S.config)||t.label===a.equipped_title)).join("")+"</div>";
+ const titles="<p>Equipped: "+esc(a.equipped_title)+"</p><div class='activity-actions'>"+activityButton("title","none","Default title",S.busy||S.privatePending||!S.privateFresh||!hasPlayIdentity(S.session,S.config))+(a.titles||[]).map(t=>activityButton("title",t.key,t.label,S.busy||S.privatePending||!S.privateFresh||!hasPlayIdentity(S.session,S.config)||t.label===a.equipped_title)).join("")+"</div>";
  const c=a.case,e=a.encounter;
  let caseBody="<p>Today's case is not open.</p>";
  if(c){

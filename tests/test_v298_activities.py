@@ -41,3 +41,30 @@ def test_web_activities_share_existing_engines_without_answer_leaks(tmp_path):
     with store.connect() as con:
         for table in ("score_ledger", "prize_awards"):
             assert con.execute("SELECT COUNT(*) FROM " + table).fetchone()[0] == 0
+
+def test_activities_api_requires_session_csrf_and_idempotency():
+    from fastapi.testclient import TestClient
+    from snowfall.platform.api import create_app
+    from test_v293_platform import FakeIdentity, fake_settings
+    from unittest.mock import Mock
+
+    ids = FakeIdentity()
+    game = Mock()
+    game.activities.return_value = {"player_id": "101", "day": 1}
+    game.activity_action.return_value = {"message": "Recorded"}
+    app = create_app(fake_settings(), identity=ids, game=game)
+    with TestClient(app, base_url="https://snowfall.example") as client:
+        assert client.get("/v1/game/activities").status_code == 401
+        token, csrf = ids.new_session(101)
+        client.cookies.set("snowfall_session", token)
+        assert client.get("/v1/game/activities").status_code == 200
+        payload = {"action": "clue", "item": "window", "day": 1}
+        path = "/v1/game/activities/action"
+        assert client.post(path, json=payload).status_code == 403
+        headers = {"X-Snowfall-CSRF": csrf}
+        assert client.post(path, json=payload, headers=headers).status_code == 400
+        headers["Idempotency-Key"] = "activity-action-123"
+        assert client.post(path, json=payload, headers=headers).status_code == 200
+        args = game.activity_action.call_args.args
+        assert args[:4] == (101, "clue", "window", 1)
+        assert args[4].startswith("web:")
