@@ -13,3 +13,6 @@ Rollback QA web to 0c0e25ee99b5e0d12d6d7445ab2212b6374d0a33 if required.
 
 ### Manual screenshot review follow-up
 The first browser run passed internal geometry, but the mobile newspaper was visibly clipped on the right. Explicitly constrain the aspect-ratio front page to its parent width; add an independent outer-width and overflow assertion and suppress transient fixed UI only in newspaper screenshot capture. A fresh browser run and screenshot review are required before visual sign-off.
+
+### Narrow-mobile follow-up (r3)
+The r2 live test passed desktop and 390px mobile but measured 7px of vertical story overflow at 320px. Give the full-width illustrated page additional vertical room on viewports up to 360px, leaving the 3px overflow regression threshold unchanged. No shared engine, worker, database or reward code changes.

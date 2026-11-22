@@ -539,7 +539,7 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
 .wire-edition-body .wire-story h4{font-size:clamp(.95rem,2.65cqw,1.45rem);margin:0 0 .45rem;line-height:1.12}
 .wire-edition-body .wire-story p:not(.wire-byline){font-size:clamp(.75rem,1.8cqw,1rem);line-height:1.36;margin:0}
 .wire-paper.has-wire-template{padding:0;border:0;background:#e8ddc1}
-.wire-paper.has-wire-template .wire-frontpage{width:100%;max-width:100%;box-sizing:border-box;aspect-ratio:4/5;min-height:680px;background:#ead6af url('/static/snowfall-wire-frontpage.webp?v=297d-r2') center/100% 100% no-repeat}
+.wire-paper.has-wire-template .wire-frontpage{width:100%;max-width:100%;box-sizing:border-box;aspect-ratio:4/5;min-height:680px;background:#ead6af url('/static/snowfall-wire-frontpage.webp?v=297d-r3') center/100% 100% no-repeat}
 .wire-paper.has-wire-template .wire-masthead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);margin:0}
 .wire-paper.has-wire-template .wire-edition-line{position:absolute;left:14%;right:14%;top:12.95%;height:1.65%;padding:0;margin:0;border:0;display:flex;align-items:center;justify-content:space-between;flex-wrap:nowrap;gap:.35rem;font-size:clamp(.5rem,1.5cqw,.8rem);letter-spacing:.025em;line-height:1;white-space:nowrap}
 .wire-paper.has-wire-template .wire-edition-body{position:static;min-height:0;margin:0;padding:0;border:0;background:none;container-type:normal}
@@ -564,3 +564,7 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
 .wire-paper.has-wire-template .wire-story:focus-within,.wire-paper.has-wire-template .wire-lead-block:focus-within{outline:2px solid #74512d;outline-offset:2px}
 @container (max-width:300px){.wire-paper.has-wire-template .wire-edition-line{left:5%;right:5%;gap:.15rem;font-size:.45rem;letter-spacing:0}}
 @media(forced-colors:active){.wire-paper.has-wire-template .wire-edition-line{height:auto;font-size:.75rem;white-space:normal}}
+
+/* v2.9.7d r3 — extra vertical room for wrapped article copy at 320px.
+   Keep the width constrained and all four panel positions unchanged. */
+@media(max-width:360px){.wire-paper.has-wire-template .wire-frontpage{min-height:850px}.wire-paper.has-wire-template .wire-edition-body .wire-story{padding-top:.1rem;padding-bottom:.1rem}}
