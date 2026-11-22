@@ -19,7 +19,7 @@ def test_wire_art_is_decorative_not_standalone():
     assert 'el("wirePaper").dataset.edition=kind' in js
     for element in ("wireLead", "wireLeadDetail", "wireHeadlines", "wireNotice"):
         assert f'id="{element}"' in html
-    assert 'v=298g' in html
+    assert 'v=298h' in html
 
 
 def test_wire_v297c_uses_calibrated_art_and_dynamic_issue():
