@@ -532,7 +532,10 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         return jsonable_encoder(shared.register(principal, body.mr_username, body.city))
 
     @app.get("/v1/game/targets")
-    def targets(principal: int = Depends(player)):
+    def targets(response: Response, principal: int = Depends(player)):
+        # Equipped rival artwork changes on either platform, so never cache
+        # a stale character look across wardrobe changes or identity switches.
+        response.headers["Cache-Control"] = "no-store"
         return jsonable_encoder({"targets": shared.targets(principal)})
 
     @app.post("/v1/game/ready")
