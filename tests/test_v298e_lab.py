@@ -60,8 +60,10 @@ def test_lab_advanced_combat_resources_and_score_comparisons(tmp_path):
         with pytest.raises(ValueError, match=settings):
             act(lab, "configure", session_id=session_id,
                 key="Z"*(20+len(settings)), options=candidate)
+    # The real engine correctly retains the 30-second PvP/PvE cooldown.
+    # Advance only the disposable test clock; never disable production rules.
     missed = act(lab, "boss", session_id=session_id, key="C"*30,
-                 options={"outcome": "miss"})
+                 options={"outcome": "miss"}, now=NOW+timedelta(seconds=31))
     assert not missed["action_result"]["comparison"]["hit"]
     assert missed["action_result"]["comparison"]["passed"]
     assert all(c["passed"] for c in missed["comparisons"])
