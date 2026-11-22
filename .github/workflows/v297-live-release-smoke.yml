@@ -1,4 +1,4 @@
-name: v2.9.8c staff-only control centre live smoke
+name: v2.9.8c1 Discord-only staff smoke
 on:
   push:
     branches: [qa/v2.9.7-live-release-smoke]
@@ -129,7 +129,10 @@ jobs:
                           return
                       if path=="/v1/auth/session":
                           if state["guest"]:reply({"detail":"Not authenticated"},401)
-                          else:reply({"player_id":fake,"csrf":"fixture-csrf","links":[{"provider":"underworld"}]})
+                          else:
+                              links=([{"provider":"discord","subject":"123456789012345678"}]
+                                     if state.get("staff_discord_only",False) else [{"provider":"underworld"}])
+                              reply({"player_id":fake,"csrf":"fixture-csrf","links":links})
                       elif path=="/v1/game/me":reply({"registered":True,"player_id":fake,"mr_username":"QA Siege Player","city":"Chicago","phase":"live","day":2,"score":state["score"],"resources":{"snowballs":state["ammo"],"warmth":80,"snowflakes":53,"today_pvp":0}})
                       elif path=="/v1/game/targets":reply({"targets":[]})
                       elif path=="/v1/game/wardrobe":reply({"balance":53,"unlocked":list(set(state["equipped"].values())|set(keys[1:])), "equipped":state["equipped"]})
@@ -293,11 +296,17 @@ jobs:
                   assert page.locator("#staffNav").is_hidden()
                   assert page.locator("#page-staff").is_hidden()
                   state["staff"]=True
+                  state["staff_discord_only"]=True
+                  page.reload(wait_until="domcontentloaded")
+                  expect(page.locator("#eventConnectionText")).to_contain_text("Connected",timeout=30000)
+                  assert page.evaluate("S.session.links.every(l=>l.provider==='discord')")
                   page.evaluate("S.staffCheckedIdentity=null;refreshStaffAccess()")
                   page.wait_for_function("!document.getElementById('staffNav').classList.contains('hidden')")
+                  expect(page.locator("#staffOnlyNotice")).to_be_visible()
+                  expect(page.locator("#underworldRequired")).to_be_hidden()
                   if w>780:
-                      expect(page.locator("#staffNav")).to_be_visible()
-                      page.locator("#staffNav").click()
+                      expect(page.locator("#staffShortcut")).to_be_visible()
+                      page.locator("#staffShortcut").click()
                   else:
                       page.locator("#menuToggle").click()
                       expect(page.locator("#staffNav")).to_be_visible()
@@ -309,10 +318,14 @@ jobs:
                   page.locator("#page-staff").screenshot(path=f"qa-screenshots/{label}-staff.png")
                   assert page.evaluate("document.documentElement.scrollWidth-innerWidth")<=2
                   state["staff"]=False
+                  state["staff_discord_only"]=False
                   page.evaluate("S.staffCheckedIdentity=null;refreshStaffAccess()")
                   page.wait_for_function("document.getElementById('staffNav').classList.contains('hidden')")
                   expect(page.locator("#staffNav")).to_be_hidden()
                   expect(page.locator("#page-staff")).to_be_hidden()
+                  page.reload(wait_until="domcontentloaded")
+                  expect(page.locator("#eventConnectionText")).to_contain_text("Connected",timeout=30000)
+                  assert page.evaluate("S.session.links.some(l=>l.provider==='underworld')")
                   nav("home")
                   page.locator("#page-home [data-nav='community']").click()
                   expect(page.locator("#communityCities .activity-card")).to_have_count(6,timeout=30000)
@@ -439,6 +452,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: snowfall-v298c-control-and-chat-screenshots
+          name: snowfall-v298c1-discord-staff-chat-screenshots
           path: qa-screenshots/
           if-no-files-found: ignore
