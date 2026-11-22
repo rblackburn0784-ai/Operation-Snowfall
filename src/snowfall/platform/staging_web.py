@@ -17,6 +17,7 @@ import os
 import re
 import secrets
 import time
+from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.responses import FileResponse
@@ -57,6 +58,16 @@ class DemoLogin(BaseModel):
     slot: int = Field(ge=1, le=3)
 
 
+class StaffLabAction(BaseModel):
+    action: Literal["start", "day", "pvp", "boss", "siege", "resupply", "end"]
+    day: int | None = Field(default=None, ge=1, le=7)
+    reason: str = Field(min_length=8, max_length=220)
+    confirmation: str = Field(default="", max_length=40)
+    request_id: str = Field(min_length=16, max_length=96,
+                            pattern=r"^[A-Za-z0-9_-]+$")
+    session_id: str | None = Field(default=None, pattern=r"^[0-9a-f]{32}$")
+
+
 def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None, game=None) -> FastAPI:
     """Add client UI and temporary demo logins; callable with CI fakes."""
     env = dict(os.environ if env is None else env)
@@ -66,6 +77,8 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None, game=
         raise ValueError("WEB QA REFUSED: demo access code must be 28+ characters")
     attempts = {}
     gate = Lock()
+    from snowfall.platform.staff_lab import WebStaffTestLab
+    lab = WebStaffTestLab()  # Ephemeral; no access to shared Postgres resources.
     # Staff authorisation is a verified Discord OAuth subject in the explicit
     # allowlist. Underworld is intentionally NOT required for staff viewing;
     # it remains mandatory for game mutations. Client-provided IDs, account
@@ -112,6 +125,38 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None, game=
         from fastapi.encoders import jsonable_encoder
         return jsonable_encoder(control_centre_view(game))
 
+
+    def staff_lab_actor(request: Request, *, mutate=False) -> str:
+        from snowfall.platform.api import COOKIE
+        staff_allowed(request, strict=True)
+        token = request.cookies.get(COOKIE, "")
+        session = identities.session(token)
+        if mutate:
+            if not identities.csrf_ok(token, request.headers.get("X-Snowfall-CSRF", "")):
+                raise HTTPException(403, "Missing or invalid staff CSRF token")
+            origin = request.headers.get("origin")
+            if origin is not None and origin.rstrip("/") != cfg.public_base_url.rstrip("/"):
+                raise HTTPException(403, "Cross-origin staff action refused")
+        # Re-derive the trusted Discord actor from server-managed identity links.
+        for link in identities.links(session.player_id):
+            if link["provider"] == "discord" and link["subject"] in staff_ids:
+                return link["subject"]
+        raise HTTPException(403, "Staff Discord identity not verified")
+
+    @app.get("/v1/staff/lab")
+    def lab_status(request: Request, response: Response):
+        actor = staff_lab_actor(request)
+        response.headers["Cache-Control"] = "no-store"
+        return lab.snapshot(actor)
+
+    @app.post("/v1/staff/lab/action")
+    def lab_action(body: StaffLabAction, request: Request, response: Response):
+        actor = staff_lab_actor(request, mutate=True)
+        response.headers["Cache-Control"] = "no-store"
+        # All operations run against a disposable per-staff SQLite file.
+        # Not a bot control relay and never a command against shared QA.
+        return lab.act(actor, body.action, body.day, body.reason,
+                       body.confirmation, body.request_id, body.session_id)
 
     @app.get("/v1/web/config")
     def config():
