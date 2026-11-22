@@ -30,7 +30,7 @@ jobs:
       - name: Check browser JavaScript syntax
         run: node --check src/snowfall/platform/static/app.js
       - name: Browser replay and reconnect tests
-        run: node --test tests/test_v295_browser.mjs tests/test_v296_browser.mjs tests/test_v296a_wardrobe.mjs tests/test_v296c_browser.mjs tests/test_v296d_browser.mjs tests/test_v296e_browser.mjs tests/test_v296f_browser.mjs tests/test_v296g_browser.mjs tests/test_v296h_browser.mjs tests/test_v296i_browser.mjs tests/test_v297_browser.mjs tests/test_v298g_navigation.mjs
+        run: node --test tests/test_v295_browser.mjs tests/test_v296_browser.mjs tests/test_v296a_wardrobe.mjs tests/test_v296c_browser.mjs tests/test_v296d_browser.mjs tests/test_v296e_browser.mjs tests/test_v296f_browser.mjs tests/test_v296g_browser.mjs tests/test_v296h_browser.mjs tests/test_v296i_browser.mjs tests/test_v297_browser.mjs tests/test_v298g_navigation.mjs tests/test_v298h_avatars.mjs
       - name: Lint (fatal errors)
         run: python -m ruff check src tests --select E4,E7,E9,F
       - name: Tests
