@@ -1,6 +1,6 @@
-/* Operation Snowfall v2.9.8c — shared event operations and persistent chat. */
+/* Operation Snowfall v2.9.8f — secure staff review desk and game operations. */
 "use strict";
-const S={staffLab:null,staffLabPending:false,staffAllowed:false,staffCheckedIdentity:null,staffAccessCheckedAt:0,staffData:null,staffPending:false,staffStale:false,streetsDrawerOpen:false,streetsReturnFocus:null,streetsEmbedUrl:null,streetsChatOpen:false,community:null,communityPending:false,communityStale:false,privateQueued:false,arcade:null,arcadeRun:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
+const S={staffRole:null,staffDirectory:null,staffDossier:null,staffSelected:null,staffDirectoryBusy:false,staffDossierBusy:false,staffReviewBusy:false,staffDirectorySeq:0,staffDossierSeq:0,staffLab:null,staffLabPending:false,staffAllowed:false,staffCheckedIdentity:null,staffAccessCheckedAt:0,staffData:null,staffPending:false,staffStale:false,streetsDrawerOpen:false,streetsReturnFocus:null,streetsEmbedUrl:null,streetsChatOpen:false,community:null,communityPending:false,communityStale:false,privateQueued:false,arcade:null,arcadeRun:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
 const txt=(id,v)=>{const node=el(id),value=v==null?"—":String(v);if(node&&node.textContent!==value)node.textContent=value};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -394,7 +394,7 @@ function section(name,{record=true,focus=true}={}){
  });
  el("primaryNav").classList.remove("open");
  el("menuToggle").setAttribute("aria-expanded","false");
- if(name==="staff"){void refreshStaffDashboard();void refreshStaffLab()}
+ if(name==="staff"){void refreshStaffDashboard();void refreshStaffLab();void refreshStaffDirectory(1)}
  if(name==="shop")showShop();
  if(name==="community"){updateStreetsChat();showCommunity();void refreshCommunity()}
  if(name==="arcade"){showArcade();if(S.session){if(S.busy||S.privatePending)S.privateQueued=true;else void loadPrivate().catch(e=>notice(e.message,"error"))}}
@@ -431,7 +431,7 @@ function hasPlayIdentity(session,config){return !!session&&(!config?.staging||se
 function syncPlayIdentity(){
  const id=S.session?String(S.session.player_id):null;
  if(id===S.playIdentity)return;
- S.playIdentity=id;S.staffLab=null;S.staffAllowed=false;S.staffCheckedIdentity=null;S.staffAccessCheckedAt=0;S.staffData=null;updateStaffNavigation();closeStreetsDock(false);disconnectStreetsChat();S.arcade=null;S.arcadeRun=null;S.arcadeBoard=null;S.arcadeBoardSeq++;showArcade();S.activities=null;el("activitiesResult")?.classList.add("hidden");showActivities();S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
+ S.playIdentity=id;S.staffLab=null;S.staffRole=null;S.staffDirectory=null;S.staffDossier=null;S.staffSelected=null;S.staffDirectorySeq++;S.staffDossierSeq++;S.staffAllowed=false;S.staffCheckedIdentity=null;S.staffAccessCheckedAt=0;S.staffData=null;updateStaffNavigation();closeStreetsDock(false);disconnectStreetsChat();S.arcade=null;S.arcadeRun=null;S.arcadeBoard=null;S.arcadeBoardSeq++;showArcade();S.activities=null;el("activitiesResult")?.classList.add("hidden");showActivities();S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
  S.pendingActions.clear();restorePending();
  el("targetSelect").value="";el("combatOutcome").classList.add("hidden");el("siegeOutcome").classList.add("hidden");el("bossRecap").classList.add("hidden");el("playFeedback").classList.add("hidden");
 }
@@ -1212,6 +1212,13 @@ function bind(){
  bindActivities();bindArcade();
  if(el("communityRefresh"))el("communityRefresh").onclick=()=>void refreshCommunity();
  if(el("staffRefresh"))el("staffRefresh").onclick=()=>void refreshStaffDashboard();
+ if(el("staffPlayerSearchForm"))el("staffPlayerSearchForm").onsubmit=e=>{e.preventDefault();void refreshStaffDirectory(1)};
+ if(el("staffPlayerPrev"))el("staffPlayerPrev").onclick=()=>void refreshStaffDirectory(Math.max(1,(S.staffDirectory?.page||1)-1));
+ if(el("staffPlayerNext"))el("staffPlayerNext").onclick=()=>void refreshStaffDirectory((S.staffDirectory?.page||1)+1);
+ if(el("staffPlayerResults"))el("staffPlayerResults").onclick=e=>{const b=e.target.closest("button[data-player-id]");if(b)void inspectStaffPlayer(b.dataset.playerId)};
+ if(el("staffReviewForm"))el("staffReviewForm").onsubmit=e=>{e.preventDefault();void submitStaffReview()};
+ if(el("staffReviewAction"))el("staffReviewAction").onchange=()=>showStaffPlayerDesk();
+ if(el("staffPlayerExport"))el("staffPlayerExport").onclick=downloadStaffPlayerDossier;
  if(el("staffLabRefresh"))el("staffLabRefresh").onclick=()=>void refreshStaffLab();
  if(el("staffLabExport"))el("staffLabExport").onclick=downloadLabResults;
  for(const btn of document.querySelectorAll("[data-lab-action]"))btn.onclick=()=>void staffLabAction(btn.dataset.labAction);
@@ -1626,7 +1633,7 @@ function updateStaffNavigation(){
 }
 async function refreshStaffAccess({force=false}={}){
  const id=S.session?String(S.session.player_id):null;
- if(!id){S.staffCheckedIdentity=null;S.staffAccessCheckedAt=0;S.staffAllowed=false;S.staffData=null;updateStaffNavigation();return}
+ if(!id){S.staffCheckedIdentity=null;S.staffAccessCheckedAt=0;S.staffAllowed=false;S.staffRole=null;S.staffData=null;S.staffDirectory=null;S.staffDossier=null;updateStaffNavigation();showStaffPlayerDesk();return}
  if(!force&&id===S.staffCheckedIdentity&&Date.now()-S.staffAccessCheckedAt<90000)return;
  S.staffCheckedIdentity=id;
  S.staffAccessCheckedAt=Date.now();
@@ -1634,12 +1641,18 @@ async function refreshStaffAccess({force=false}={}){
    const a=await get("/v1/staff/access");
    if(String(S.session?.player_id)!==id)return;
    S.staffAllowed=a.allowed===true;
-   if(!S.staffAllowed)S.staffData=null;
+   if(!S.staffAllowed){S.staffData=null;S.staffRole=null;S.staffDirectory=null;S.staffDossier=null}
+   else {
+     const role=await get("/v1/staff/role");
+     if(String(S.session?.player_id)!==id)return;
+     if(role.scope!=="ISOLATED_QA_ONLY"||!["host","organiser"].includes(role.role))throw Error("Unexpected staff role");
+     S.staffRole=role;
+   }
  }catch{
    if(String(S.session?.player_id)!==id)return;
-   S.staffAllowed=false;S.staffData=null;
+   S.staffAllowed=false;S.staffRole=null;S.staffData=null;S.staffDirectory=null;S.staffDossier=null;
  }
- updateStaffNavigation();
+ updateStaffNavigation();showStaffPlayerDesk();
 }
 function staffTime(v){
  const t=Date.parse(v);return Number.isFinite(t)?new Date(t).toLocaleString([],{dateStyle:"medium",timeStyle:"short"}):"—";
@@ -1791,4 +1804,112 @@ function downloadLabResults(){
  try{const a=document.createElement("a");a.href=url;a.download="snowfall-test-lab-v298e.json";a.click()}
  finally{setTimeout(()=>URL.revokeObjectURL(url),1000)}
  notice("Your private Test Lab report was downloaded.","success");
+}
+
+/* v2.9.8f — staff-only player search, investigation and audited host review. */
+function showStaffPlayerDesk(){
+ const allowed=S.staffAllowed===true,d=allowed?S.staffDirectory:null;
+ const p=allowed?S.staffDossier:null,host=S.staffRole?.can_review===true;
+ const role=allowed?(host?"Host · may flag or clear QA player reviews":"Organiser · search, audit, inspect and test only"):"Sign in with an authorised Discord staff account.";
+ txt("staffRoleStatus",role+" · No direct score edits, event resets or prizes.");
+ txt("staffPlayerSearchStatus",S.staffDirectoryBusy?"Searching QA player records…":!d?"Search by name, player ID, city or review state.":fmt(d.total)+" matching · "+fmt(d.players?.length||0)+" on page "+d.page);
+ const rows=d?.players||[];
+ el("staffPlayerResults").innerHTML=rows.map(x=>"<tr><td>"+esc(x.mr_username)+"</td><td>"+esc(x.city)+"</td><td>"+fmt(x.score)+"</td><td>"+esc(x.review_state)+"</td><td><button class='button button-outline button-small' type='button' data-player-id='"+esc(x.player_id)+"'>Inspect</button></td></tr>").join("")||"<tr><td colspan='5'>"+(d?"No matching QA characters.":"Run a player search to see results.")+"</td></tr>";
+ txt("staffPlayerPage",d?"Page "+d.page+" · "+fmt(d.total)+" total":"Page —");
+ el("staffPlayerPrev").disabled=!allowed||S.staffDirectoryBusy||!d||d.page<=1;
+ el("staffPlayerNext").disabled=!allowed||S.staffDirectoryBusy||!d||!d.has_more;
+ el("staffPlayerExport").disabled=!allowed||!p||S.staffDossierBusy;
+ const review=el("staffReviewForm");
+ review.classList.toggle("hidden",!host||!p||p.profile.review_state==="disqualified");
+ el("staffReviewSubmit").disabled=!host||!p||S.staffReviewBusy;
+ if(!p){
+  el("staffPlayerDossier").innerHTML="<p class='subtle'>"+(S.staffDossierBusy?"Loading verified QA player history…":"Select Inspect beside a character to see their dossier.")+"</p>";
+  return;
+ }
+ const x=p.profile,links=p.links||{},activity=p.score_history||[];
+ const linkName=v=>v===true?"Linked":v===false?"Not linked":"Not checked on this database";
+ const issues=p.alerts||[];
+ const history=(p.review_history||[]).map(h=>"<div class='staff-audit-line'><strong>"+esc(h.action)+"</strong><span>"+staffTime(h.created_at_utc)+"</span><p>"+esc(h.reason)+"</p></div>").join("");
+ const combat=(p.combat_history||[]).map(a=>"<div class='staff-audit-line'>Day "+fmt(a.day)+" · "+esc(a.style)+" · "+(a.hit?"Hit":"Miss")+" · "+fmt(a.points_awarded)+" pts · "+staffTime(a.happened_at_utc)+"</div>").join("");
+ const pve=(p.pve_history||[]).map(a=>"<div class='staff-audit-line'>Day "+fmt(a.day)+" · "+esc(a.kind)+" · "+(a.hit?"Hit":"Miss")+" · "+fmt(a.damage)+" damage · "+fmt(a.points_awarded)+" pts</div>").join("");
+ el("staffPlayerDossier").innerHTML="<div class='staff-dossier-header'><div><p class='eyebrow'>VERIFIED SEASON RECORD</p><h4>"+esc(x.mr_username)+"</h4><p>"+esc(x.city)+" · "+esc(x.review_state)+" · #"+esc(x.player_id)+"</p></div><strong>"+fmt(x.score)+" points</strong></div>"+
+ "<div class='staff-dossier-facts'>"+
+ staffRow("Registered",staffTime(x.joined_at_utc))+
+ staffRow("Underworld character",linkName(links.underworld))+
+ staffRow("Discord account",linkName(links.discord))+
+ staffRow("Snowballs / warmth",fmt(x.snowballs)+" / "+fmt(x.warmth))+
+ staffRow("Snowflakes / armour",fmt(x.snowflakes)+" / "+fmt(x.armour_hp))+
+ staffRow("Last throw",staffTime(x.last_throw_at))+"</div>"+
+ "<h4>Integrity signals</h4>"+(issues.length?"<ul class='staff-alerts'>"+issues.map(a=>"<li>"+esc(a)+"</li>").join("")+"</ul>":"<p class='subtle'>No account-specific alert detected. This is not proof of clean play.</p>")+
+ "<div class='staff-dossier-columns'><section><h4>Recent score ledger</h4>"+(activity.map(v=>staffRow("Day "+fmt(v.day)+" · "+v.category,fmt(v.points)+" pts · "+staffTime(v.created_at_utc))).join("")||"<p class='subtle'>No points yet.</p>")+"</section>"+
+ "<section><h4>Combat history</h4>"+(combat||"<p class='subtle'>No PvP actions yet.</p>")+"<h4>Snow Don &amp; siege history</h4>"+(pve||"<p class='subtle'>No boss or siege actions yet.</p>")+"</section></div>"+
+ "<details class='staff-review-history'><summary>Administrative history ("+fmt((p.review_history||[]).length)+")</summary>"+(history||"<p class='subtle'>No prior player-review actions.</p>")+"</details>";
+ if(host&&x.review_state!=="disqualified"){
+  const action=el("staffReviewAction");
+  if(x.review_state==="flagged"&&action.value==="flag")action.value="clear";
+  if(x.review_state!=="flagged"&&action.value==="clear")action.value="flag";
+  txt("staffReviewHelp",action.value==="flag"?"Type FLAG QA PLAYER exactly, then confirm the flag.":"Type CLEAR QA PLAYER exactly, then confirm the clearance.");
+ }
+}
+async function refreshStaffDirectory(page=1){
+ if(!S.staffAllowed||S.staffDirectoryBusy)return;
+ if(!Number.isInteger(page)||page<1||page>100)return;
+ const who=String(S.session?.player_id||""),seq=++S.staffDirectorySeq;
+ S.staffDirectoryBusy=true;showStaffPlayerDesk();
+ try{
+  const params=new URLSearchParams({q:el("staffPlayerQuery").value.trim(),
+   city:el("staffPlayerCity").value,state:el("staffPlayerState").value,page:String(page)});
+  const result=await get("/v1/staff/players?"+params.toString());
+  if(seq!==S.staffDirectorySeq||String(S.session?.player_id)!==who||!S.staffAllowed)return;
+  if(result.scope!=="ISOLATED_QA_ONLY"||result.read_only!==true||!Array.isArray(result.players))throw Error("Unexpected player directory scope");
+  S.staffDirectory=result;
+ }catch(e){notice(e.message||"Player search failed.","error")}
+ finally{if(seq===S.staffDirectorySeq){S.staffDirectoryBusy=false;showStaffPlayerDesk()}}
+}
+async function inspectStaffPlayer(id){
+ if(!S.staffAllowed||!/^\d{1,19}$/.test(String(id)))return;
+ const who=String(S.session?.player_id||""),seq=++S.staffDossierSeq;
+ S.staffSelected=String(id);S.staffDossier=null;S.staffDossierBusy=true;showStaffPlayerDesk();
+ try{
+  const result=await get("/v1/staff/players/"+encodeURIComponent(id));
+  if(seq!==S.staffDossierSeq||String(S.session?.player_id)!==who||!S.staffAllowed)return;
+  if(result.scope!=="ISOLATED_QA_ONLY"||result.read_only!==true||result.profile?.player_id!==id)throw Error("Invalid player dossier");
+  S.staffDossier=result;
+  el("staffReviewReason").value="";el("staffReviewConfirm").value="";
+ }catch(e){notice(e.message||"Dossier unavailable.","error")}
+ finally{if(seq===S.staffDossierSeq){S.staffDossierBusy=false;showStaffPlayerDesk()}}
+}
+async function submitStaffReview(){
+ if(!S.staffAllowed||!S.staffRole?.can_review||!S.staffDossier||S.staffReviewBusy)return;
+ const x=S.staffDossier.profile,action=el("staffReviewAction").value;
+ const phrase=action==="flag"?"FLAG QA PLAYER":"CLEAR QA PLAYER";
+ const reason=el("staffReviewReason").value.trim(),confirmation=el("staffReviewConfirm").value.trim();
+ if(reason.length<12)return notice("Provide a specific reason of at least 12 characters.","error");
+ if(confirmation!==phrase)return notice("Type "+phrase+" exactly to confirm this QA review.","error");
+ if(!window.confirm((action==="flag"?"Flag":"Clear")+" "+x.mr_username+"? This changes the shared QA eligibility review state and writes to the audit log."))return;
+ const who=String(S.session?.player_id||"");
+ S.staffReviewBusy=true;showStaffPlayerDesk();
+ try{
+  const result=await post("/v1/staff/players/review",{
+   player_id:x.player_id,action,expected_state:x.review_state,reason,confirmation,
+   request_id:nextActionId()
+  },true);
+  if(String(S.session?.player_id)!==who||!S.staffAllowed)return;
+  if(result.scope!=="ISOLATED_QA_ONLY"||result.player_id!==x.player_id)throw Error("Unexpected review response");
+  notice(result.replayed?"Previously recorded review confirmed.":"QA player review audited.","success");
+  await inspectStaffPlayer(x.player_id);
+  await refreshStaffDirectory(S.staffDirectory?.page||1);
+  void refreshStaffDashboard();
+ }catch(e){notice(e.message||"Review action was not applied.","error")}
+ finally{S.staffReviewBusy=false;showStaffPlayerDesk()}
+}
+function downloadStaffPlayerDossier(){
+ if(!S.staffAllowed||!S.staffDossier)return;
+ const result={...S.staffDossier,exported_at:new Date().toISOString(),
+  notice:"CONFIDENTIAL QA STAFF RECORD · NO OFFICIAL PRIZES · DO NOT SHARE PUBLICLY"};
+ const url=URL.createObjectURL(new Blob([JSON.stringify(result,null,2)],{type:"application/json"}));
+ try{const a=document.createElement("a");a.href=url;
+  a.download="snowfall-qa-player-"+S.staffDossier.profile.player_id+".json";a.click()}
+ finally{setTimeout(()=>URL.revokeObjectURL(url),1000)}
+ notice("Private player dossier exported.","success");
 }
