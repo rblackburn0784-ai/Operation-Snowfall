@@ -66,6 +66,52 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None, game=
         raise ValueError("WEB QA REFUSED: demo access code must be 28+ characters")
     attempts = {}
     gate = Lock()
+    # Web staff access is an explicit Discord-user allowlist, checked against
+    # BOTH verified identity links in the server's PostgreSQL session.
+    # Roles and display names cannot safely authorise browser access.
+    raw_staff = env.get("SNOWFALL_WEB_STAFF_DISCORD_IDS", "").strip()
+    staff_ids = frozenset(part.strip() for part in raw_staff.split(",") if part.strip())
+    if len(staff_ids) > 30 or any(not re.fullmatch(r"[0-9]{15,25}", item)
+                                  for item in staff_ids):
+        raise ValueError("WEB QA REFUSED: invalid staff Discord ID allowlist")
+
+    def staff_allowed(request: Request, *, strict=False) -> bool:
+        from snowfall.platform.api import COOKIE
+        session = identities.session(request.cookies.get(COOKIE, ""))
+        if session is None:
+            if strict:
+                raise HTTPException(401, "Authentication required")
+            return False
+        expected = request.headers.get("X-Snowfall-Player")
+        if expected is not None and expected != str(session.player_id):
+            raise HTTPException(409, "Account changed; sign in again")
+        # Fail closed if identity lookup is not currently available.
+        try:
+            links = identities.links(session.player_id)
+        except Exception:
+            raise HTTPException(503, "Staff verification unavailable") from None
+        verified_underworld = any(link["provider"] == "underworld" for link in links)
+        verified_discord_staff = any(link["provider"] == "discord" and
+                                     link["subject"] in staff_ids for link in links)
+        allowed = bool(verified_underworld and verified_discord_staff and
+                       cfg.season_key == "web-qa-2026" and game is not None)
+        if strict and not allowed:
+            raise HTTPException(403, "Staff access required")
+        return allowed
+
+    @app.get("/v1/staff/access")
+    def staff_access(request: Request, response: Response):
+        response.headers["Cache-Control"] = "no-store"
+        return {"allowed": staff_allowed(request)}
+
+    @app.get("/v1/staff/control")
+    def control_centre(request: Request, response: Response):
+        staff_allowed(request, strict=True)
+        response.headers["Cache-Control"] = "no-store"
+        from snowfall.platform.control_centre import control_centre_view
+        from fastapi.encoders import jsonable_encoder
+        return jsonable_encoder(control_centre_view(game))
+
 
     @app.get("/v1/web/config")
     def config():

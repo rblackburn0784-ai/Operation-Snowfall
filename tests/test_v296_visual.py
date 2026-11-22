@@ -42,7 +42,8 @@ def test_v296_web_uses_existing_artwork_without_changing_gameplay():
         assert 'id="siteBanner"' in header
         assert 'id="brandIcon"' in header
         assert 'id="siteBanner"' not in page.text.split("</header>", 1)[1]
-        assert 'id="streetsLink"' in page.text
+        assert 'id="streetsChatDock"' in page.text
+        assert 'id="streetsLink"' not in page.text
         assert 'src="/art/v290/cities/map/six_city_territory_map.png"' in page.text
         assert client.get("/v1/web/config").json()["version"] == "2.9.7"
         assert client.get("/v1/web/config").json()["streets_url"] == ""
