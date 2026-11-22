@@ -1,4 +1,4 @@
-name: v2.9.8b live community and arcade smoke
+name: v2.9.8b1 The Streets embedded chat smoke
 on:
   push:
     branches: [qa/v2.9.7-live-release-smoke]
@@ -278,6 +278,19 @@ jobs:
                   expect(page.locator("#communityTotals .activity-card")).to_have_count(6)
                   expect(page.locator("#communityMilestones")).to_contain_text("1 / 6")
                   expect(page.locator("#communityFeed")).to_contain_text("Chicago")
+                  # WidgetBot is opt-in: it must not load third-party chat before a click.
+                  frame=page.locator("#streetsChatFrame")
+                  assert frame.get_attribute("src") is None
+                  page.evaluate("configureStreets('https://discord.com/channels/123456789012345678/987654321012345678')")
+                  expect(page.locator("#streetsChatEnable")).to_be_enabled()
+                  page.route("https://e.widgetbot.io/**",lambda route:route.fulfill(status=200,content_type="text/html",body="<p>Widget test frame</p>"))
+                  page.locator("#streetsChatEnable").click()
+                  expect(frame).to_have_attribute("src","https://e.widgetbot.io/channels/123456789012345678/987654321012345678")
+                  expect(page.locator("#streetsChatEmbed")).to_be_visible()
+                  assert page.locator("#streetsChatFrame").evaluate("n=>n.getBoundingClientRect().width>250")
+                  page.evaluate("S.session=null;updateStreetsChat()")
+                  assert frame.get_attribute("src") is None
+                  page.evaluate("S.session={player_id:fake,csrf:'fixture-csrf',links:[{provider:'underworld'}]};updateStreetsChat()")
                   page.locator("#communityRefresh").click()
                   expect(page.locator("#communityRefresh")).to_be_enabled(timeout=30000)
                   page.locator("#page-community").screenshot(path=f"qa-screenshots/{label}-community.png")
@@ -344,6 +357,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: snowfall-v298b-release-screenshots
+          name: snowfall-v298b1-chat-screenshots
           path: qa-screenshots/
           if-no-files-found: ignore

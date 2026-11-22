@@ -1,6 +1,6 @@
 /* Operation Snowfall v2.9.8a — consolidated release and safe recovery. */
 "use strict";
-const S={community:null,communityPending:false,communityStale:false,privateQueued:false,arcade:null,arcadeRun:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
+const S={streetsEmbedUrl:null,streetsChatOpen:false,community:null,communityPending:false,communityStale:false,privateQueued:false,arcade:null,arcadeRun:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
 const txt=(id,v)=>{const node=el(id),value=v==null?"—":String(v);if(node&&node.textContent!==value)node.textContent=value};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -208,15 +208,48 @@ function safeStreetsUrl(value){
 }
 function configureStreets(value){
  const url=safeStreetsUrl(value);
- for(const id of ["streetsLink","streetsTopLink","communityStreetsLink"]){
+ for(const id of ["communityStreetsLink"]){
   const link=el(id);if(!link)continue;
   link.classList.toggle("hidden",!url);
   if(url)link.href=url;else link.removeAttribute("href");
  }
  el("streetsUnavailable").classList.toggle("hidden",!!url);
  el("communityStreetsUnavailable")?.classList.toggle("hidden",!!url);
+ S.streetsEmbedUrl=streetsEmbedUrl(url);
+ updateStreetsChat();
 }
 
+function streetsEmbedUrl(channelUrl){
+ const valid=safeStreetsUrl(channelUrl);
+ if(!valid)return "";
+ const p=new URL(valid).pathname;
+ return "https://e.widgetbot.io"+p;
+}
+function updateStreetsChat(){
+ const frame=el("streetsChatFrame"),embed=el("streetsChatEmbed"),button=el("streetsChatEnable");
+ if(!frame||!embed||!button)return;
+ const eligible=!!(S.session&&S.me?.registered&&hasPlayIdentity(S.session,S.config));
+ const configured=!!S.streetsEmbedUrl;
+ if(!eligible||!configured){
+   S.streetsChatOpen=false;
+   frame.removeAttribute("src");
+   embed.classList.add("hidden");
+ }
+ button.disabled=!configured||!eligible;
+ button.classList.toggle("hidden",S.streetsChatOpen&&eligible);
+ txt("streetsChatStatus",!configured?"The Discord channel isn't configured yet.":!S.session?"Sign in through Underworld to enter chat.":!eligible?"Register your character in Headquarters before joining.":S.streetsChatOpen?"Chat is open below. Discord members and website visitors can message in the same room.":"Enter chat to connect to WidgetBot. Messages stay here in the Snowfall page.");
+}
+function openStreetsChat(){
+ updateStreetsChat();
+ if(!S.streetsEmbedUrl||!(S.session&&S.me?.registered&&hasPlayIdentity(S.session,S.config)))return;
+ const frame=el("streetsChatFrame");
+ if(!S.streetsChatOpen){
+   frame.src=S.streetsEmbedUrl;
+   S.streetsChatOpen=true;
+ }
+ el("streetsChatEmbed").classList.remove("hidden");
+ updateStreetsChat();
+}
 let timer;
 function notice(message,kind){
  const node=el("toast");node.textContent=String(message);node.className="toast "+(kind||"");
@@ -316,7 +349,7 @@ function section(name,{record=true,focus=true}={}){
  el("primaryNav").classList.remove("open");
  el("menuToggle").setAttribute("aria-expanded","false");
  if(name==="shop")showShop();
- if(name==="community"){showCommunity();void refreshCommunity()}
+ if(name==="community"){updateStreetsChat();showCommunity();void refreshCommunity()}
  if(name==="arcade"){showArcade();if(S.session){if(S.busy||S.privatePending)S.privateQueued=true;else void loadPrivate().catch(e=>notice(e.message,"error"))}}
  if(name==="activities"){showActivities();if(S.session){if(S.busy||S.privatePending)S.privateQueued=true;else void loadPrivate().catch(e=>notice(e.message,"error"))}}
  if(name==="cities"){showCities();showBoard();if(!S.territoryPending&&!S.busy)void refreshTerritory();if(S.session&&!S.privatePending&&!S.busy)void loadPrivate().catch(e=>notice(e.message,"error"))}
@@ -351,7 +384,7 @@ function hasPlayIdentity(session,config){return !!session&&(!config?.staging||se
 function syncPlayIdentity(){
  const id=S.session?String(S.session.player_id):null;
  if(id===S.playIdentity)return;
- S.playIdentity=id;S.arcade=null;S.arcadeRun=null;S.arcadeBoard=null;S.arcadeBoardSeq++;showArcade();S.activities=null;el("activitiesResult")?.classList.add("hidden");showActivities();S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
+ S.playIdentity=id;S.streetsChatOpen=false;el("streetsChatFrame")?.removeAttribute("src");updateStreetsChat();S.arcade=null;S.arcadeRun=null;S.arcadeBoard=null;S.arcadeBoardSeq++;showArcade();S.activities=null;el("activitiesResult")?.classList.add("hidden");showActivities();S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
  S.pendingActions.clear();restorePending();
  el("targetSelect").value="";el("combatOutcome").classList.add("hidden");el("siegeOutcome").classList.add("hidden");el("bossRecap").classList.add("hidden");el("playFeedback").classList.add("hidden");
 }
@@ -951,7 +984,7 @@ async function loadPublic(){
 async function loadPrivate(){
  if(S.privatePending){S.privateQueued=true;return;}
  S.privatePending=true;updatePlayControls();
- try{await readPrivate();S.privateFresh=!!S.session&&!!S.me}catch(e){S.privateFresh=false;throw e}finally{S.privatePending=false;showActivities();showArcade();updatePlayControls();if(S.privateQueued&&!S.busy){S.privateQueued=false;if(S.session)void loadPrivate().catch(e=>notice(e.message,"error"))}}
+ try{await readPrivate();S.privateFresh=!!S.session&&!!S.me}catch(e){S.privateFresh=false;throw e}finally{S.privatePending=false;updateStreetsChat();showActivities();showArcade();updatePlayControls();if(S.privateQueued&&!S.busy){S.privateQueued=false;if(S.session)void loadPrivate().catch(e=>notice(e.message,"error"))}}
 }
 async function readPrivate(){
  syncPlayIdentity();
@@ -1130,6 +1163,7 @@ async function refreshWire(){
 function bind(){
  bindActivities();bindArcade();
  if(el("communityRefresh"))el("communityRefresh").onclick=()=>void refreshCommunity();
+ if(el("streetsChatEnable"))el("streetsChatEnable").onclick=openStreetsChat;
  document.querySelectorAll("[data-nav]").forEach(b=>b.addEventListener("click",()=>section(b.dataset.nav)));
  document.querySelectorAll("[data-jump]").forEach(b=>b.addEventListener("click",()=>el(b.dataset.jump)?.scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"})));
  window.addEventListener("popstate",()=>section(location.hash.startsWith("#play-")?location.hash.slice(6):"home",{record:false}));

@@ -615,3 +615,11 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
 .community-city-head img{width:60px;height:60px;object-fit:contain;flex-shrink:0}
 .community-city-head>div{min-width:0}
 @media(max-width:780px){.community-columns{grid-template-columns:minmax(0,1fr)}.community-totals{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* v2.9.8b1 — embedded two-way Discord chat, consent-first. */
+.streets-chat-shell{margin:1.1rem 0;padding:1rem;background:#102532;border:1px solid #608091;border-radius:10px;min-width:0}
+.streets-chat-heading{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.6rem}
+.streets-chat-heading h3{margin:.25rem 0}
+.streets-chat-embed{margin-top:.8rem;width:100%;overflow:hidden;border:1px solid #536e7a;border-radius:8px;background:#111b24}
+.streets-chat-embed iframe{width:100%;height:min(68vh,720px);min-height:460px;display:block;border:0}
+@media(max-width:780px){.streets-chat-embed iframe{height:65vh;min-height:440px}}

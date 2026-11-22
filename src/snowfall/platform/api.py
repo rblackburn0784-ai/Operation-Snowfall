@@ -219,7 +219,8 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         result.headers["Content-Security-Policy"] = (
             "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
             "img-src 'self' data:; connect-src 'self'; object-src 'none'; "
-            "base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+            "base-uri 'none'; frame-ancestors 'none'; form-action 'self'; "
+            "frame-src https://e.widgetbot.io"
         )
         if cfg.cookie_secure:
             result.headers["Strict-Transport-Security"] = "max-age=31536000"
