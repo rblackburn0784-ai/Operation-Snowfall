@@ -206,13 +206,13 @@ def reconcile(store: Store, season_key: str) -> dict:
         mismatches = [r["interaction_id"] for r in rows if r["credited"] != r["points_awarded"]]
         caps = con.execute("""SELECT player_id,day,SUM(points) AS score FROM score_ledger
             WHERE season_key=? AND category IN ('pvp','defense') GROUP BY player_id,day
-            HAVING score>300""", (season_key,)).fetchall()
+            HAVING SUM(points)>300""", (season_key,)).fetchall()
         # Real quest ledger category is singular ('quest'). The previous
         # plural check never matched anything and could not catch inflation.
         quest_duplicates = con.execute("""SELECT COUNT(*) FROM (
             SELECT player_id,day,SUM(points) AS score FROM score_ledger
             WHERE season_key=? AND category='quest' GROUP BY player_id,day
-            HAVING score>60)""", (season_key,)).fetchone()[0]
+            HAVING SUM(points)>60)""", (season_key,)).fetchone()[0]
         quest_unbacked = con.execute("""SELECT COUNT(*) FROM score_ledger l
             LEFT JOIN quest_claims q ON q.season_key=l.season_key
               AND q.discord_user_id=l.player_id AND q.day=l.day
