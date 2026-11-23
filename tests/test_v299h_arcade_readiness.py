@@ -144,6 +144,13 @@ def test_integrity_failures_block_even_when_mode_flag_is_off(defect):
     assert any(text.startswith("trivia has") for text in report["blockers"])
 
 
+def test_web_qa_with_second_discord_bridge_is_blocked():
+    result, _ = inspect({**ALL_ON, "SNOWFALL_DISCORD_BRIDGE_ENABLED": "1"},
+                        tables=all_tables())
+    assert result["status"] == "blocked"
+    assert any("second Discord bridge" in text for text in result["blockers"])
+
+
 def test_wrong_marker_and_base_launch_audit_block_release():
     report, _ = inspect(ALL_ON, tables=all_tables(), marker=False)
     assert report["status"] == "blocked"
