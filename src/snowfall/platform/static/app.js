@@ -1,10 +1,58 @@
-/* Operation Snowfall v2.9.8k — separate Market scarf artwork and worn scarf overlay. */
+/* Operation Snowfall v2.9.8l — status and resource artwork integration. */
 "use strict";
 const S={staffRole:null,staffDirectory:null,staffDossier:null,staffSelected:null,staffDirectoryBusy:false,staffDossierBusy:false,staffReviewBusy:false,staffDirectorySeq:0,staffDossierSeq:0,staffLab:null,staffLabPending:false,staffAllowed:false,staffCheckedIdentity:null,staffAccessCheckedAt:0,staffData:null,staffPending:false,staffStale:false,streetsDrawerOpen:false,streetsReturnFocus:null,streetsEmbedUrl:null,streetsChatOpen:false,community:null,communityPending:false,communityStale:false,privateQueued:false,arcade:null,arcadeRun:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
 const txt=(id,v)=>{const node=el(id),value=v==null?"—":String(v);if(node&&node.textContent!==value)node.textContent=value};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=v=>Number(v??0).toLocaleString("en-GB");
+/* v2.9.8l: All thresholds are client-side visual stages. They never influence
+   resource caps, regeneration, purchases, score ledger or combat decisions. */
+const STATUS_ART_ROOT="/art/v290/status/v298l/";
+const STATUS_ART_KINDS=Object.freeze(["snowballs","warmth","cold","currency","points"]);
+const COLD_LABELS=Object.freeze(["Comfortable","Chilly","Cold","Freezing"]);
+function resourceStage(kind,value){
+ if(!STATUS_ART_KINDS.includes(kind)||value==null||value===""||!Number.isFinite(Number(value))||Number(value)<0)return null;
+ const amount=Number(value);
+ if(kind==="warmth"||kind==="cold")return amount>=75?1:amount>=50?2:amount>=25?3:4;
+ if(kind==="snowballs")return amount<=2?1:amount<=5?2:amount<=9?3:4; // actual 0–12 ammo cap
+ if(kind==="currency")return amount<=24?1:amount<=74?2:amount<=149?3:4;
+ return amount<=99?1:amount<=299?2:amount<=599?3:4;
+}
+function resourceArtUrl(kind,value){
+ const stage=resourceStage(kind,value);
+ return stage===null?null:STATUS_ART_ROOT+kind+"_"+stage+".webp";
+}
+function paintResourceArt(id,kind,value){
+ const node=el(id);
+ if(!node)return;
+ const path=resourceArtUrl(kind,value);
+ if(!path){
+  node.classList?.add("hidden");node.removeAttribute?.("src");
+  delete node.dataset.stage;delete node.dataset.empty;
+  return;
+ }
+ if(node.getAttribute?.("src")!==path)node.setAttribute?.("src",path);
+ node.classList?.remove("hidden");
+ node.dataset.stage=String(resourceStage(kind,value));
+ node.dataset.empty=kind==="snowballs"&&Number(value)===0?"true":"false";
+}
+function showResourceArtwork(resources,score){
+ const r=resources||{};
+ for(const [id,kind,value] of [
+  ["playAmmoArt","snowballs",r.snowballs],["hqAmmoArt","snowballs",r.snowballs],
+  ["alleyAmmoArt","snowballs",r.snowballs],
+  ["playWarmthArt","warmth",r.warmth],["hqWarmthArt","warmth",r.warmth],
+  ["hqColdArt","cold",r.warmth],["alleyColdArt","cold",r.warmth],
+  ["playFlakesArt","currency",r.snowflakes],["hqCurrencyArt","currency",r.snowflakes],
+  ["marketCurrencyArt","currency",r.snowflakes],
+  ["playPointsArt","points",score],["hqPointsArt","points",score]
+ ])paintResourceArt(id,kind,value);
+ const stage=resourceStage("cold",r.warmth),cold=stage===null?"—":COLD_LABELS[stage-1];
+ txt("hqColdLabel","Cold status: "+cold);
+ txt("alleyColdStatus","Cold status: "+cold);
+ txt("alleyAmmoCount",r.snowballs==null?"—":fmt(r.snowballs));
+ txt("alleyWarmthCount",r.warmth==null?"Warmth — / 100":"Warmth "+fmt(r.warmth)+" / 100");
+}
 const CITY_SLUG=Object.freeze({
  "Chicago":"chicago","Detroit":"detroit","Las Vegas":"las_vegas",
  "Los Angeles":"los_angeles","New York":"new_york","Philadelphia":"philadelphia"
@@ -631,6 +679,7 @@ function updatePlayControls(){
   txt("playPlayer",S.me.mr_username);txt("playGreeting","Ready, "+S.me.mr_username+"?");
   for(const [id,key] of [["playAmmo","snowballs"],["playWarmth","warmth"],["playFlakes","snowflakes"]])txt(id,r?.[key]);
   txt("playPoints",S.me.score);
+  showResourceArtwork(r,S.me.score);
  }
  const body={target_player_id:el("targetSelect").value,style:el("throwStyle").value};
  const pendingThrow=!!S.lastThrow&&S.pendingActions.has(requestKey("/v1/game/throw",S.lastThrow.body));
@@ -722,6 +771,7 @@ function showMe(){
  txt("ammoValue",S.me.resources?.snowballs);txt("warmthValue",S.me.resources?.warmth);
  txt("flakeValue",S.me.resources?.snowflakes);txt("scoreValue",fmt(S.me.score));
  txt("shopBalance",fmt(S.me.resources?.snowflakes));
+ showResourceArtwork(S.me.resources,S.me.score);
  txt("ammoSub",S.me.resources?.next_snowball_at?"Regenerating snowballs":"Ready for action");
  txt("phaseValue",S.me.phase.toUpperCase());txt("sideStatus",S.me.phase.toUpperCase());
  txt("sideStatusDetail","Day "+(S.me.day||"—")+" of 7 · "+S.me.city);
@@ -864,7 +914,7 @@ function showTargets(){
  updatePlayControls();
 }
 function showBoard(){
- el("leaderboard").innerHTML=S.board.length?S.board.map((r,i)=>"<div class='score-row'><span class='rank'>"+(i+1)+"</span><div><strong>"+esc(r.mr_username)+"</strong><small>"+esc(r.city)+"</small></div><strong>"+fmt(r.score)+" pts</strong></div>").join(""):"<div class='empty'>The scoreboard is waiting for its first winner.</div>";
+ el("leaderboard").innerHTML=S.board.length?S.board.map((r,i)=>"<div class='score-row'><span class='rank'>"+(i+1)+"</span><div><strong>"+esc(r.mr_username)+"</strong><small>"+esc(r.city)+"</small></div><span class='score-total'><img src='"+resourceArtUrl("points",r.score)+"' alt='' loading='lazy'><strong>"+fmt(r.score)+" pts</strong></span></div>").join(""):"<div class='empty'>The scoreboard is waiting for its first winner.</div>";
 }
 // Original Discord v290 artwork landmarks and city palette.
 const CITY_META=Object.freeze({
