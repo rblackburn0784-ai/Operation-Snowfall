@@ -353,6 +353,14 @@ function mount({root,session,start,control,place,refresh,fetchRecord,onExit,
  }
  host=global.SnowfallArcadeV299.mountScene({
   root,title:"Snowman Builder",
+  canvasLabel:"Build a snowman. Select a part in the right tray, then drag or tap it into a matching ghost outline. Keyboard: number keys select parts, arrows move, Enter places, H toggles outlines.",
+  guide:[
+   "Touch or mouse: select a part from the right tray, then drag or tap the matching ghost outline on the blueprint.",
+   "Build three snowmen with 4, 7 and 9 correctly fitted parts. Some later tray pieces are decoys.",
+   "Keyboard: number keys 1–9, 0 and minus select tray parts; arrow keys move the cursor; Enter places.",
+   "Press H or Show / hide outlines to practise without the guides. Later blueprints have a slightly more forgiving touch target.",
+   "A correct fit scores points; wrong locations and decoys incur practice penalties. Only the server verifies placements.",
+  ],
   help:"Build three increasingly detailed snowmen by dragging real parts onto their ghost outlines. Beware decoys! 150-second unranked QA game.",
   getStatus:()=>current.status,getHud:hud,draw,
   onStart:begin,onPause:pause,onFinish:finish,onExit:close,
