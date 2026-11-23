@@ -1960,7 +1960,7 @@ function reconcileGalleryPending(view){
   if(!key.startsWith(prefix))continue;
   try{
    const body=JSON.parse(key.slice(prefix.length));
-   if(body.session_id===view.session_id&&body.shot_index<view.shots_used){
+   if((body.session_id!==view.session_id||body.shot_index<view.shots_used)){
     S.pendingActions.delete(key);changed=true;
    }
   }catch{}
@@ -2181,39 +2181,46 @@ function bindArcade(){
   const b=event.target.closest("button[data-arcade]");
   if(!b||b.disabled||!registered()||!arcadeAllowed()||S.busy||S.privatePending)return;
   const a=S.arcade,action=b.dataset.arcade,value=b.dataset.value;
+  const owner=arcadeOwner();
   if(action==="trivia-full"&&value==="trivia"&&S.config?.trivia_v299e_enabled){
    act(async()=>{
     const view=await post("/v1/game/arcade/trivia/start",{},true);
+    ensureArcadeOwner(owner);
     S.arcadeTrivia=view;reconcileTriviaPending(view);mountArcadeTrivia();
     notice("Christmas Trivia ready — unwrap 15 festive challenges!","success");
    });
   }else if(action==="catch-full"&&value==="catch"&&S.config?.catch_v299d_enabled){
    act(async()=>{
     const view=await post("/v1/game/arcade/catch/start",{},true);
+    ensureArcadeOwner(owner);
     S.arcadeCatch=view;reconcileCatchPending(view);mountArcadeCatch();
     notice("Snowflake Catch ready — avoid hazards, catch falling bonuses!","success");
    });
   }else if(action==="snowman-full"&&value==="snowman"&&S.config?.snowman_v299c_enabled){
    act(async()=>{
     const view=await post("/v1/game/arcade/snowman/start",{},true);
+    ensureArcadeOwner(owner);
     S.arcadeSnowman=view;reconcileSnowmanPending(view);mountArcadeSnowman();
     notice("Snowman Builder ready — drag parts onto the blueprints!","success");
    });
   }else if(action==="safe-full"&&value==="safe"&&S.config?.safe_v299b_enabled){
    act(async()=>{
     const view=await post("/v1/game/arcade/safecracker/start",{},true);
+    ensureArcadeOwner(owner);
     S.arcadeSafe=view;reconcileSafePending(view);mountArcadeSafe();
     notice("Frozen Safecracker ready: clockwise, anticlockwise, clockwise!","success");
    });
   }else if(action==="gallery-full"&&value==="gallery"&&S.config?.gallery_v299a_enabled){
    act(async()=>{
     const view=await post("/v1/game/arcade/gallery/start",{},true);
+    ensureArcadeOwner(owner);
     S.arcadeGallery=view;reconcileGalleryPending(view);mountArcadeGallery();
     notice("Target Gallery ready — 3 waves, 45 seconds, practice-only scoring.","success");
    });
   }else if(action==="practice"&&ARCADE_ART[value]){
    act(async()=>{
     const practice=await post("/v1/game/arcade/practice/start",{mode:value},true);
+    ensureArcadeOwner(owner);
     S.arcadePractice=practice;
     mountArcadePractice();
     notice("Unranked interactive practice ready. No daily start used.","success");
@@ -2223,6 +2230,7 @@ function bindArcade(){
    act(async()=>{
     const run=record.active_id?await get("/v1/game/arcade/session/"+encodeURIComponent(record.active_id)):
       await post("/v1/game/arcade/start",{mode:value,day:a.day,attempts_today:record.attempts_today},true);
+    ensureArcadeOwner(owner);
     S.arcadeRun=run;S.arcadeBoard=null;el("arcadeRun").classList.remove("hidden");
     notice(run.finished?"Run already completed.":"Arcade run ready.","success");
    }).then(()=>{if(S.arcadeRun&&el("page-arcade").classList.contains("active"))el("arcadeRun").scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"})});
@@ -2230,6 +2238,7 @@ function bindArcade(){
    const body={session_id:S.arcadeRun.session_id,step:S.arcadeRun.step,choice:value};
    act(async()=>{
     const result=await post("/v1/game/arcade/move",body,true,true);
+    ensureArcadeOwner(owner);
     S.arcadeRun=result.session;S.arcadeBoard=null;notice(result.feedback||"Turn recorded.","success");
    });
   }
