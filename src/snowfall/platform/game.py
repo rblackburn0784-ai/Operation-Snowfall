@@ -256,6 +256,33 @@ class SharedGame:
         return InteractiveArcadePractice(self.store, self.season).save(
             player_id, session_id, revision, state, finish=finish, now=now)
 
+    # v2.9.9a: verified hit detection and replay-safe practice scores.
+    # These never mutate the Discord classic arcade or any event resource.
+    def gallery_start(self, player_id: int, *, now=None) -> dict:
+        from snowfall.platform.gallery_arcade import GalleryEngine
+        return GalleryEngine(self.store, self.season).start(player_id, now=now)
+
+    def gallery_session(self, player_id: int, session_id: str, *, now=None) -> dict:
+        from snowfall.platform.gallery_arcade import GalleryEngine
+        return GalleryEngine(self.store, self.season).session(
+            player_id, session_id, now=now)
+
+    def gallery_control(self, player_id: int, session_id: str, action: str,
+                        *, now=None) -> dict:
+        from snowfall.platform.gallery_arcade import GalleryEngine
+        return GalleryEngine(self.store, self.season).control(
+            player_id, session_id, action, now=now)
+
+    def gallery_shoot(self, player_id: int, session_id: str, shot_index: int,
+                      x: int, y: int, interaction_id: str, *, now=None) -> dict:
+        from snowfall.platform.gallery_arcade import GalleryEngine
+        return GalleryEngine(self.store, self.season).shoot(
+            player_id, session_id, shot_index, x, y, interaction_id, now=now)
+
+    def gallery_record(self, player_id: int, *, now=None) -> dict:
+        from snowfall.platform.gallery_arcade import GalleryEngine
+        return GalleryEngine(self.store, self.season).record(player_id, now=now)
+
     def arcade_board(self, player_id: int, mode: str, *, daily=False, now=None) -> dict:
         from snowfall.services.social_arcade import SocialArcadeEngine
         engine = SocialArcadeEngine(self.store)
