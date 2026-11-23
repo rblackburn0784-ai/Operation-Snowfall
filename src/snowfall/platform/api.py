@@ -198,6 +198,17 @@ class SnowflakeCatchControlBody(BaseModel):
     action: Literal["pause", "resume", "finish"]
 
 
+class ChristmasTriviaAnswerBody(BaseModel):
+    session_id: str = Field(pattern=r"^[a-f0-9]{32}$")
+    step: int = Field(ge=0, le=14)
+    answer: str = Field(min_length=1, max_length=64)
+
+
+class ChristmasTriviaControlBody(BaseModel):
+    session_id: str = Field(pattern=r"^[a-f0-9]{32}$")
+    action: Literal["pause", "resume", "finish"]
+
+
 class OAuthStart(BaseModel):
     mode: Literal["login", "link"] = "login"
 
@@ -872,6 +883,46 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         catch_enabled()
         response.headers["Cache-Control"] = "no-store"
         return jsonable_encoder(shared.catch_record(principal))
+
+    def trivia_enabled():
+        if os.environ.get("SNOWFALL_ARCADE_V299E_ENABLED", "") != "1":
+            raise HTTPException(503, "Christmas Trivia is not enabled on this server")
+
+    @app.post("/v1/game/arcade/trivia/start")
+    def arcade_trivia_start(principal: int = Depends(game_writer)):
+        trivia_enabled()
+        return jsonable_encoder(shared.trivia_start(principal))
+
+    @app.get("/v1/game/arcade/trivia/session/{session_id}")
+    def arcade_trivia_session(session_id: str, response: Response,
+                              principal: int = Depends(player)):
+        trivia_enabled()
+        response.headers["Cache-Control"] = "no-store"
+        if not re.fullmatch(r"[a-f0-9]{32}", session_id):
+            raise HTTPException(400, "Invalid Christmas Trivia session")
+        return jsonable_encoder(shared.trivia_session(principal, session_id))
+
+    @app.post("/v1/game/arcade/trivia/control")
+    def arcade_trivia_control(body: ChristmasTriviaControlBody,
+                              principal: int = Depends(game_writer)):
+        trivia_enabled()
+        return jsonable_encoder(shared.trivia_control(
+            principal, body.session_id, body.action))
+
+    @app.post("/v1/game/arcade/trivia/answer")
+    def arcade_trivia_answer(body: ChristmasTriviaAnswerBody,
+                             idempotency_key: str | None = Header(default=None),
+                             principal: int = Depends(game_writer)):
+        trivia_enabled()
+        return jsonable_encoder(shared.trivia_answer(
+            principal, body.session_id, body.step, body.answer,
+            _idempotency(principal, "trivia:answer", idempotency_key)))
+
+    @app.get("/v1/game/arcade/trivia/record")
+    def arcade_trivia_record(response: Response, principal: int = Depends(player)):
+        trivia_enabled()
+        response.headers["Cache-Control"] = "no-store"
+        return jsonable_encoder(shared.trivia_record(principal))
 
     @app.get("/v1/game/arcade/board")
     def arcade_board(response: Response,
