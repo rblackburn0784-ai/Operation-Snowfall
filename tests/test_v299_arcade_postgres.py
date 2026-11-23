@@ -10,6 +10,7 @@ from snowfall.db.postgres import PostgresStore
 from snowfall.db.store import Store
 from snowfall.platform.interactive_arcade import InteractiveArcadePractice, install_practice_schema
 from snowfall.platform.gallery_arcade import GalleryEngine, install_gallery_schema, target_position
+from snowfall.platform.safecracker_arcade import SafecrackerEngine, install_safe_schema
 
 SEASON = "web-qa-2026"
 START = datetime(2026, 12, 20, 18, tzinfo=timezone.utc)
@@ -44,6 +45,7 @@ def test_additive_practice_table_runs_on_real_postgres_without_game_schema_chang
         with pg.connect() as con:
             install_practice_schema(con)
             install_gallery_schema(con)
+            install_safe_schema(con)
         pg.initialize()  # Existing canonical version stays unchanged.
         arcade = InteractiveArcadePractice(pg, SEASON)
         run = arcade.start(101, "gallery", now=START)
@@ -76,6 +78,28 @@ def test_additive_practice_table_runs_on_real_postgres_without_game_schema_chang
             assert con.execute("SELECT COUNT(*) FROM web_arcade_gallery_sessions").fetchone()[0] == 1
             assert con.execute("SELECT COUNT(*) FROM web_arcade_gallery_shots").fetchone()[0] == 1
             assert con.execute("SELECT COUNT(*) FROM score_ledger").fetchone()[0] == 0
+        safe = SafecrackerEngine(pg, SEASON)
+        vault = safe.start(101, now=START)
+        assert vault["status"] == "paused"
+        assert vault["combination"] is None
+        safe_id = vault["session_id"]
+        assert safe.control(101, safe_id, "resume",
+                            now=START+timedelta(milliseconds=200))["status"] == "active"
+        rotated = safe.move(101, safe_id, 0, "turn", 8, "safe-pg-dial-00001",
+                            now=START+timedelta(milliseconds=1200))
+        assert rotated["action_seq"] == 1 and rotated["dial"] == 8
+        assert safe.move(101, safe_id, 0, "turn", 8, "safe-pg-dial-00001",
+                         now=START+timedelta(milliseconds=1600))["repeated"]
+        assert safe.control(101, safe_id, "pause",
+                            now=START+timedelta(milliseconds=1900))["status"] == "paused"
+        assert safe.session(101, safe_id,
+                            now=START+timedelta(seconds=5))["dial"] == 8
+        with pg.connect() as con:
+            assert con.execute("SELECT COUNT(*) FROM web_arcade_safe_sessions").fetchone()[0] == 1
+            assert con.execute("SELECT COUNT(*) FROM web_arcade_safe_actions").fetchone()[0] == 1
+            assert con.execute("SELECT COUNT(*) FROM social_arcade_runs").fetchone()[0] == 0
+            assert con.execute("SELECT COUNT(*) FROM score_ledger").fetchone()[0] == 0
+
 
     finally:
         with psycopg.connect(root, autocommit=True) as admin:
