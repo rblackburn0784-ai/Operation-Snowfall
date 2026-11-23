@@ -1246,3 +1246,123 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
  .arcade-full-trivia .arcade-training-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
  .arcade-full-trivia .arcade-training-controls button{font-size:.8rem;min-height:48px;padding:.5rem .25rem}
 }
+
+
+/* v2.9.9f — Arcade Hub 2.0; a proper launcher for the five existing games.
+   QA practice and Discord Classic are deliberately visually separate. */
+.arcade-hub{display:block;margin:1.2rem 0 1.5rem;padding:clamp(.8rem,2.1vw,1.4rem);
+ border:1px solid #779a9e;border-radius:15px;
+ background:linear-gradient(150deg,#173342,#102b36 54%,#243545);
+ box-shadow:0 12px 32px #03161d48;scroll-margin-top:5rem;min-width:0}
+.arcade-hub.hidden{display:none}
+.arcade-hub-heading{display:flex;justify-content:space-between;align-items:start;gap:1rem;flex-wrap:wrap}
+.arcade-hub-heading>div{flex:1 1 290px;max-width:720px}
+.arcade-hub-heading h3{font:700 clamp(1.35rem,2.6vw,1.8rem)/1.16 Georgia,serif;
+ color:#f1d9a7;margin:.15rem 0 .45rem}
+.arcade-hub-heading p:not(.eyebrow){color:#d4e4e7;font-size:.9rem;line-height:1.55;margin:0}
+.arcade-hub-heading>button{min-height:44px;flex:0 0 auto}
+.arcade-hub-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+ gap:.5rem;margin:1rem 0}
+.arcade-hub-summary>span{display:flex;align-items:center;justify-content:center;gap:.3rem;
+ text-align:center;min-height:52px;padding:.52rem .45rem;border-radius:8px;
+ border:1px solid #547884;background:#0d2634;color:#d7eaf0;font-size:.8rem;
+ font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.arcade-hub-summary strong{font-size:1.18rem;color:#ffdfaa}
+.arcade-hub-stat-free{color:#a8e4d4!important;border-color:#4a8379!important}
+.arcade-hub-spotlight{display:flex;align-items:center;justify-content:space-between;gap:1rem;
+ padding:1rem 1.1rem;background:linear-gradient(115deg,#455a56,#243f53);
+ border:1px solid #c9b283;border-radius:10px;margin:.8rem 0 1rem}
+.arcade-hub-spotlight>div{flex:1 1 200px;min-width:0}
+.arcade-hub-spotlight h4{font:700 1.18rem Georgia,serif;color:#f9e8be;margin:.18rem 0}
+.arcade-hub-spotlight p:not(.eyebrow){margin:.15rem 0;color:#edf1ed;line-height:1.35}
+.arcade-hub-spotlight .button{min-height:48px;flex:0 1 220px;white-space:normal}
+.arcade-hub-toolbar{display:flex;align-items:end;gap:.7rem;flex-wrap:wrap;margin:1rem 0}
+.arcade-hub-toolbar label{display:flex;flex-direction:column;gap:.35rem;
+ color:#f4e0bb;font-size:.78rem;font-weight:700;flex:1 1 170px;min-width:0}
+.arcade-hub-toolbar label:first-child{flex:2 1 235px}
+.arcade-hub-toolbar input,.arcade-hub-toolbar select{width:100%;height:45px;
+ border-radius:7px;border:1px solid #73909a;background:#0d2532;
+ color:#eef4f3;font:inherit;font-size:.88rem;padding:0 .6rem;min-width:0}
+.arcade-hub-count{font-size:.78rem;color:#c9dfe2;padding:.8rem 0;white-space:nowrap}
+.arcade-hub-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:.8rem;margin:0 0 .7rem}
+.arcade-hub-card{display:grid;grid-template-columns:minmax(120px,37%) minmax(0,1fr);
+ min-width:0;overflow:hidden;border:1px solid #68818b;border-radius:11px;
+ background:linear-gradient(135deg,#0d2533,#193546);
+ transition:border-color .15s,transform .15s;align-items:stretch}
+.arcade-hub-card[data-recommended='true']{border-color:#d6ba80}
+.arcade-hub-card:focus-within{border-color:#ffe3a5}
+.arcade-hub-art{position:relative;min-height:235px;background:#182d37;overflow:hidden}
+.arcade-hub-art img{display:block;width:100%;height:100%;object-fit:cover;
+ object-position:center;filter:saturate(.85);opacity:.87}
+.arcade-hub-state{position:absolute;left:.4rem;top:.4rem;right:.4rem;
+ display:block;width:max-content;max-width:calc(100% - .8rem);
+ padding:.3rem .52rem;border-radius:5px;background:#09242fe8;
+ color:#f2e0b8;font-size:.7rem;font-weight:800}
+.arcade-hub-card[data-state='resume'] .arcade-hub-state{color:#b9f3e2}
+.arcade-hub-card[data-state='off']{opacity:.73}
+.arcade-hub-card-copy{display:flex;flex-direction:column;gap:.4rem;padding:.85rem .8rem;
+ min-width:0;min-height:235px}
+.arcade-hub-card-copy h4{font:700 clamp(1.03rem,1.7vw,1.3rem)/1.18 Georgia,serif;
+ color:#f6deb0;margin:0;overflow-wrap:anywhere}
+.arcade-hub-card-copy .eyebrow{margin:0;color:#b6dcd8;font-size:.63rem}
+.arcade-hub-card-copy>p:not(.eyebrow){line-height:1.4;color:#d7e6e7;margin:0;font-size:.8rem}
+.arcade-hub-card-copy .arcade-hub-hint{color:#a9c7d1!important;font-size:.73rem!important}
+.arcade-hub-card-stats{display:flex;gap:.3rem .8rem;flex-wrap:wrap;
+ align-items:baseline;font-size:.76rem;color:#d2e0df}
+.arcade-hub-card-stats strong{color:#ffdf99;font-size:1.1rem}
+.arcade-hub-progress{margin-top:auto;display:grid;gap:.27rem}
+.arcade-hub-progress-head{display:flex;justify-content:space-between;gap:.3rem;
+ color:#cfdbda;font-size:.69rem;line-height:1.3;overflow-wrap:anywhere}
+.arcade-hub-progress-head span:last-child{text-align:right}
+.arcade-hub-track{height:7px;border-radius:10px;border:1px solid #517381;
+ background:#08232f;overflow:hidden}
+.arcade-hub-track>span{display:block;height:100%;background:linear-gradient(90deg,#80d5c9,#f0ce8b)}
+.arcade-hub-card-copy>.button{width:100%;min-height:46px;text-align:center;margin:.1rem 0 0;
+ white-space:normal;font-weight:750}
+.arcade-hub-empty{grid-column:1/-1;border:1px dashed #79959e;padding:1.1rem;
+ border-radius:9px;color:#f0dec0;text-align:center}
+.arcade-hub-message{min-height:1.2rem;color:#cee6e3;font-size:.83rem;margin:.4rem 0 0}
+.arcade-hub-classic-link{display:flex;justify-content:space-between;align-items:center;
+ flex-wrap:wrap;gap:.7rem;border-top:1px solid #66818a;margin-top:1rem;
+ padding-top:1rem}
+.arcade-hub-classic-link strong{color:#f2e0b9;font-size:.92rem}
+.arcade-hub-classic-link p{margin:.3rem 0 0;font-size:.78rem;color:#c7dadd}
+.arcade-hub-classic-link .button{min-height:44px}
+.arcade-classic{border:1px solid #607e87;border-radius:12px;
+ padding:.7rem .9rem;margin:1rem 0;min-width:0;background:#0b2533}
+.arcade-classic>summary{cursor:pointer;color:#e9d4a7;font:700 1.04rem Georgia,serif;
+ padding:.35rem 0;line-height:1.4}
+.arcade-classic>summary:focus-visible,.arcade-hub button:focus-visible,
+.arcade-hub input:focus-visible,.arcade-hub select:focus-visible{
+ outline:3px solid #f5dfa9;outline-offset:3px}
+.arcade-classic-explain{font-size:.82rem;line-height:1.5;margin:.5rem 0 .9rem}
+#arcadeHub,#arcadeClassic,#arcadeGallery,#arcadeSafe,#arcadeSnowman,#arcadeCatch,#arcadeTrivia{
+ scroll-margin-top:5rem;
+}
+@media(max-width:1040px){
+ .arcade-hub-grid{grid-template-columns:1fr}
+ .arcade-hub-art{min-height:200px}
+ .arcade-hub-card-copy{min-height:205px}
+}
+@media(max-width:680px){
+ .arcade-hub{padding:.85rem .7rem}
+ .arcade-hub-heading>button{width:100%}
+ .arcade-hub-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .arcade-hub-spotlight{flex-direction:column;align-items:stretch;padding:.85rem}
+ .arcade-hub-spotlight .button{width:100%;flex:0 0 auto}
+ .arcade-hub-card{grid-template-columns:minmax(105px,34%) minmax(0,1fr)}
+ .arcade-hub-art{min-height:190px}
+ .arcade-hub-card-copy{min-height:200px;padding:.75rem .6rem}
+}
+@media(max-width:430px){
+ .arcade-hub-card{grid-template-columns:1fr}
+ .arcade-hub-art{height:135px;min-height:135px}
+ .arcade-hub-art img{object-position:center 46%}
+ .arcade-hub-card-copy{min-height:0;gap:.35rem}
+ .arcade-hub-count{width:100%;padding:0}
+ .arcade-hub-classic-link .button{width:100%}
+}
+@media(prefers-reduced-motion:reduce){
+ .arcade-hub-card{transition:none}
+}
