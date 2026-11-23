@@ -1251,14 +1251,19 @@ async function loadPrivate(){
 }
 async function readPrivate(){
  syncPlayIdentity();
+ const owner=arcadeOwner();
  if(!S.session){S.activities=null;showActivities();S.me=null;S.world=null;S.hq=null;S.shop=null;S.targetsReady=false;S.targets=[];S.progress=null;S.verification=null;S.pendingActions.clear();showMe();showShop();showTargets();showSiege();return}
  try{
-  S.me=await get("/v1/game/me");
+  const playerView=await get("/v1/game/me");
+  if(!isArcadeOwner(owner))return;
+  S.me=playerView;
   if(String(S.me?.player_id)!==String(S.session?.player_id)){const err=Error("Account changed in another tab; sign in again");err.status=409;throw err}
  }
- catch(e){if(e.status===401||e.message==="Account changed in another tab; sign in again"){S.session=null;S.me=null;S.world=null;S.hq=null;S.shop=null;S.progress=null;S.targetsReady=false;S.targets=[];S.verification=null;showMe();showShop();showTargets();showSiege();return}throw e}
+ catch(e){if(!isArcadeOwner(owner))return;
+  if(e.status===401||e.message==="Account changed in another tab; sign in again"){S.session=null;S.me=null;S.world=null;S.hq=null;S.shop=null;S.progress=null;S.targetsReady=false;S.targets=[];S.verification=null;showMe();showShop();showTargets();showSiege();return}throw e}
  if(S.me.registered){
   const results=await Promise.allSettled([get("/v1/game/world"),get("/v1/game/wardrobe"),get("/v1/game/targets"),get("/v1/game/progress"),get("/v1/game/headquarters"),el("page-activities")?.classList.contains("active")?get("/v1/game/activities"):Promise.resolve(null),el("page-arcade")?.classList.contains("active")?get("/v1/game/arcade"):Promise.resolve(null)]);
+  if(!isArcadeOwner(owner))return;
   if(results.some(r=>r.status==="rejected"&&(r.reason?.status===401||r.reason?.message==="Account changed in another tab; sign in again"))){
    S.session=null;return readPrivate();
   }
@@ -1272,14 +1277,22 @@ async function readPrivate(){
   S.arcade=results[6]?.status==="fulfilled"?results[6].value:null;
   if(S.arcadeRun&&S.arcade&&String(S.arcade.player_id)===String(S.session.player_id)){
    if(S.arcadeRun.day!==S.arcade.day)S.arcadeRun=null;
-   else try{S.arcadeRun=await get("/v1/game/arcade/session/"+encodeURIComponent(S.arcadeRun.session_id));reconcileArcadeMoves(S.arcadeRun)}
+   else try{
+    const run=await get("/v1/game/arcade/session/"+encodeURIComponent(S.arcadeRun.session_id));
+    if(!isArcadeOwner(owner))return;
+    S.arcadeRun=run;reconcileArcadeMoves(run);
+   }
    catch{S.arcadeRun=null}
   }
   S.hqClock=Number.isFinite(Date.parse(S.hq?.server_time))?Date.parse(S.hq.server_time)-Date.now():0;
   const linked=(S.session.links||[]).some(x=>x.provider==="discord")&&
                (S.session.links||[]).some(x=>x.provider==="underworld");
   if(linked){
-    try{S.verification=await get("/v1/verification/status")}
+    try{
+     const verification=await get("/v1/verification/status");
+     if(!isArcadeOwner(owner))return;
+     S.verification=verification;
+    }
     catch{S.verification=null}
   }else S.verification=null;
  }else{S.shop=null;S.world=null;S.hq=null;S.progress=null;S.targetsReady=false;S.targets=[];S.verification=null;}
