@@ -195,7 +195,7 @@ test("letter mistake correction works with Undo, Clear and keyboard",async()=>{
  assert.deepEqual(JSON.parse(JSON.stringify(run.game.getLetters())),[0,1]);
  ui.key("Backspace");
  assert.deepEqual(JSON.parse(JSON.stringify(run.game.getLetters())),[0]);
- ui.button("clear");
+ ui.button("clear");await drain();
  assert.equal(run.game.getLetters().length,0);
  ui.button("check");await drain();
  assert.equal(run.submitted.length,0);
