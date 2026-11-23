@@ -240,6 +240,22 @@ class SharedGame:
             self.season, player_id, session_id, step, choice, interaction_id,
             now or _time()))
 
+    # Web-only v2.9.9 practice; deliberately isolated from SocialArcadeEngine.
+    def arcade_practice_start(self, player_id: int, mode: str, *, now=None) -> dict:
+        from snowfall.platform.interactive_arcade import InteractiveArcadePractice
+        return InteractiveArcadePractice(self.store, self.season).start(player_id, mode, now=now)
+
+    def arcade_practice_session(self, player_id: int, session_id: str, *, now=None) -> dict:
+        from snowfall.platform.interactive_arcade import InteractiveArcadePractice
+        return InteractiveArcadePractice(self.store, self.season).session(
+            player_id, session_id, now=now)
+
+    def arcade_practice_save(self, player_id: int, session_id: str, revision: int,
+                             state: dict, *, finish=False, now=None) -> dict:
+        from snowfall.platform.interactive_arcade import InteractiveArcadePractice
+        return InteractiveArcadePractice(self.store, self.season).save(
+            player_id, session_id, revision, state, finish=finish, now=now)
+
     def arcade_board(self, player_id: int, mode: str, *, daily=False, now=None) -> dict:
         from snowfall.services.social_arcade import SocialArcadeEngine
         engine = SocialArcadeEngine(self.store)
