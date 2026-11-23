@@ -7,11 +7,11 @@ const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 function position(t,ms){
  return {x:t.x0+t.amp*Math.sin(t.phase+(ms-t.start)/1000*t.rate),y:t.y};
 }
-function mount({root,session,start,control,shot,refresh,onExit}){
+function mount({root,session,start,control,shot,refresh,fetchRecord,onExit}){
  if(!global.SnowfallArcadeV299?.mountScene)
   throw Error("Arcade 2.0 screen is not available.");
  let current=session,reference=performance.now(),lastRefresh=0;
- let refreshing=false,unconfirmed=null,impact=null,record=null;
+ let refreshing=false,unconfirmed=null,impact=null,record=null,recordBusy=false;
  const backdrop=new Image();
  backdrop.src="/art/v290/arcade/gallery.webp";
  function apply(next){
@@ -21,6 +21,10 @@ function mount({root,session,start,control,shot,refresh,onExit}){
    unconfirmed=null;record=null;
   }
   current=next;reference=performance.now();
+  if(next.status==="finished"&&!record&&!recordBusy&&fetchRecord){
+   recordBusy=true;void fetchRecord().then(value=>{record=value}).catch(()=>{})
+    .finally(()=>{recordBusy=false});
+  }
   host?.update();
  }
  function elapsed(){
@@ -69,7 +73,7 @@ function mount({root,session,start,control,shot,refresh,onExit}){
     const snap=await refresh(body.session_id);
     if(snap.shots_used>body.shot_index){
      apply(snap);unconfirmed=null;
-     return {outcome:"hit",feedback:"Previous throw confirmed; gallery resynchronised."};
+     return {outcome:"confirmed",feedback:"Previous throw confirmed; gallery resynchronised."};
     }
    }catch{}
    throw e;
@@ -157,6 +161,10 @@ function mount({root,session,start,control,shot,refresh,onExit}){
    ctx.fillText(current.status==="finished"?
     current.hits+" hits · "+current.accuracy+"% accuracy · Best streak "+current.best_combo:
     "Press Start / resume to begin",320,245);
+   if(current.status==="finished"&&record){
+    ctx.font="14px sans-serif";ctx.fillStyle="#f5d597";
+    ctx.fillText("Personal best: "+record.personal_best+"/100 · "+record.finished_runs+" completed",320,284);
+   }
    ctx.textAlign="start";
   }
  }
