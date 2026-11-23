@@ -1031,3 +1031,57 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
  filter:drop-shadow(0 2px 2px rgba(5,17,26,.45));
  object-fit:contain;
 }
+
+/* v2.9.8l — transparent four-stage Snowfall resources; gameplay numbers stay live. */
+.resource-stat{display:flex;flex-direction:column;align-items:flex-start;gap:.25rem;min-width:0}
+.resource-stat>span{min-height:2.2em}
+.resource-stat .resource-art{display:block;max-width:100%;width:100%;height:clamp(57px,7vw,88px);object-fit:contain;object-position:left center;flex-shrink:0}
+.resource-stat .resource-art[data-empty="true"],.alley-resource-strip img[data-empty="true"],.status-inline-icon[data-empty="true"]{opacity:.35;filter:grayscale(.6)}
+.resource-stat strong{line-height:1.15;margin:.1rem 0;font-variant-numeric:tabular-nums}
+.resource-stat>small{line-height:1.4}
+.resource-warmth-stat .warmth-artwork{display:flex;align-items:center;gap:.2rem;width:100%;min-height:76px}
+.resource-warmth-stat .resource-cold-art{width:45%;height:76px;object-fit:contain;object-position:left center}
+.resource-warmth-stat .resource-warmth-bar{width:55%;height:54px;object-fit:contain;object-position:center}
+.resource-warmth-stat #hqColdLabel{font-weight:750;color:#e5d2ac;display:block}
+.resource-warmth-stat #hqWarmthSub{display:block}
+.status-art-bar>span{display:inline-flex;align-items:center;gap:.24rem;white-space:nowrap}
+.status-art-bar .status-inline-icon{display:inline-block;vertical-align:middle;max-height:24px;height:24px;width:31px;object-fit:contain;flex:none}
+.status-art-bar #playWarmthArt{width:38px}
+.status-art-bar .tiny-link{white-space:nowrap}
+.alley-winter-scene{position:relative;display:flex;align-items:flex-end;min-height:clamp(130px,15vw,210px);overflow:hidden;
+ background-image:linear-gradient(90deg,rgba(5,19,27,.8) 0%,rgba(6,23,35,.36) 60%,rgba(6,21,32,.12)),url("/art/v290/status/v298l/winter_street.webp");
+ background-size:cover;background-position:center 54%;border:1px solid #597686;margin:0 0 1.15rem;isolation:isolate}
+.alley-scene-caption{padding:1rem clamp(.8rem,2vw,1.5rem);max-width:70%;text-shadow:0 2px 7px #00131e}
+.alley-scene-caption .eyebrow{font-size:.62rem;margin:0 0 .25rem}
+.alley-scene-caption strong{font:700 clamp(.92rem,2vw,1.32rem) Georgia,serif;color:#f5e3c3;line-height:1.22}
+.alley-resource-strip{display:flex;gap:.65rem;flex-wrap:wrap;margin:.5rem 0 .65rem}
+.alley-resource-strip>div{display:flex;align-items:center;gap:.48rem;flex:1 1 165px;min-width:0;padding:.38rem .55rem;background:#0b2230ad;border:1px solid #3c5b6d}
+.alley-resource-strip img{width:54px;height:52px;flex:none;object-fit:contain}
+.alley-resource-strip span{display:flex;flex-direction:column;gap:.1rem;min-width:0;font-size:.72rem;color:#b7d0d7;line-height:1.3}
+.alley-resource-strip strong{color:#f1d7a8;font-weight:750;font-size:.8rem}
+.alley-resource-strip small{font-size:.66rem;color:#adc6d1}
+.market-wallet .market-wallet-art{width:78px;height:72px;object-fit:contain;flex:none}
+.market-wallet>div{flex:1 1 180px;min-width:0}
+.market-wallet>.button{margin-left:auto}
+.score-row .score-total{display:inline-flex;align-items:center;justify-content:flex-end;gap:.4rem;white-space:nowrap}
+.score-row .score-total img{height:40px;width:43px;object-fit:contain;flex:none}
+.score-row .score-total strong{font-variant-numeric:tabular-nums}
+@media(max-width:1120px){.resource-stat .resource-art{height:75px}.resource-warmth-stat .warmth-artwork{min-height:73px}}
+@media(max-width:640px){
+ .resource-stat{padding:.8rem .65rem}
+ .resource-stat .resource-art{height:66px}
+ .resource-warmth-stat .warmth-artwork{min-height:67px}
+ .resource-warmth-stat .resource-cold-art{height:65px}
+ .resource-warmth-stat .resource-warmth-bar{height:47px}
+ .status-art-bar .status-inline-icon{height:20px;width:25px}
+ .status-art-bar #playWarmthArt{width:31px}
+ .market-wallet .market-wallet-art{width:58px;height:58px}
+ .alley-scene-caption{max-width:93%}
+}
+@media(max-width:380px){
+ .resource-stat .resource-art{height:57px}
+ .alley-winter-scene{min-height:118px}
+ .alley-resource-strip>div{flex-basis:100%}
+ .score-row .score-total img{height:31px;width:32px}
+ .score-row{gap:.45rem;padding:.6rem}
+}
