@@ -113,11 +113,8 @@ class ArcadeHubEngine:
                         "WHERE season_key=? AND player_id=?",
                         (self.season, player_id)).fetchone()
                 engine = _engine(key, self.store, self.season)
-                record = engine.record(player_id, now=now)
                 item.update({
                     "status": "ready",
-                    "personal_best": int(record["personal_best"]),
-                    "finished_runs": int(record["finished_runs"]),
                     "last_played_at": latest[0] if latest else None,
                 })
                 if row is not None:
@@ -134,6 +131,11 @@ class ArcadeHubEngine:
                             "progress_label": label,
                         })
                         active_count += 1
+                # Recalculate records AFTER an active session's timeout is
+                # settled; the hub must not show a stale personal best.
+                record = engine.record(player_id, now=now)
+                item["personal_best"] = int(record["personal_best"])
+                item["finished_runs"] = int(record["finished_runs"])
             finished_total += item["finished_runs"]
             result.append(item)
         available = [i for i in result if i["enabled"]]
