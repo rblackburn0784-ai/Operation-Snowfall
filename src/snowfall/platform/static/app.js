@@ -18,14 +18,14 @@ function resourceStage(kind,value){
  if(kind==="currency")return amount<=24?1:amount<=74?2:amount<=149?3:4;
  return amount<=99?1:amount<=299?2:amount<=599?3:4;
 }
-function resourceArtUrl(kind,value){
- const stage=resourceStage(kind,value);
- return stage===null?null:STATUS_ART_ROOT+kind+"_"+stage+".webp";
+function resourceArtUrl(kind,value,stageKind=kind){
+ const stage=resourceStage(stageKind,value);
+ return stage===null||!STATUS_ART_KINDS.includes(kind)?null:STATUS_ART_ROOT+kind+"_"+stage+".webp";
 }
-function paintResourceArt(id,kind,value){
+function paintResourceArt(id,kind,value,stageKind=kind){
  const node=el(id);
  if(!node)return;
- const path=resourceArtUrl(kind,value);
+ const path=resourceArtUrl(kind,value,stageKind);
  if(!path){
   node.classList?.add("hidden");node.removeAttribute?.("src");
   delete node.dataset.stage;delete node.dataset.empty;
@@ -33,20 +33,24 @@ function paintResourceArt(id,kind,value){
  }
  if(node.getAttribute?.("src")!==path)node.setAttribute?.("src",path);
  node.classList?.remove("hidden");
- node.dataset.stage=String(resourceStage(kind,value));
+ node.dataset.stage=String(resourceStage(stageKind,value));
  node.dataset.empty=kind==="snowballs"&&Number(value)===0?"true":"false";
 }
 function showResourceArtwork(resources,score){
  const r=resources||{};
- for(const [id,kind,value] of [
+ for(const [id,kind,value,stageKind] of [
   ["playAmmoArt","snowballs",r.snowballs],["hqAmmoArt","snowballs",r.snowballs],
   ["alleyAmmoArt","snowballs",r.snowballs],
   ["playWarmthArt","warmth",r.warmth],["hqWarmthArt","warmth",r.warmth],
   ["hqColdArt","cold",r.warmth],["alleyColdArt","cold",r.warmth],
-  ["playFlakesArt","currency",r.snowflakes],["hqCurrencyArt","currency",r.snowflakes],
+  ["playFlakesArt","currency",r.snowflakes],
+  // HQ artwork follows the requested presentation: crystal snowflakes on
+  // the left, gold tokens on the right. Stage thresholds still follow the
+  // actual snowflake balance and official score respectively.
+  ["hqCurrencyArt","points",r.snowflakes,"currency"],
   ["marketCurrencyArt","currency",r.snowflakes],
-  ["playPointsArt","points",score],["hqPointsArt","points",score]
- ])paintResourceArt(id,kind,value);
+  ["playPointsArt","points",score],["hqPointsArt","currency",score,"points"]
+ ])paintResourceArt(id,kind,value,stageKind);
  const stage=resourceStage("cold",r.warmth),cold=stage===null?"—":COLD_LABELS[stage-1];
  txt("hqColdLabel","Cold status: "+cold);
  txt("alleyColdStatus","Cold status: "+cold);
