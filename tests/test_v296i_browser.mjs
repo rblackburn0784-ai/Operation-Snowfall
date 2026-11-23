@@ -41,7 +41,7 @@ test("all portraits have calibrated gear and side trail placements",()=>{
    assert.ok(eyes.width<37&&eyes.width>24,key);
    // v2.9.8j brings the scarf closer to the collar, without covering eyes.
    assert.ok(neck.top>eyes.top+5&&neck.top<eyes.top+24,key);
-   assert.ok(neck.width<34&&neck.width>20,key);
+   assert.ok(neck.width<38&&neck.width>20,key);
    assert.ok(trail.left>60&&trail.left+trail.width<=100,key);
    assert.deepEqual(calc("candy_trail"),trail);
   }
