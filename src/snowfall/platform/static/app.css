@@ -1086,12 +1086,13 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
  .score-row{gap:.45rem;padding:.6rem}
 }
 
-/* Resource-card layout hotfix (v2.9.8l2).
+/* Resource-card layout hotfix (v2.9.8l2, snowball spacing refined in v2.9.8l3).
    Display-only corrections; official numbers, bars elsewhere and resource
    calculations are unchanged. Avoid clipping large snowball artwork. */
 #playerDashboard .resource-ammo-stat .resource-art-ammo{
- margin-top:clamp(10px,1.2vw,16px);
- object-position:left bottom;
+ margin-top:clamp(18px,2vw,26px);
+ object-fit:contain;
+ object-position:center bottom;
 }
 /* The cold portrait stays above the live reading; the ornate horizontal
    thermometer now replaces the small progress line at the foot of the card. */
@@ -1118,12 +1119,12 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
    the picture is now the visual meter, so don't draw a second progress bar. */
 #playerDashboard .resource-warmth-stat .warmth-meter>span{display:none}
 @media(max-width:640px){
- #playerDashboard .resource-ammo-stat .resource-art-ammo{margin-top:9px}
+ #playerDashboard .resource-ammo-stat .resource-art-ammo{margin-top:16px}
  #playerDashboard .resource-warmth-stat .warmth-artwork{height:74px}
  #playerDashboard .resource-warmth-stat .warmth-meter{height:36px;min-height:32px}
 }
 @media(max-width:380px){
- #playerDashboard .resource-ammo-stat .resource-art-ammo{margin-top:8px}
+ #playerDashboard .resource-ammo-stat .resource-art-ammo{margin-top:14px}
  #playerDashboard .resource-warmth-stat .warmth-artwork{height:65px}
  #playerDashboard .resource-warmth-stat .warmth-meter{height:32px}
 }
