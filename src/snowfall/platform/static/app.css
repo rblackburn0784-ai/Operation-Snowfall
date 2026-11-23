@@ -1206,3 +1206,23 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
  .arcade-full-snowman .arcade-training-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
  .arcade-full-snowman .arcade-training-controls button{font-size:.8rem;min-height:48px;padding:.5rem .25rem}
 }
+
+
+/* v2.9.9d — Snowflake Catch, shared canvas and wide/mobile basket controls. */
+.arcade-full-catch{border:2px solid #a8d3e5;background:linear-gradient(140deg,#112a40,#23546c)}
+.arcade-full-catch .arcade-training-canvas{max-width:960px;border:3px solid #d0e4ec;touch-action:none;overscroll-behavior:contain;cursor:ew-resize;user-select:none}
+.arcade-full-catch .arcade-gallery-hud{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.45rem}
+.arcade-full-catch .arcade-gallery-hud span{display:block;text-align:center;padding:.55rem .35rem;overflow-wrap:anywhere}
+.arcade-full-catch .arcade-training-controls button{min-height:48px;white-space:normal}
+.arcade-full-catch .arcade-training-feedback{min-height:1.7rem;font-weight:600}
+.arcade-full-catch [data-scene='left'],.arcade-full-catch [data-scene='right']{background:#34617a;color:#f1f8fc;border:1px solid #a9d5e8}
+.arcade-full-catch .arcade-training-controls button:focus-visible{outline:3px solid #fff3c9;outline-offset:3px}
+@media(max-width:700px){
+ .arcade-full-catch .arcade-gallery-hud{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .arcade-full-catch .arcade-training-canvas{border-width:2px}
+}
+@media(max-width:420px){
+ .arcade-full-catch .arcade-gallery-hud span{font-size:.74rem;padding:.4rem .2rem}
+ .arcade-full-catch .arcade-training-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .arcade-full-catch .arcade-training-controls button{font-size:.8rem;min-height:48px;padding:.5rem .25rem}
+}
