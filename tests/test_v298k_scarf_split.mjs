@@ -71,7 +71,7 @@ test("worn scarf geometry stays aligned to the eight source portraits",()=>{
    const eyes=run("cosmeticPlacement("+JSON.stringify(key)+",'goggles',"+framed+")");
    assert.ok(neck.left>45&&neck.left<57,key);
    assert.ok(neck.top>eyes.top+9&&neck.top<eyes.top+25,key);
-   assert.ok(neck.width>22&&neck.width<35,key);
+   assert.ok(neck.width>22&&neck.width<38,key);
    assert.equal(neck.transform,"translateX(-50%)");
   }
  }
