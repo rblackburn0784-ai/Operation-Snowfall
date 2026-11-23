@@ -58,7 +58,7 @@ test("free Market fitting preview uses worn overlay, without buying/equipping",(
  assert.ok(!catalogHtml.includes(wornAsset));
  assert.ok(app.includes('art.setAttribute("src",COSMETIC_ART[chosen.key])'),
            "featured Market display must also retain original item artwork");
- assert.ok(app.includes('COSMETIC_ART[i.key]?COSMETIC_ART[i.key]:null'),
+ assert.ok(app.includes('Object.hasOwn(COSMETIC_ART,i.key)?COSMETIC_ART[i.key]:null'),
            "catalogue art must never be the worn overlay");
 });
 
