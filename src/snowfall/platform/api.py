@@ -635,16 +635,22 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
             principal, body.session_id, body.step, body.choice,
             _idempotency(principal, "arcade:move", idempotency_key)))
 
+    def practice_enabled():
+        if os.environ.get("SNOWFALL_ARCADE_V299_ENABLED", "") != "1":
+            raise HTTPException(503, "Interactive arcade practice is not enabled on this server")
+
     # v2.9.9: isolated web-only training sessions. No leaderboard, award,
     # paid resource, or Discord social_arcade table is modified by these.
     @app.post("/v1/game/arcade/practice/start")
     def arcade_practice_start(body: ArcadePracticeStart,
                               principal: int = Depends(game_writer)):
+        practice_enabled()
         return jsonable_encoder(shared.arcade_practice_start(principal, body.mode))
 
     @app.get("/v1/game/arcade/practice/session/{session_id}")
     def arcade_practice_session(session_id: str, response: Response,
                                 principal: int = Depends(player)):
+        practice_enabled()
         response.headers["Cache-Control"] = "no-store"
         if not re.fullmatch(r"[a-f0-9]{32}", session_id):
             raise HTTPException(400, "Invalid practice session")
@@ -653,6 +659,7 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
     @app.post("/v1/game/arcade/practice/save")
     def arcade_practice_save(body: ArcadePracticeCheckpoint,
                              principal: int = Depends(game_writer)):
+        practice_enabled()
         return jsonable_encoder(shared.arcade_practice_save(
             principal, body.session_id, body.revision, body.state, finish=body.finish))
 
