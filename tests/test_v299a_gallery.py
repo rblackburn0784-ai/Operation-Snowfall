@@ -126,7 +126,7 @@ def test_shot_bounds_rate_limit_and_untrusted_client_scores_are_rejected(gallery
         engine.shoot(101, sid, 0, 999, 20, "badcoord", now=when(350))
     first = engine.shoot(101, sid, 0, 1, 1, "miss-first", now=when(420))
     assert first["score"] == 0
-    with pytest.raises(ValueError, match="out-of-order"):
+    with pytest.raises(ValueError, match="Out-of-order"):
         engine.shoot(101, sid, 4, 1, 1, "skip-sequence", now=when(600))
     with pytest.raises(ValueError, match="Slow down"):
         engine.shoot(101, sid, 1, 1, 1, "spam", now=when(450))
