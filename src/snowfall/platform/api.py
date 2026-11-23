@@ -150,6 +150,18 @@ class ArcadePracticeCheckpoint(BaseModel):
     finish: bool = False
 
 
+class GalleryShotBody(BaseModel):
+    session_id: str = Field(pattern=r"^[a-f0-9]{32}$")
+    shot_index: int = Field(ge=0, le=31)
+    x: int = Field(ge=0, le=640)
+    y: int = Field(ge=0, le=360)
+
+
+class GalleryControlBody(BaseModel):
+    session_id: str = Field(pattern=r"^[a-f0-9]{32}$")
+    action: Literal["pause", "resume", "finish"]
+
+
 class OAuthStart(BaseModel):
     mode: Literal["login", "link"] = "login"
 
@@ -662,6 +674,48 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         practice_enabled()
         return jsonable_encoder(shared.arcade_practice_save(
             principal, body.session_id, body.revision, body.state, finish=body.finish))
+
+    def gallery_enabled():
+        # The full web-only gallery remains hidden until its QA migration
+        # and explicit independent feature flag have been applied.
+        if os.environ.get("SNOWFALL_ARCADE_V299A_ENABLED", "") != "1":
+            raise HTTPException(503, "Full Target Gallery is not enabled on this server")
+
+    @app.post("/v1/game/arcade/gallery/start")
+    def arcade_gallery_start(principal: int = Depends(game_writer)):
+        gallery_enabled()
+        return jsonable_encoder(shared.gallery_start(principal))
+
+    @app.get("/v1/game/arcade/gallery/session/{session_id}")
+    def arcade_gallery_session(session_id: str, response: Response,
+                               principal: int = Depends(player)):
+        gallery_enabled()
+        response.headers["Cache-Control"] = "no-store"
+        if not re.fullmatch(r"[a-f0-9]{32}", session_id):
+            raise HTTPException(400, "Invalid gallery session")
+        return jsonable_encoder(shared.gallery_session(principal, session_id))
+
+    @app.post("/v1/game/arcade/gallery/control")
+    def arcade_gallery_control(body: GalleryControlBody,
+                               principal: int = Depends(game_writer)):
+        gallery_enabled()
+        return jsonable_encoder(shared.gallery_control(
+            principal, body.session_id, body.action))
+
+    @app.post("/v1/game/arcade/gallery/shot")
+    def arcade_gallery_shot(body: GalleryShotBody,
+                            idempotency_key: str | None = Header(default=None),
+                            principal: int = Depends(game_writer)):
+        gallery_enabled()
+        return jsonable_encoder(shared.gallery_shoot(
+            principal, body.session_id, body.shot_index, body.x, body.y,
+            _idempotency(principal, "gallery:shot", idempotency_key)))
+
+    @app.get("/v1/game/arcade/gallery/record")
+    def arcade_gallery_record(response: Response, principal: int = Depends(player)):
+        gallery_enabled()
+        response.headers["Cache-Control"] = "no-store"
+        return jsonable_encoder(shared.gallery_record(principal))
 
     @app.get("/v1/game/arcade/board")
     def arcade_board(response: Response,
