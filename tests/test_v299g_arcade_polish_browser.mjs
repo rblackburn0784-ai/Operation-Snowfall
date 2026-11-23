@@ -105,12 +105,12 @@ test("all five games publish a keyboard/touch guide in the same screen",()=>{
  assert.match(src,/aria-live='polite'/);
  assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
  assert.match(css,/arcade-high-contrast/);
- assert.match(html,/arcade-v299\.js\?v=299g/);
- assert.match(html,/arcade-gallery-v299a\.js\?v=299g/);
- assert.match(html,/arcade-safe-v299b\.js\?v=299g/);
- assert.match(html,/arcade-snowman-v299c\.js\?v=299g/);
- assert.match(html,/arcade-catch-v299d\.js\?v=299g/);
- assert.match(html,/arcade-trivia-v299e\.js\?v=299g/);
+ assert.match(html,/arcade-v299\.js\?v=299h/);
+ assert.match(html,/arcade-gallery-v299a\.js\?v=299h/);
+ assert.match(html,/arcade-safe-v299b\.js\?v=299h/);
+ assert.match(html,/arcade-snowman-v299c\.js\?v=299h/);
+ assert.match(html,/arcade-catch-v299d\.js\?v=299h/);
+ assert.match(html,/arcade-trivia-v299e\.js\?v=299h/);
  assert.match(src,/server/);
 });
 test("shared guide is HTML escaped, with no executable injected markup",()=>{
