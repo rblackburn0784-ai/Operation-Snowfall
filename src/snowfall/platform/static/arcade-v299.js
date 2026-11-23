@@ -413,7 +413,7 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
   button("start").textContent=getStatus()==="finished"?"Play again":playable()?"Playing":"Start / resume";
   button("pause").disabled=busy||shotBusy||!playable();
   button("finish").disabled=busy||shotBusy||getStatus()==="finished";
-  if(getStatus()==="finished"||confirmFinishUntil<performance.now())confirmFinishUntil=0;
+  if(getStatus()==="finished"||confirmFinishUntil<Date.now())confirmFinishUntil=0;
   button("finish").textContent=confirmFinishUntil?"Confirm end run":"End run";
   const phase=button("phase"),seconds=Number.parseFloat(String(values.time||""));
   const urgency=playable()&&Number.isFinite(seconds)&&seconds<=10?
@@ -481,8 +481,8 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
   if(cmd==="pause")void act(onPause,"Pause");
   if(cmd==="throw"&&onShot)void shoot();
   if(cmd==="finish"){
-   if(getStatus()!=="finished"&&performance.now()>=confirmFinishUntil){
-    confirmFinishUntil=performance.now()+6000;
+   if(getStatus()!=="finished"&&Date.now()>=confirmFinishUntil){
+    confirmFinishUntil=Date.now()+6000;
     feedback("End this run early? Press Confirm end run again. Use Pause or Save & close to keep progress.");
     updateHud();
    }else if(getStatus()!=="finished"){
