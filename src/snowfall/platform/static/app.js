@@ -1,4 +1,4 @@
-/* Operation Snowfall v2.9.8j — banner-safe name sizing and scarf collar fit. */
+/* Operation Snowfall v2.9.8k — separate Market scarf artwork and worn scarf overlay. */
 "use strict";
 const S={staffRole:null,staffDirectory:null,staffDossier:null,staffSelected:null,staffDirectoryBusy:false,staffDossierBusy:false,staffReviewBusy:false,staffDirectorySeq:0,staffDossierSeq:0,staffLab:null,staffLabPending:false,staffAllowed:false,staffCheckedIdentity:null,staffAccessCheckedAt:0,staffData:null,staffPending:false,staffStale:false,streetsDrawerOpen:false,streetsReturnFocus:null,streetsEmbedUrl:null,streetsChatOpen:false,community:null,communityPending:false,communityStale:false,privateQueued:false,arcade:null,arcadeRun:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
@@ -29,6 +29,13 @@ const COSMETIC_ART=Object.freeze({
  "winter_enforcer_f":"/art/v290/portraits/winter_enforcer_f.webp",
  "frost_spectre_f":"/art/v290/portraits/frost_spectre_f.webp"
 });
+// Product thumbnails and featured Market art continue to use COSMETIC_ART.
+ // The equipped avatar/fitting-room illustration uses the player's supplied
+ // transparent neck-wrapped design. Both map to the same existing cosmetic key.
+const WORN_COSMETIC_ART=Object.freeze({
+ "scarf":"/art/v290/cosmetics/gear/scarf_worn.png"
+});
+function wornCosmeticArt(key){return WORN_COSMETIC_ART[key]||COSMETIC_ART[key]||null}
 const HQ_SLOTS=Object.freeze({
  portrait:["noir_detective","winter_enforcer","frost_spectre","recruit_f","noir_detective_f","winter_enforcer_f","frost_spectre_f"],
  frame:["ice_frame","gold_frame","holly_frame"],
@@ -45,7 +52,7 @@ function profileLayers(wardrobe){
  const layers={};
  for(const slot of Object.keys(HQ_SLOTS)){
   const key=ownedEquipped(wardrobe,slot);
-  layers[slot]={key,src:key?COSMETIC_ART[key]:slot==="portrait"?"/art/v290/portraits/recruit_m.webp":null};
+  layers[slot]={key,src:key?wornCosmeticArt(key):slot==="portrait"?"/art/v290/portraits/recruit_m.webp":null};
  }
  return layers;
 }
@@ -72,10 +79,10 @@ function cosmeticPlacement(portrait,gear,framed){
  const point=n=>+(inset+n*scale).toFixed(3),size=n=>+(n*scale).toFixed(3);
  const [ex,ey,ew,angle]=p.eyes,[nx,ny,nw]=p.neck;
  if(gear==="goggles")return {left:point(ex),top:point(ey),width:size(ew),transform:"translate(-50%,-49%) rotate("+angle+"deg)"};
- // Place the existing scarf closer to the throat, scaled to the neck instead
- // of spreading over the entire jacket front. Portrait-specific landmarks stay
- // authoritative for male and female poses.
- if(gear==="scarf")return {left:point(nx),top:point(ny-6.5),width:size(nw*.78),transform:"translateX(-50%)"};
+ // The worn scarf is tightly cropped transparent art with an opening for the
+ // neck. Its top edge starts just below the chin; the hanging tails follow the
+ // coat naturally. Catalogue images never use this transform.
+ if(gear==="scarf")return {left:point(nx),top:point(ny+3.5),width:size(nw*.9),transform:"translateX(-50%)"};
  if(gear==="boots")return {left:point(7),top:point(67),width:size(26),transform:"none"};
  if(gear==="snow_trail"||gear==="candy_trail")return {left:point(66),top:point(61),width:size(30),transform:"none"};
  return null;
@@ -1053,7 +1060,7 @@ function fittingLayers(wardrobe,overrides,items){
  const layers=profileLayers(wardrobe);
  for(const slot of MARKET_SLOTS){
   const key=overrides[slot],item=marketItem(key,items);
-  if(item?.category===slot&&HQ_SLOTS[slot].includes(key)&&Object.hasOwn(COSMETIC_ART,key))layers[slot]={key,src:COSMETIC_ART[key]};
+  if(item?.category===slot&&HQ_SLOTS[slot].includes(key)&&Object.hasOwn(COSMETIC_ART,key))layers[slot]={key,src:wornCosmeticArt(key)};
  }
  return layers;
 }

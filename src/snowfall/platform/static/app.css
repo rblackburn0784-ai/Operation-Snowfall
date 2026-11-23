@@ -1018,3 +1018,16 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
  .collector-profile .collector-banner-name,
  .rival-appearance .collector-banner-name{line-height:1}
 }
+
+/* v2.9.8k — render the newly supplied worn scarf cleanly. Its transparent
+   fringe belongs to the new PNG; do not cut it with v2.9.8j's old fade mask.
+   The Market product artwork remains the untouched original scarf.png. */
+#hqPortraitWell .gear-layer[data-cosmetic="scarf"],
+#fitPortraitWell .gear-layer[data-cosmetic="scarf"],
+#rivalPortraitWell .gear-layer[data-cosmetic="scarf"]{
+ -webkit-mask-image:none;
+ mask-image:none;
+ opacity:1;
+ filter:drop-shadow(0 2px 2px rgba(5,17,26,.45));
+ object-fit:contain;
+}

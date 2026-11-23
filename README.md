@@ -1,3 +1,5 @@
+> **v2.9.8k Scarf Asset Split (QA web):** Market product cards retain their original Snow Don Scarf artwork; the newly supplied transparent, neck-wrapped scarf is used only for equipped/fitting/rival avatar overlays. Same cosmetic key, unlock and price; no gameplay or Discord bot changes. [Release notes](docs/RELEASE_v2.9.8k.md).
+
 > **v2.9.8j Banner Text Fit & Scarf Layer Polish (QA web):** equipped banner names now use each ribbon's real central safe area, with unclipped one-line text and automatic fitting after switching banners or resizing. The original scarf artwork is smaller, higher at the collar and blended along its lower edge; existing gameplay, artwork files, Market inventory and Discord bot remain unchanged. [Release notes](docs/RELEASE_v2.9.8j.md).
 
 > **v2.9.8i Character Nameplate Polish (QA web):** original equipped banner artwork now sits above the frame without a secondary box, border or corner decorations; usernames are centred on a single automatically fitted line in Headquarters, Winter Market and Snowball Alley. No avatar artwork, combat, scoring or independent Discord bot changes. [Release notes](docs/RELEASE_v2.9.8i.md).
