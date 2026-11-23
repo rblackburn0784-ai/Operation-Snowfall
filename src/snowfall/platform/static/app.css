@@ -1146,3 +1146,22 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
 .arcade-card .arcade-practice-launch{margin-left:.45rem}
 @media(max-width:640px){.arcade-training{padding:.6rem}.arcade-training-head .button{width:100%}.arcade-training-controls .button{flex-basis:45%}.arcade-training-status span{flex:1 1 95px;text-align:center}}
 @media(max-width:380px){.arcade-training-controls .button{flex-basis:100%}.arcade-card .arcade-practice-launch{margin:.5rem 0 0}}
+
+
+/* v2.9.9a — responsive full moving-target gallery: uses the shared arcade scene. */
+.arcade-full-gallery{border:2px solid #b28c5c;background:linear-gradient(160deg,#213b49,#102430)}
+.arcade-full-gallery .arcade-training-canvas{max-width:960px;border:3px solid #cfab6c;box-shadow:0 8px 28px #0007;cursor:crosshair}
+.arcade-gallery-hud{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.45rem}
+.arcade-gallery-hud span{display:block;text-align:center;padding:.55rem .35rem;overflow-wrap:anywhere}
+.arcade-full-gallery .arcade-training-controls button:focus-visible{outline:3px solid #ffe2a8;outline-offset:3px}
+.arcade-full-gallery .arcade-training-feedback{font-weight:600;min-height:1.7rem}
+@media(max-width:700px){
+ .arcade-gallery-hud{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .arcade-full-gallery .arcade-training-canvas{border-width:2px}
+}
+@media(max-width:420px){
+ .arcade-gallery-hud span{font-size:.72rem;padding:.4rem .2rem}
+ .arcade-full-gallery .arcade-training-head h3{font-size:1.2rem}
+ .arcade-full-gallery .arcade-training-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .arcade-full-gallery .arcade-training-controls button{font-size:.8rem;min-height:48px;padding:.5rem .25rem}
+}
