@@ -19,7 +19,7 @@ function oval(ctx,x,y,rx,ry,color){
 }
 function partArt(ctx,type,x,y,{ghost=false,scale=1}={}){
  ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);
- ctx.globalAlpha=ghost?.24:1;
+ ctx.globalAlpha=ghost ? 0.24 : 1;
  const snow=ghost?"#f0ece2":"#f2f6f6";
  const ice=ghost?"#d9dfe1":"#c8e0e7";
  ctx.lineWidth=ghost?2.5:3;
@@ -137,7 +137,7 @@ function mount({root,session,start,control,place,refresh,fetchRecord,onExit,
    piece_id:piece,x:Math.round(x),y:Math.round(y)
   };
   try{
-   if(pending&&(pending.piece_id!==piece||pending.x!==body.x||pending.y!==body.y)){
+   if(pending&&(pending.piece_id!==piece||pending.x!==Math.round(x)||pending.y!==Math.round(y))){
     const snap=await refresh(current.session_id);
     if(snap.action_seq>pending.action_seq){
      apply(snap);pending=null;
