@@ -380,6 +380,7 @@ function mount({root,session,start,control,answer,refresh,fetchRecord,
  }
  host=global.SnowfallArcadeV299.mountScene({
   root,title:"Christmas Trivia",
+  canvasLabel:"Christmas Trivia interactive quiz. Tap an answer card, or use keys 1 to 4 and Enter. For scrambled words, choose numbered letter tiles, use Backspace to undo, and Enter to submit.",
   help:"Unwrap mystery presents, decide True or False, and arrange scrambled letters. Fifteen timed questions over three rising difficulty levels. Correct streaks and quick thinking earn practice points.",
   getStatus:()=>state.status,getHud:hud,draw,
   onStart:begin,onPause:pause,onFinish:finish,onExit:close,
