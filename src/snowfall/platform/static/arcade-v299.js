@@ -339,8 +339,13 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
  async function act(fn,action){
   if(busy||disposed)return;
   busy=true;
-  try{await fn();feedback(getHud().feedback||"Ready.")}
-  catch(e){feedback((action||"Action")+" failed: "+(e.message||"Refresh and retry."))}
+  const prior=message.textContent;
+  try{
+   await fn();
+   // Controllers may show specific tips, success cues or recovery messages.
+   // Do not replace them immediately with a generic HUD status.
+   if(message.textContent===prior)feedback(getHud().feedback||"Ready.");
+  }catch(e){feedback((action||"Action")+" failed: "+(e.message||"Refresh and retry."))}
   finally{busy=false;updateHud()}
  }
  async function shoot(){
