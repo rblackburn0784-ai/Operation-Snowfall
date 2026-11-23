@@ -1,6 +1,6 @@
 /* Operation Snowfall v2.9.8l — status and resource artwork integration. */
 "use strict";
-const S={staffRole:null,staffDirectory:null,staffDossier:null,staffSelected:null,staffDirectoryBusy:false,staffDossierBusy:false,staffReviewBusy:false,staffDirectorySeq:0,staffDossierSeq:0,staffLab:null,staffLabPending:false,staffAllowed:false,staffCheckedIdentity:null,staffAccessCheckedAt:0,staffData:null,staffPending:false,staffStale:false,streetsDrawerOpen:false,streetsReturnFocus:null,streetsEmbedUrl:null,streetsChatOpen:false,community:null,communityPending:false,communityStale:false,privateQueued:false,arcade:null,arcadeRun:null,arcadePractice:null,arcadePracticeRuntime:null,arcadeGallery:null,arcadeGalleryRuntime:null,arcadeSafe:null,arcadeSafeRuntime:null,arcadeSnowman:null,arcadeSnowmanRuntime:null,arcadeCatch:null,arcadeCatchRuntime:null,arcadeTrivia:null,arcadeTriviaRuntime:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
+const S={staffRole:null,staffDirectory:null,staffDossier:null,staffSelected:null,staffDirectoryBusy:false,staffDossierBusy:false,staffReviewBusy:false,staffDirectorySeq:0,staffDossierSeq:0,staffLab:null,staffLabPending:false,staffAllowed:false,staffCheckedIdentity:null,staffAccessCheckedAt:0,staffData:null,staffPending:false,staffStale:false,streetsDrawerOpen:false,streetsReturnFocus:null,streetsEmbedUrl:null,streetsChatOpen:false,community:null,communityPending:false,communityStale:false,privateQueued:false,arcade:null,arcadeRun:null,arcadePractice:null,arcadePracticeRuntime:null,arcadeGallery:null,arcadeGalleryRuntime:null,arcadeSafe:null,arcadeSafeRuntime:null,arcadeSnowman:null,arcadeSnowmanRuntime:null,arcadeCatch:null,arcadeCatchRuntime:null,arcadeTrivia:null,arcadeTriviaRuntime:null,arcadeHub:null,arcadeHubRuntime:null,arcadeHubSeq:0,arcadeHubPending:false,arcadeHubError:null,arcadeHubClassicInitialised:false,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
 const txt=(id,v)=>{const node=el(id),value=v==null?"—":String(v);if(node&&node.textContent!==value)node.textContent=value};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -625,7 +625,7 @@ function hasPlayIdentity(session,config){return !!session&&(!config?.staging||se
 function syncPlayIdentity(){
  const id=S.session?String(S.session.player_id):null;
  if(id===S.playIdentity)return;
- S.playIdentity=id;if(S.arcadePracticeRuntime)S.arcadePracticeRuntime.dispose();S.arcadePracticeRuntime=null;S.arcadePractice=null;el("arcadePractice")?.classList.add("hidden");if(S.arcadeGalleryRuntime)S.arcadeGalleryRuntime.dispose();S.arcadeGalleryRuntime=null;S.arcadeGallery=null;el("arcadeGallery")?.classList.add("hidden");if(S.arcadeSafeRuntime)S.arcadeSafeRuntime.dispose();S.arcadeSafeRuntime=null;S.arcadeSafe=null;el("arcadeSafe")?.classList.add("hidden");if(S.arcadeSnowmanRuntime)S.arcadeSnowmanRuntime.dispose();S.arcadeSnowmanRuntime=null;S.arcadeSnowman=null;el("arcadeSnowman")?.classList.add("hidden");if(S.arcadeCatchRuntime)S.arcadeCatchRuntime.dispose();S.arcadeCatchRuntime=null;S.arcadeCatch=null;el("arcadeCatch")?.classList.add("hidden");if(S.arcadeTriviaRuntime)S.arcadeTriviaRuntime.dispose();S.arcadeTriviaRuntime=null;S.arcadeTrivia=null;el("arcadeTrivia")?.classList.add("hidden");S.staffLab=null;S.staffRole=null;S.staffDirectory=null;S.staffDossier=null;S.staffSelected=null;S.staffDirectorySeq++;S.staffDossierSeq++;S.staffDirectoryBusy=false;S.staffDossierBusy=false;S.staffReviewBusy=false;S.staffAllowed=false;S.staffCheckedIdentity=null;S.staffAccessCheckedAt=0;S.staffData=null;updateStaffNavigation();closeStreetsDock(false);disconnectStreetsChat();S.arcade=null;S.arcadeRun=null;S.arcadeBoard=null;S.arcadeBoardSeq++;showArcade();S.activities=null;el("activitiesResult")?.classList.add("hidden");showActivities();S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
+ S.playIdentity=id;if(S.arcadePracticeRuntime)S.arcadePracticeRuntime.dispose();S.arcadePracticeRuntime=null;S.arcadePractice=null;el("arcadePractice")?.classList.add("hidden");if(S.arcadeGalleryRuntime)S.arcadeGalleryRuntime.dispose();S.arcadeGalleryRuntime=null;S.arcadeGallery=null;el("arcadeGallery")?.classList.add("hidden");if(S.arcadeSafeRuntime)S.arcadeSafeRuntime.dispose();S.arcadeSafeRuntime=null;S.arcadeSafe=null;el("arcadeSafe")?.classList.add("hidden");if(S.arcadeSnowmanRuntime)S.arcadeSnowmanRuntime.dispose();S.arcadeSnowmanRuntime=null;S.arcadeSnowman=null;el("arcadeSnowman")?.classList.add("hidden");if(S.arcadeCatchRuntime)S.arcadeCatchRuntime.dispose();S.arcadeCatchRuntime=null;S.arcadeCatch=null;el("arcadeCatch")?.classList.add("hidden");if(S.arcadeTriviaRuntime)S.arcadeTriviaRuntime.dispose();S.arcadeTriviaRuntime=null;S.arcadeTrivia=null;el("arcadeTrivia")?.classList.add("hidden");if(S.arcadeHubRuntime)S.arcadeHubRuntime.dispose();S.arcadeHubRuntime=null;S.arcadeHub=null;S.arcadeHubSeq++;S.arcadeHubPending=false;S.arcadeHubError=null;S.arcadeHubClassicInitialised=false;el("arcadeHub")?.classList.add("hidden");el("arcadeClassic").open=true;S.staffLab=null;S.staffRole=null;S.staffDirectory=null;S.staffDossier=null;S.staffSelected=null;S.staffDirectorySeq++;S.staffDossierSeq++;S.staffDirectoryBusy=false;S.staffDossierBusy=false;S.staffReviewBusy=false;S.staffAllowed=false;S.staffCheckedIdentity=null;S.staffAccessCheckedAt=0;S.staffData=null;updateStaffNavigation();closeStreetsDock(false);disconnectStreetsChat();S.arcade=null;S.arcadeRun=null;S.arcadeBoard=null;S.arcadeBoardSeq++;showArcade();S.activities=null;el("activitiesResult")?.classList.add("hidden");showActivities();S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
  // Never show the prior account's selected rival or equipped Market style
  // while the next login's authoritative records are still loading.
  S.targets=[];S.shop=null;showRivalAppearance(null);
@@ -1269,6 +1269,7 @@ async function readPrivate(){
   }else S.verification=null;
  }else{S.shop=null;S.world=null;S.hq=null;S.progress=null;S.targetsReady=false;S.targets=[];S.verification=null;}
  showMe();showTargets();showBoss();showShop();showCities();showActivities();showArcade();
+ if(el("page-arcade")?.classList.contains("active")&&hubAllowed())void loadArcadeHub();
  void refreshStaffAccess();
 }
 function updateDiscardSubmit(){
@@ -1755,11 +1756,12 @@ function showArcade(){
  const lobby=el("arcadeLobby"),runNode=el("arcadeRun"),stamps=el("arcadeStamps"),board=el("arcadeBoard");
  if(!lobby||!runNode||!stamps||!board)return;
  const a=arcadeAllowed()?S.arcade:null;
+ if(a)mountArcadeHub();
  const locked=!!(S.busy||S.privatePending||!S.privateFresh||a?.phase!=="live"||!hasPlayIdentity(S.session,S.config));
  txt("arcadeStatus",!S.session?"Sign in to play.":!S.me?.registered?"Register at Headquarters to play.":!a?"Refresh to load your arcade.":("Day "+(a.day??"—")+" / 7 · "+String(a.phase).toUpperCase()+" · "+fmt(a.completed)+" completed runs · "+fmt(a.bests_total)+" combined best"));
  el("arcadeRefresh").disabled=!!(S.busy||S.privatePending);
  el("arcadeBoardRefresh").disabled=!a||S.busy||S.privatePending;
- if(!a){if(S.arcadePracticeRuntime)S.arcadePracticeRuntime.dispose();S.arcadePracticeRuntime=null;S.arcadePractice=null;el("arcadePractice")?.classList.add("hidden");if(S.arcadeGalleryRuntime)S.arcadeGalleryRuntime.dispose();S.arcadeGalleryRuntime=null;S.arcadeGallery=null;el("arcadeGallery")?.classList.add("hidden");if(S.arcadeSafeRuntime)S.arcadeSafeRuntime.dispose();S.arcadeSafeRuntime=null;S.arcadeSafe=null;el("arcadeSafe")?.classList.add("hidden");if(S.arcadeSnowmanRuntime)S.arcadeSnowmanRuntime.dispose();S.arcadeSnowmanRuntime=null;S.arcadeSnowman=null;el("arcadeSnowman")?.classList.add("hidden");if(S.arcadeCatchRuntime)S.arcadeCatchRuntime.dispose();S.arcadeCatchRuntime=null;S.arcadeCatch=null;el("arcadeCatch")?.classList.add("hidden");if(S.arcadeTriviaRuntime)S.arcadeTriviaRuntime.dispose();S.arcadeTriviaRuntime=null;S.arcadeTrivia=null;el("arcadeTrivia")?.classList.add("hidden");lobby.innerHTML="";stamps.innerHTML="";board.innerHTML="";runNode.classList.add("hidden");runNode.innerHTML="";return}
+ if(!a){if(S.arcadePracticeRuntime)S.arcadePracticeRuntime.dispose();S.arcadePracticeRuntime=null;S.arcadePractice=null;el("arcadePractice")?.classList.add("hidden");if(S.arcadeGalleryRuntime)S.arcadeGalleryRuntime.dispose();S.arcadeGalleryRuntime=null;S.arcadeGallery=null;el("arcadeGallery")?.classList.add("hidden");if(S.arcadeSafeRuntime)S.arcadeSafeRuntime.dispose();S.arcadeSafeRuntime=null;S.arcadeSafe=null;el("arcadeSafe")?.classList.add("hidden");if(S.arcadeSnowmanRuntime)S.arcadeSnowmanRuntime.dispose();S.arcadeSnowmanRuntime=null;S.arcadeSnowman=null;el("arcadeSnowman")?.classList.add("hidden");if(S.arcadeCatchRuntime)S.arcadeCatchRuntime.dispose();S.arcadeCatchRuntime=null;S.arcadeCatch=null;el("arcadeCatch")?.classList.add("hidden");if(S.arcadeTriviaRuntime)S.arcadeTriviaRuntime.dispose();S.arcadeTriviaRuntime=null;S.arcadeTrivia=null;el("arcadeTrivia")?.classList.add("hidden");if(S.arcadeHubRuntime)S.arcadeHubRuntime.dispose();S.arcadeHubRuntime=null;S.arcadeHub=null;S.arcadeHubSeq++;S.arcadeHubPending=false;el("arcadeHub")?.classList.add("hidden");lobby.innerHTML="";stamps.innerHTML="";board.innerHTML="";runNode.classList.add("hidden");runNode.innerHTML="";return}
  const run=S.arcadeRun&&S.arcadeRun.day===a.day&&ARCADE_ART[S.arcadeRun.mode]?S.arcadeRun:null;
  runNode.classList.toggle("hidden",!run);
  if(run){
@@ -1773,11 +1775,104 @@ function showArcade(){
   const r=records.find(x=>x.mode===g.key)||{},used=Number(r.attempts_today||0),cap=Number(a.daily_cap||3);
   const canResume=!!r.active_id;
   return "<article class='arcade-card'><img src='"+ARCADE_ART[g.key]+"' alt='' loading='lazy'><div><p class='eyebrow'>"+fmt(g.rounds)+" rounds · "+esc(g.award_name)+"</p><h3>"+esc(g.title)+"</h3><p>"+esc(g.description)+"</p><p>Personal best: <strong>"+fmt(r.personal_best)+" / 100</strong> · "+fmt(r.games_played)+" finished</p><p>"+fmt(used)+" / "+fmt(cap)+" starts used today</p>"+arcadeButton("start",g.key,canResume?"Resume game":used>=cap?"Daily limit reached":"Play game",locked||(!canResume&&used>=cap))+
-  arcadeButton("practice",g.key,S.config?.interactive_arcade_enabled?"Interactive practice · free":"Interactive practice · coming soon",!S.config?.interactive_arcade_enabled||S.busy||S.privatePending||!S.privateFresh||!hasPlayIdentity(S.session,S.config))+(g.key==="gallery"?arcadeButton("gallery-full",g.key,S.config?.gallery_v299a_enabled?"Play full Target Gallery · QA":"Full Target Gallery · coming soon",!S.config?.gallery_v299a_enabled||locked):"")+(g.key==="safe"?arcadeButton("safe-full",g.key,S.config?.safe_v299b_enabled?"Crack the Frozen Safe · QA":"Frozen Safecracker · coming soon",!S.config?.safe_v299b_enabled||locked):"")+(g.key==="snowman"?arcadeButton("snowman-full",g.key,S.config?.snowman_v299c_enabled?"Build a Snowman · QA":"Snowman Builder · coming soon",!S.config?.snowman_v299c_enabled||locked):"")+(g.key==="catch"?arcadeButton("catch-full",g.key,S.config?.catch_v299d_enabled?"Play Snowflake Catch · QA":"Full Snowflake Catch · coming soon",!S.config?.catch_v299d_enabled||locked):"")+(g.key==="trivia"?arcadeButton("trivia-full",g.key,S.config?.trivia_v299e_enabled?"Play Christmas Trivia · QA":"Full Christmas Trivia · coming soon",!S.config?.trivia_v299e_enabled||locked):"")+"</div></article>";
+  arcadeButton("practice",g.key,S.config?.interactive_arcade_enabled?"Interactive practice · free":"Interactive practice · coming soon",!S.config?.interactive_arcade_enabled||S.busy||S.privatePending||!S.privateFresh||!hasPlayIdentity(S.session,S.config))+(S.config?.hub_v299f_enabled&&S.arcadeHub&&!S.arcadeHubError?"":(g.key==="gallery"?arcadeButton("gallery-full",g.key,S.config?.gallery_v299a_enabled?"Play full Target Gallery · QA":"Full Target Gallery · coming soon",!S.config?.gallery_v299a_enabled||locked):"")+(g.key==="safe"?arcadeButton("safe-full",g.key,S.config?.safe_v299b_enabled?"Crack the Frozen Safe · QA":"Frozen Safecracker · coming soon",!S.config?.safe_v299b_enabled||locked):"")+(g.key==="snowman"?arcadeButton("snowman-full",g.key,S.config?.snowman_v299c_enabled?"Build a Snowman · QA":"Snowman Builder · coming soon",!S.config?.snowman_v299c_enabled||locked):"")+(g.key==="catch"?arcadeButton("catch-full",g.key,S.config?.catch_v299d_enabled?"Play Snowflake Catch · QA":"Full Snowflake Catch · coming soon",!S.config?.catch_v299d_enabled||locked):"")+(g.key==="trivia"?arcadeButton("trivia-full",g.key,S.config?.trivia_v299e_enabled?"Play Christmas Trivia · QA":"Full Christmas Trivia · coming soon",!S.config?.trivia_v299e_enabled||locked):""))+"</div></article>";
  }).join("");
  const collected=new Set(a.stamps||[]);
  stamps.innerHTML=Object.entries(a.stamp_labels||{}).map(([key,name])=>"<div class='arcade-stamp"+(collected.has(key)?" earned":"")+"'><span>"+(collected.has(key)?"✓":"◇")+"</span> "+esc(name)+"</div>").join("");
  renderArcadeBoard();
+}
+
+/* v2.9.9f — one read-only web-practice hub, never Classic gameplay ledger. */
+const FULL_ARCADE_HUB=Object.freeze({
+ gallery:{path:"gallery",flag:"gallery_v299a_enabled",state:"arcadeGallery",
+  mount:mountArcadeGallery,reconcile:reconcileGalleryPending},
+ safe:{path:"safecracker",flag:"safe_v299b_enabled",state:"arcadeSafe",
+  mount:mountArcadeSafe,reconcile:reconcileSafePending},
+ snowman:{path:"snowman",flag:"snowman_v299c_enabled",state:"arcadeSnowman",
+  mount:mountArcadeSnowman,reconcile:reconcileSnowmanPending},
+ catch:{path:"catch",flag:"catch_v299d_enabled",state:"arcadeCatch",
+  mount:mountArcadeCatch,reconcile:reconcileCatchPending},
+ trivia:{path:"trivia",flag:"trivia_v299e_enabled",state:"arcadeTrivia",
+  mount:mountArcadeTrivia,reconcile:reconcileTriviaPending},
+});
+function hubAllowed(){
+ return !!(S.config?.hub_v299f_enabled&&window.SnowfallArcadeHubV299f&&
+  arcadeAllowed()&&hasPlayIdentity(S.session,S.config));
+}
+function openClassicArcade(){
+ const classic=el("arcadeClassic");
+ if(!classic)return;
+ classic.open=true;
+ classic.scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"});
+ classic.querySelector("summary")?.focus({preventScroll:true});
+}
+async function launchArcadeHubGame(key){
+ const spec=Object.hasOwn(FULL_ARCADE_HUB,key)?FULL_ARCADE_HUB[key]:null;
+ if(!hubAllowed()||!spec||!S.config?.[spec.flag]||S.busy||S.privatePending||
+    !S.privateFresh||S.arcade?.phase!=="live")
+  throw Error("That game is not ready for this player.");
+ const id=String(S.session.player_id);
+ // An existing, server-owned paused game is automatically reused by start().
+ const view=await post("/v1/game/arcade/"+spec.path+"/start",{},true);
+ if(String(S.session?.player_id)!==id)return;
+ if(view.mode!==key||typeof view.session_id!=="string")
+  throw Error("Unexpected game session. Refresh the arcade.");
+ S[spec.state]=view;
+ spec.reconcile(view);
+ spec.mount();
+ // Update saved/playing state without resetting this mini-game.
+ void loadArcadeHub();
+}
+function mountArcadeHub(){
+ const root=el("arcadeHub");
+ if(!root)return;
+ if(!hubAllowed()){
+  if(S.arcadeHubRuntime)S.arcadeHubRuntime.dispose();
+  S.arcadeHubRuntime=null;root.classList.add("hidden");return;
+ }
+ if(!S.arcadeHubRuntime){
+  S.arcadeHubRuntime=window.SnowfallArcadeHubV299f.mount({
+   root,onLaunch:launchArcadeHubGame,onRefresh:loadArcadeHub,
+   onClassic:openClassicArcade,
+  });
+ }
+ if(S.arcadeHub&&String(S.arcadeHub.player_id)===String(S.session?.player_id)){
+  try{S.arcadeHubRuntime.update(S.arcadeHub)}
+  catch(e){S.arcadeHubError=e;S.arcadeHubRuntime.setError(e)}
+ }
+ if(S.arcadeHubError)S.arcadeHubRuntime.setError(S.arcadeHubError);
+}
+async function loadArcadeHub(){
+ if(!hubAllowed())return;
+ if(S.arcadeHubPending)return;
+ const id=String(S.session.player_id),sequence=++S.arcadeHubSeq;
+ S.arcadeHubPending=true;
+ mountArcadeHub();S.arcadeHubRuntime?.setLoading(true);
+ try{
+  const hub=await get("/v1/game/arcade/hub");
+  if(sequence!==S.arcadeHubSeq||id!==String(S.session?.player_id))return;
+  if(hub.player_id!==id||hub.version!=="2.9.9f"||
+     !Array.isArray(hub.modes)||hub.modes.length!==5)
+   throw Error("Practice records did not match your signed-in character.");
+  S.arcadeHub=hub;S.arcadeHubError=null;
+  S.arcadeHubRuntime?.update(hub);
+  if(!S.arcadeHubClassicInitialised){
+   S.arcadeHubClassicInitialised=true;
+   if(!S.arcadeRun)el("arcadeClassic").open=false;
+  }
+  showArcade();
+ }catch(e){
+  if(sequence!==S.arcadeHubSeq||id!==String(S.session?.player_id))return;
+  S.arcadeHubError=e;
+  S.arcadeHubRuntime?.setError(e);
+  // Keep all previous full-game buttons as a fallback if the hub fails.
+  showArcade();
+ }finally{
+  if(sequence===S.arcadeHubSeq){
+   S.arcadeHubPending=false;
+   if(!S.arcadeHubError)S.arcadeHubRuntime?.setLoading(false);
+  }
+ }
 }
 function renderArcadeBoard(){
  const root=el("arcadeBoard");if(!root||!arcadeAllowed())return;
