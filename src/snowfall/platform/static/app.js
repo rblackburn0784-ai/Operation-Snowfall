@@ -1798,6 +1798,7 @@ function mountArcadePractice(){
  const root=el("arcadePractice");
  if(!root||!S.arcadePractice||!window.SnowfallArcadeV299)return;
  if(S.arcadePracticeRuntime)S.arcadePracticeRuntime.dispose();
+ if(S.arcadeGalleryRuntime)S.arcadeGalleryRuntime.pause();
  S.arcadePracticeRuntime=window.SnowfallArcadeV299.mount({
   root,session:S.arcadePractice,
   save:async body=>{
@@ -1840,6 +1841,7 @@ function mountArcadeGallery(){
   control:async(session_id,action)=>accepted(await post("/v1/game/arcade/gallery/control",{session_id,action},true)),
   shot:async body=>accepted(await post("/v1/game/arcade/gallery/shot",body,true,true)),
   refresh:async session_id=>accepted(await get("/v1/game/arcade/gallery/session/"+encodeURIComponent(session_id))),
+  fetchRecord:async()=>get("/v1/game/arcade/gallery/record"),
   onExit:()=>{S.arcadeGalleryRuntime=null;S.arcadeGallery=null;root.classList.add("hidden");root.innerHTML=""}
  });
  root.scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"});
