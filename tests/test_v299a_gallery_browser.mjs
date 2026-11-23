@@ -96,7 +96,7 @@ test("server snapshot drives responsive stage, clicks send coordinates, not a ch
  await new Promise(resolve=>setImmediate(resolve));
  assert.equal(ui.buttons.start.textContent,"Playing");
  assert.equal(typeof listeners.pointerdown,"function");
- listeners.pointerdown({clientX:300,clientY:185,preventDefault(){}});
+ listeners.pointerdown({type:"pointerdown",clientX:300,clientY:185,preventDefault(){}});
  await new Promise(resolve=>setImmediate(resolve));
  assert.deepEqual(JSON.parse(JSON.stringify(attempts)),[
   {session_id:"a".repeat(32),shot_index:0,x:300,y:185}
