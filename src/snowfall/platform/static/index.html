@@ -5,14 +5,15 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#101b25">
   <meta name="snowfall-web-release" content="2.9.8l">
-  <meta name="snowfall-interactive-arcade-release" content="2.9.9a">
+  <meta name="snowfall-interactive-arcade-release" content="2.9.9b">
   <meta name="description" content="Operation Snowfall — the seven-day winter city showdown. Isolated staging preview.">
   <title>Operation Snowfall | The Winter Underworld</title>
   <link rel="icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/static/app.css?v=298l-r3-299a">
-  <script defer src="/static/app.js?v=298l-r2-299a"></script>
-  <script defer src="/static/arcade-v299.js?v=299a"></script>
+  <link rel="stylesheet" href="/static/app.css?v=298l-r3-299b">
+  <script defer src="/static/app.js?v=298l-r2-299b"></script>
+  <script defer src="/static/arcade-v299.js?v=299b"></script>
   <script defer src="/static/arcade-gallery-v299a.js?v=299a"></script>
+  <script defer src="/static/arcade-safe-v299b.js?v=299b"></script>
 </head>
 <body>
   <a class="skip-link" href="#mainContent">Skip to game content</a>
@@ -430,6 +431,7 @@
           <div id="arcadeRun" class="arcade-run hidden" aria-label="Current classic arcade game"></div>
            <section id="arcadePractice" class="arcade-training hidden" aria-label="Interactive arcade practice preview"></section>
            <section id="arcadeGallery" class="arcade-training arcade-full-gallery hidden" aria-label="Snowball Target Gallery full mini-game"></section>
+           <section id="arcadeSafe" class="arcade-training arcade-full-safe hidden" aria-label="Frozen Safecracker full mini-game"></section>
           <div id="arcadeLobby" class="arcade-lobby"></div>
           <section class="activity-card arcade-passport" aria-labelledby="arcadePassportTitle"><h3 id="arcadePassportTitle">My Arcade Passport</h3><div id="arcadeStamps" class="arcade-stamps"></div></section>
           <section class="activity-card arcade-rankings" aria-labelledby="arcadeBoardTitle"><h3 id="arcadeBoardTitle">High scores &amp; City Cup</h3><p>Honorary rankings only. No championship points or prizes.</p><div class="arcade-filters"><label>Game<select id="arcadeBoardMode"><option value="gallery">Target Gallery</option><option value="safe">Frozen Safecracker</option><option value="snowman">Snowman Builder</option><option value="catch">Snowflake Catch</option><option value="trivia">Christmas Trivia</option></select></label><label>Period<select id="arcadeBoardPeriod"><option value="season">Season</option><option value="daily">Today</option></select></label><button class="button button-outline" id="arcadeBoardRefresh">View rankings</button></div><div id="arcadeBoard" aria-live="polite"></div></section>
