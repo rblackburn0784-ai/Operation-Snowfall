@@ -112,11 +112,15 @@ def audit_arcade_qa(dsn: str, *, env=None, connect=None, baseline=None) -> dict:
     """
     env = dict(os.environ if env is None else env)
     safe_qa_dsn(dsn, env.get("SNOWFALL_API_SEASON_KEY", ""))
-    if connect is None:
+    real_database = connect is None
+    if real_database:
         verify_qa_database(dsn, season=QA_SEASON)
         import psycopg
 
-        connect = lambda: psycopg.connect(dsn, connect_timeout=10)  # noqa: E731
+        def open_verified_qa():
+            return psycopg.connect(dsn, connect_timeout=10)
+
+        connect = open_verified_qa
     enabled = required_tables(env)
     blockers = []
     warnings = []
@@ -167,7 +171,7 @@ def audit_arcade_qa(dsn: str, *, env=None, connect=None, baseline=None) -> dict:
                                  ("public." + CLASSIC_TABLE,)).fetchone()[0]
             if exists is None:
                 blockers.append("legacy interactive practice enabled without QA schema")
-    if baseline is None and connect.__name__ == "<lambda>":
+    if baseline is None and real_database:
         baseline = audit_qa_database(dsn)
     if baseline is not None:
         if baseline.get("status") == "blocked":
