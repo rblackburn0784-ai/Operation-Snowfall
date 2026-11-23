@@ -12,6 +12,7 @@ from snowfall.platform.interactive_arcade import InteractiveArcadePractice, inst
 from snowfall.platform.gallery_arcade import GalleryEngine, install_gallery_schema, target_position
 from snowfall.platform.safecracker_arcade import SafecrackerEngine, install_safe_schema
 from snowfall.platform.snowman_arcade import SnowmanBuilderEngine, install_snowman_schema
+from snowfall.platform.catch_arcade import SnowflakeCatchEngine, install_catch_schema
 
 SEASON = "web-qa-2026"
 START = datetime(2026, 12, 20, 18, tzinfo=timezone.utc)
@@ -48,6 +49,7 @@ def test_additive_practice_table_runs_on_real_postgres_without_game_schema_chang
             install_gallery_schema(con)
             install_safe_schema(con)
             install_snowman_schema(con)
+            install_catch_schema(con)
         pg.initialize()  # Existing canonical version stays unchanged.
         arcade = InteractiveArcadePractice(pg, SEASON)
         run = arcade.start(101, "gallery", now=START)
@@ -126,6 +128,31 @@ def test_additive_practice_table_runs_on_real_postgres_without_game_schema_chang
                 "SELECT COUNT(*) FROM web_arcade_snowman_actions").fetchone()[0] == 1
             assert con.execute("SELECT COUNT(*) FROM social_arcade_runs").fetchone()[0] == 0
             assert con.execute("SELECT COUNT(*) FROM score_ledger").fetchone()[0] == 0
+        storm = SnowflakeCatchEngine(pg, SEASON)
+        flurries = storm.start(101, now=START)
+        assert flurries["status"] == "paused"
+        assert len(flurries["schedule"]) == 45
+        assert storm.control(101, flurries["session_id"], "resume",
+                             now=START+timedelta(milliseconds=100))["status"] == "active"
+        moved = storm.update(101, flurries["session_id"], 0, 345,
+                             "catch-pg-position-00001",
+                             now=START+timedelta(milliseconds=1300))
+        assert moved["basket_x"] == 345 and moved["action_seq"] == 1
+        assert storm.update(101, flurries["session_id"], 0, 345,
+                            "catch-pg-position-00001",
+                            now=START+timedelta(milliseconds=1800))["repeated"]
+        assert storm.control(101, flurries["session_id"], "pause",
+                             now=START+timedelta(seconds=2))["status"] == "paused"
+        assert storm.session(101, flurries["session_id"],
+                             now=START+timedelta(seconds=8))["basket_x"] == 345
+        with pg.connect() as con:
+            assert con.execute(
+                "SELECT COUNT(*) FROM web_arcade_catch_sessions").fetchone()[0] == 1
+            assert con.execute(
+                "SELECT COUNT(*) FROM web_arcade_catch_actions").fetchone()[0] == 1
+            assert con.execute("SELECT COUNT(*) FROM social_arcade_runs").fetchone()[0] == 0
+            assert con.execute("SELECT COUNT(*) FROM score_ledger").fetchone()[0] == 0
+
 
 
 
