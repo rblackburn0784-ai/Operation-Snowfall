@@ -14,6 +14,7 @@ from snowfall.platform.staging import QA_DB, STAGING_PROJECT
 from snowfall.platform.interactive_arcade import install_practice_schema
 from snowfall.platform.gallery_arcade import install_gallery_schema
 from snowfall.platform.safecracker_arcade import install_safe_schema
+from snowfall.platform.snowman_arcade import install_snowman_schema
 
 
 def main() -> None:
@@ -45,7 +46,8 @@ def main() -> None:
         install_practice_schema(con)
         install_gallery_schema(con)
         install_safe_schema(con)
-    print("Installed v2.9.9–v2.9.9b web-only arcade tables in web-qa-2026.")
+        install_snowman_schema(con)
+    print("Installed v2.9.9–v2.9.9c web-only arcade tables in web-qa-2026.")
 
 
 if __name__ == "__main__":
