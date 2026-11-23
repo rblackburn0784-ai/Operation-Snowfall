@@ -81,8 +81,8 @@ test("worn scarf geometry stays aligned to the eight source portraits",()=>{
 
 test("web release and prior IDs remain unchanged",()=>{
  assert.match(html,/snowfall-web-release" content="2\.9\.8k"/);
- assert.match(html,/app\.css\?v=298k/);
- assert.match(html,/app\.js\?v=298k/);
+ assert.match(html,/app\.css\?v=298l/);
+ assert.match(html,/app\.js\?v=298l/);
  for(const prefix of ["hq","fit","rival"]){
   assert.ok(html.includes('id="'+prefix+'Gear"'));
   assert.ok(html.includes('id="'+prefix+'PortraitWell"'));
