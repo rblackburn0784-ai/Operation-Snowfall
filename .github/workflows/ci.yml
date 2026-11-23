@@ -67,4 +67,4 @@ jobs:
       - name: Assert 21 artwork files actually ship in the wheel
         run: python tests/check_v298l_wheel_assets.py output/wheels
       - name: Check migrations and compatibility
-        run: python -m pytest -q tests/test_v292_postgres.py tests/test_v293_postgres.py tests/test_v293a_postgres.py tests/test_v294a_postgres.py tests/test_v294b_postgres.py tests/test_v294c_relink.py tests/test_v294d_discard.py tests/test_v294e_postgres.py tests/test_v294e1_cutover.py tests/test_v295_launch_audit_postgres.py tests/test_v295_postgres.py
+        run: python -m pytest -q tests/test_v292_postgres.py tests/test_v293_postgres.py tests/test_v293a_postgres.py tests/test_v294a_postgres.py tests/test_v294b_postgres.py tests/test_v294c_relink.py tests/test_v294d_discard.py tests/test_v294e_postgres.py tests/test_v294e1_cutover.py tests/test_v295_launch_audit_postgres.py tests/test_v295_postgres.py tests/test_v299_arcade_postgres.py
