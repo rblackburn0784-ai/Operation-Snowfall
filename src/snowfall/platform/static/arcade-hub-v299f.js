@@ -7,7 +7,7 @@
 const MODES=Object.freeze({
  gallery:{icon:"🎯",art:"/art/v290/arcade/gallery.webp",hint:"Aim with mouse or touch"},
  safe:{icon:"🔐",art:"/art/v290/arcade/safe.webp",hint:"Turn the dial in three stages"},
- snowman:{icon:"⛄",art:"/art/v290/arcade/snowman.webp",hint:"Drag parts onto the blueprint"},
+ snowman:{icon:"⛄",art:"/art/v290/arcade/snowman.webp",hint:"Craft a snowman by dragging parts onto the blueprint"},
  catch:{icon:"❄️",art:"/art/v290/arcade/catch.webp",hint:"Catch falling winter bonuses"},
  trivia:{icon:"🎁",art:"/art/v290/arcade/trivia.webp",hint:"Open gifts and solve word puzzles"},
 });
