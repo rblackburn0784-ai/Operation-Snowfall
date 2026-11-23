@@ -119,7 +119,7 @@ test("Escapes unexpected game text; only known keys can produce artwork",()=>{
  s.modes[0].name="<img src=x onerror=alert(1)>";
  s.modes[0].description="<script>alert(1)</script>";
  const rendered=hub.renderCards(s);
- assert.doesNotMatch(rendered,/<script>|onerror=alert/);
+ assert.doesNotMatch(rendered,/<script>|<img src=x onerror=/);
  assert.match(rendered,/&lt;script&gt;/);
  assert.match(rendered,/&lt;img/);
  s.modes.push({key:"custom",name:"Unknown"});
