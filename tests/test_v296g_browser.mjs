@@ -27,3 +27,10 @@ test("newspaper headlines are escaped and original assets exist",()=>{
  assert.match(css,/prefers-reduced-motion:reduce/);
  assert.match(css,/data-atmosphere="off"/);
 });
+
+test("four newspaper boxes are stable even with missing or unordered data",()=>{
+ assert.equal(run('JSON.stringify(wireSlots([{key:"community",title:"C"},{key:"streets",title:"S"},{key:"lead",title:"L"}]).map(h=>h.key))'),'["streets","boss","cities","community"]');
+ assert.equal(run('wireSlots([]).length'),4);
+ assert.equal(run('wireSlots([{key:"boss",title:"B"}])[1].title'),"B");
+ assert.equal(run('wireSlots([])[0].title'),"Awaiting dispatch");
+});

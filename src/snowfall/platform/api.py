@@ -30,6 +30,7 @@ from snowfall.platform.game import SharedGame
 from snowfall.platform.identity import IdentityConflict, IdentityError, IdentityRepository
 from snowfall.platform.discard import CONFIRM_PHRASE, DiscardService, QA_SEASON
 from snowfall.platform.verification import CrossPlatformVerifier
+from snowfall.platform.release import VERSION
 
 
 COOKIE = "snowfall_session"
@@ -120,6 +121,24 @@ class ItemBody(BaseModel):
     item: str = Field(min_length=1, max_length=60)
 
 
+class ActivityBody(BaseModel):
+    action: Literal["clue", "accuse", "secret", "encounter", "quest", "gift", "use", "guard", "title"]
+    item: str = Field(min_length=1, max_length=60)
+    day: int | None = Field(default=None, ge=1, le=7)
+
+
+class ArcadeStart(BaseModel):
+    mode: Literal["gallery", "safe", "snowman", "catch", "trivia"]
+    day: int = Field(ge=1, le=7)
+    attempts_today: int = Field(ge=0, le=3)
+
+
+class ArcadeTurn(BaseModel):
+    session_id: str = Field(pattern=r"^[a-f0-9]{32}$")
+    step: int = Field(ge=0, le=4)
+    choice: str = Field(min_length=1, max_length=96)
+
+
 class OAuthStart(BaseModel):
     mode: Literal["login", "link"] = "login"
 
@@ -181,12 +200,13 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         shared.store.season(cfg.season_key)
         yield
 
-    app = FastAPI(title="Operation Snowfall Shared API", version="2.9.5a",
+    app = FastAPI(title="Operation Snowfall Shared API", version=VERSION,
                   lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
     if cfg.cors_origins:
         app.add_middleware(CORSMiddleware, allow_origins=list(cfg.cors_origins),
                            allow_credentials=True, allow_methods=["GET", "POST"],
-                           allow_headers=["Content-Type", "X-Snowfall-CSRF", "Idempotency-Key"])
+                           allow_headers=["Content-Type", "X-Snowfall-CSRF", "Idempotency-Key",
+                                          "X-Snowfall-Player"])
 
     @app.middleware("http")
     async def security_headers(request: Request, call_next):
@@ -195,6 +215,15 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         result.headers["X-Content-Type-Options"] = "nosniff"
         result.headers["X-Frame-Options"] = "DENY"
         result.headers["Referrer-Policy"] = "no-referrer"
+        result.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        result.headers["Content-Security-Policy"] = (
+            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data:; connect-src 'self'; object-src 'none'; "
+            "base-uri 'none'; frame-ancestors 'none'; form-action 'self'; "
+            "frame-src https://e.widgetbot.io"
+        )
+        if cfg.cookie_secure:
+            result.headers["Strict-Transport-Security"] = "max-age=31536000"
         return result
 
     @app.exception_handler(IdentityConflict)
@@ -227,6 +256,9 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         session = identities.session(token)
         if not session:
             raise HTTPException(401, "Authentication required")
+        expected = request.headers.get("X-Snowfall-Player")
+        if expected is not None and expected != str(session.player_id):
+            raise HTTPException(409, "Account changed in another tab; sign in again")
         if mutate and not identities.csrf_ok(
                 token, request.headers.get("X-Snowfall-CSRF", "")):
             raise HTTPException(403, "Missing or invalid CSRF token")
@@ -259,7 +291,7 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
 
     @app.get("/v1/health")
     def health():
-        return {"status": "ok", "version": "2.9.5a", "backend": "postgres",
+        return {"status": "ok", "version": VERSION, "backend": "postgres",
                 "season": cfg.season_key}
 
     @app.get("/v1/ready")
@@ -271,7 +303,8 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         """
         try:
             identities.check()
-            shared.store.season(cfg.season_key)
+            if shared.store.season(cfg.season_key) is None:
+                raise RuntimeError("Missing season configuration")
             if cfg.season_key == "web-qa-2026":
                 from snowfall.platform.unified_discord import verify_qa_database
                 verify_qa_database(cfg.database_url, season=cfg.season_key)
@@ -305,9 +338,11 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         if request.headers.get("content-type", "").split(";")[0].strip() != (
                 "application/x-www-form-urlencoded"):
             raise HTTPException(415, "Handoff requires an encoded form")
-        content = await request.body()
-        if len(content) > 8192:
-            raise HTTPException(413, "Handoff is too large")
+        content = bytearray()
+        async for chunk in request.stream():
+            if len(content) + len(chunk) > 8192:
+                raise HTTPException(413, "Handoff is too large")
+            content.extend(chunk)
         try:
             fields = parse_qs(content.decode("ascii"), strict_parsing=True,
                               max_num_fields=2)
@@ -497,7 +532,10 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         return jsonable_encoder(shared.register(principal, body.mr_username, body.city))
 
     @app.get("/v1/game/targets")
-    def targets(principal: int = Depends(player)):
+    def targets(response: Response, principal: int = Depends(player)):
+        # Equipped rival artwork changes on either platform, so never cache
+        # a stale character look across wardrobe changes or identity switches.
+        response.headers["Cache-Control"] = "no-store"
         return jsonable_encoder({"targets": shared.targets(principal)})
 
     @app.post("/v1/game/ready")
@@ -549,6 +587,49 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
     @app.get("/v1/game/raid")
     def raid(day: int = Query(ge=1, le=7)):
         return jsonable_encoder(shared.raid(day=day))
+
+    @app.get("/v1/game/activities")
+    def activities(response: Response, principal: int = Depends(player)):
+        response.headers["Cache-Control"] = "no-store"
+        return jsonable_encoder(shared.activities(principal))
+
+    @app.post("/v1/game/activities/action")
+    def activity_action(body: ActivityBody, idempotency_key: str | None = Header(default=None),
+                        principal: int = Depends(game_writer)):
+        iid = _idempotency(principal, "activities:" + body.action, idempotency_key)
+        return jsonable_encoder(shared.activity_action(
+            principal, body.action, body.item, body.day, iid))
+
+    @app.get("/v1/game/arcade")
+    def arcade_lobby(response: Response, principal: int = Depends(player)):
+        response.headers["Cache-Control"] = "no-store"
+        return jsonable_encoder(shared.arcade_lobby(principal))
+
+    @app.get("/v1/game/arcade/session/{session_id}")
+    def arcade_session(session_id: str, response: Response, principal: int = Depends(player)):
+        response.headers["Cache-Control"] = "no-store"
+        if not re.fullmatch(r"[a-f0-9]{32}", session_id):
+            raise HTTPException(400, "Invalid arcade session")
+        return jsonable_encoder(shared.arcade_session(principal, session_id))
+
+    @app.post("/v1/game/arcade/start")
+    def arcade_start(body: ArcadeStart, principal: int = Depends(game_writer)):
+        return jsonable_encoder(shared.arcade_start(
+            principal, body.mode, body.day, body.attempts_today))
+
+    @app.post("/v1/game/arcade/move")
+    def arcade_move(body: ArcadeTurn, idempotency_key: str | None = Header(default=None),
+                    principal: int = Depends(game_writer)):
+        return jsonable_encoder(shared.arcade_move(
+            principal, body.session_id, body.step, body.choice,
+            _idempotency(principal, "arcade:move", idempotency_key)))
+
+    @app.get("/v1/game/arcade/board")
+    def arcade_board(response: Response,
+                     mode: Literal["gallery", "safe", "snowman", "catch", "trivia"] = "gallery",
+                     daily: bool = False, principal: int = Depends(player)):
+        response.headers["Cache-Control"] = "no-store"
+        return jsonable_encoder(shared.arcade_board(principal, mode, daily=daily))
 
     @app.get("/v1/game/inventory")
     def inventory(principal: int = Depends(player)):

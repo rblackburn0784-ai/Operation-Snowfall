@@ -1,0 +1,568 @@
+name: v2.9.8e Test Lab 2.0 full scenario smoke
+on:
+  push:
+    branches: [qa/v2.9.7-live-release-smoke]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deployed-siege-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify live version and original artwork
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,time,urllib.request,hashlib,pathlib,runpy
+          root="https://snowfall-web-qa-staging.up.railway.app"
+          def get(path):
+              with urllib.request.urlopen(root+path,timeout=20) as r:
+                  return r.read()
+          expected=runpy.run_path("src/snowfall/platform/release.py")
+          static=pathlib.Path("src/snowfall/platform/static")
+          for i in range(84):
+              try:
+                  cfg=json.loads(get("/v1/web/config"))
+                  assert cfg["version"]==expected["VERSION"],cfg["version"]
+                  assert cfg["web_artwork_version"]==expected["WEB_RELEASE"],cfg.get("web_artwork_version")
+                  assert all(cfg["branding"].get(k) is True for k in ("banner","icon","title","city_header","wallpaper","wire_template"))
+                  assert cfg["staging"] is True
+                  assert len(cfg["rival_schedule"])==7
+                  for day,pairs in cfg["rival_schedule"].items():
+                      assert len(pairs)==3 and len(set(c for p in pairs for c in p))==6
+                  assert json.loads(get("/v1/health"))["version"]==expected["VERSION"]
+                  ready=json.loads(get("/v1/ready"))
+                  assert ready=={"status":"ready","backend":"postgres","season":"web-qa-2026"},ready
+                  assert cfg["season"]==ready["season"]
+                  for name in ("app.css","app.js"):
+                      assert get("/static/"+name)==(static/name).read_bytes(),name
+                  assert get("/")== (static/"index.html").read_bytes()
+                  get("/v1/ready");get("/v1/web/boss");get("/v1/web/territory");get("/v1/web/wire");community=json.loads(get("/v1/web/community"));assert community["verified_only"] and not community["chat_relay"] and len(community["cities"])==6
+                  with urllib.request.urlopen(root+"/",timeout=20) as r:
+                      assert "script-src 'self'" in r.headers["Content-Security-Policy"]
+                      assert r.headers["Strict-Transport-Security"]=="max-age=31536000"
+                      assert "no-store" in r.headers["Cache-Control"]
+                  break
+              except Exception:
+                  if i==83: raise
+                  time.sleep(5)
+          assets=pathlib.Path("src/snowfall/graphics/art")
+          paths=list((assets/"v290/portraits").glob("*.webp"))+list((assets/"v290/cosmetics/gear").glob("*.png"))+list((assets/"v290/cosmetics/trails").glob("*.png"))+list((assets/"v290/cities/crests").glob("*.png"))+list((assets/"cities").glob("*.webp"))+[assets/"v290/items/siege.png"]+list((assets/"v290/arcade").glob("*.webp"))
+          for file in paths:
+              assert hashlib.sha256(get("/art/"+str(file.relative_to(assets)))).digest()==hashlib.sha256(file.read_bytes()).digest(),file
+          for file in sorted(static.iterdir()):
+              if file.suffix in (".png",".webp"):
+                  assert hashlib.sha256(get("/static/"+file.name)).digest()==hashlib.sha256(file.read_bytes()).digest(),file
+          print("PASS original artwork and all new web branding bytes",len(paths))
+          pathlib.Path("live-config.json").write_text(json.dumps(cfg))
+          PY
+      - name: Install browser
+        run: |
+          python -m pip install playwright pillow
+          python -m playwright install chromium
+      - name: Verify siege placement, daily rival and cosmetic geometry
+        shell: bash
+        run: |
+          mkdir -p qa-screenshots
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright,expect
+          from datetime import datetime,timezone
+          from urllib.parse import urlsplit,parse_qs
+          from PIL import Image,ImageDraw
+          import json,pathlib
+          root="https://snowfall-web-qa-staging.up.railway.app"
+          config=json.loads(pathlib.Path("live-config.json").read_text())
+          rival=next(c for pair in config["rival_schedule"]["2"] if "Chicago" in pair for c in pair if c!="Chicago")
+          keys=["recruit","recruit_f","noir_detective","noir_detective_f","winter_enforcer","winter_enforcer_f","frost_spectre","frost_spectre_f"]
+          fake="999999999999999999"
+          with sync_playwright() as p:
+              browser=p.chromium.launch(headless=True,args=["--no-sandbox"])
+              for label,w,h in [("desktop",1440,1000),("mobile",390,844),("small-mobile",320,740)]:
+                  state={"guest":False,"hp":42,"attempts":1,"points":8,"ammo":10,"score":42,"equipped":{"frame":"gold_frame","gear":"goggles","trail":"snow_trail","portrait":"frost_spectre_f"}}
+                  page=browser.new_page(viewport={"width":w,"height":h},device_scale_factor=1,reduced_motion="reduce")
+                  errors=[];writes=[];arcade_writes=[];page.on("pageerror",lambda e:errors.append(str(e)))
+                  modes=[("gallery","Snowball Target Gallery",5),("safe","Frozen Safecracker",3),("snowman","Snowman Builder",4),("catch","Snowflake Catch",5),("trivia","Christmas Trivia",5)]
+                  run_id="a"*32
+                  def arcade_run():
+                      step=state.get("arcade_step",0)
+                      return {"session_id":run_id,"mode":"gallery","title":"Snowball Target Gallery","day":2,"attempt":1,"step":step,"total_rounds":5,"score":step*20,"finished":step==5,"feedback":"Fictional correct choice." if step else "","played_choices":["Bell"]*step,"current":None if step==5 else {"index":step+1,"total":5,"prompt":"Choose the bell.","choices":["Bell","Cocoa","Star"],"category":"Gallery"}}
+                  def route_request(route):
+                      req=route.request;url=urlsplit(req.url);path=url.path
+                      def reply(data,status=200):route.fulfill(status=status,content_type="application/json",body=json.dumps(data))
+                      if req.method not in ("GET","HEAD"):
+                          if path=="/v1/staff/lab/action":
+                              assert state.get("staff",False)
+                              assert req.headers.get("x-snowfall-csrf")=="fixture-csrf"
+                              body=req.post_data_json
+                              assert body["request_id"].startswith("web-ui-")
+                              assert body["reason"]=="Event control rehearsal"
+                              action=body["action"]
+                              if action=="start":
+                                  assert body["confirmation"]=="START TEST"
+                                  state.update(lab_active=True,lab_day=body["day"],lab_pvp=0,lab_pve=0)
+                              elif action=="day":
+                                  assert body["confirmation"]=="RESET TEST DAY"
+                                  assert body["session_id"]=="f"*32
+                                  state.update(lab_day=body["day"],lab_pvp=0,lab_pve=0)
+                              elif action=="end":
+                                  assert body["confirmation"]=="END TEST"
+                                  state["lab_active"]=False
+                              elif action=="resupply":
+                                  assert body["confirmation"]=="RESUPPLY TEST"
+                              elif action=="configure":
+                                  assert body["options"]["snowballs"]==9
+                                  assert body["options"]["armour_hp"]==15
+                              elif action in ("pvp","boss","siege"):
+                                  assert body["options"]["outcome"] in ("random","hit","miss")
+                                  if action=="pvp":state["lab_pvp"]=state.get("lab_pvp",0)+1
+                                  else:state["lab_pve"]=state.get("lab_pve",0)+1
+                                  state.setdefault("lab_checks",[]).insert(0,{"kind":action,"day":state.get("lab_day",2),"expected_points":12,"actual_points":12,"difference":0,"passed":True})
+                              elif action=="arcade":
+                                  assert body["options"]=={"mode":"trivia","scenario":"perfect"}
+                                  state.setdefault("lab_checks",[]).insert(0,{"kind":"arcade","mode":"trivia","day":state.get("lab_day",2),"expected_points":0,"actual_points":0,"difference":0,"passed":True,"arcade_passed":True})
+                              elif action=="mission":
+                                  assert body["options"]=={"quest":"community"}
+                                  state.setdefault("lab_checks",[]).insert(0,{"kind":"mission","quest":"community","day":state.get("lab_day",2),"expected_points":20,"actual_points":20,"difference":0,"passed":True})
+                              elif action=="simulate_week":
+                                  assert body["confirmation"]=="SIMULATE 7 DAYS"
+                                  state["lab_week"]={"days_tested":7,"passed":True,"total_points":420,"official_awards":0,"days":[{"day":i,"theme":"Day "+str(i),"ledger_points":15*i,"checks_passed":True,"checks":[1,2,3,4,5],"awards":0} for i in range(1,8)]}
+                              elif action=="reset_all":
+                                  assert body["confirmation"]=="RESET ALL TEST DATA"
+                                  state.update(lab_active=False,lab_checks=[],lab_week=None)
+                              else:assert False,action
+                              reply({"scope":"DISPOSABLE_WEB_TEST_LAB","shared_game_unchanged":True,
+                                     "discord_bot_unchanged":True,"official_prizes_enabled":False,
+                                     "active":state.get("lab_active",False),"session_id":"f"*32,
+                                     "day":state.get("lab_day",1),"theme":"Fixture Day",
+                                     "last_action":action+" recorded",
+                                     "totals":{"pvp":state.get("lab_pvp",0),"pve":state.get("lab_pve",0),"ledger":0,"awards":0},
+                                     "boss":{"boss_hp":130,"boss_initial_hp":150},
+                                     "players":[{"mr_username":"TESTChicago","city":"Chicago","score":0}],
+                                     "comparisons":state.get("lab_checks",[]),"weekly_report":state.get("lab_week"),
+                                     "history":[{"action":action,"reason":body["reason"],"detail":"Fixture only","at":"2026-12-21T18:00:00+00:00"}],
+                                     "action_result":{"action":action,"message":"Test-only "+action+" complete"}})
+                              return
+                          if path in ("/v1/game/arcade/start","/v1/game/arcade/move"):
+                              assert req.headers.get("x-snowfall-csrf")=="fixture-csrf"
+                              assert req.headers.get("x-snowfall-player")==fake
+                              body=req.post_data_json
+                              if path.endswith("/start"):
+                                  assert body=={"mode":"gallery","day":2,"attempts_today":0},body
+                                  state["arcade_started"]=True
+                                  reply(arcade_run());return
+                              assert req.headers.get("idempotency-key")
+                              assert body=={"session_id":run_id,"step":state.get("arcade_step",0),"choice":"Bell"},body
+                              arcade_writes.append(req.headers["idempotency-key"])
+                              state["arcade_step"]=state.get("arcade_step",0)+1
+                              reply({"session":arcade_run(),"right":True,"delta":20,"feedback":"Fictional correct choice.","repeated":False,"new_stamps":["played_gallery"] if state["arcade_step"]==5 else []});return
+                          if path=="/v1/game/activities/action":
+                              body=req.post_data_json
+                              assert req.headers.get("x-snowfall-csrf")=="fixture-csrf"
+                              assert req.headers.get("x-snowfall-player")==fake
+                              assert req.headers.get("idempotency-key")
+                              assert body=={"action":"clue","item":"window","day":2},body
+                              state["clue_found"]=True
+                              reply({"message":"Fictional clue discovered.","repeated":False});return
+                          if path!="/v1/game/siege":route.abort();return
+                          assert req.post_data_json=={} and req.headers.get("x-snowfall-csrf")=="fixture-csrf" and req.headers.get("idempotency-key")
+                          assert req.headers.get("x-snowfall-player")==fake
+                          key=req.headers["idempotency-key"]
+                          writes.append(key)
+                          if len(writes)==1:
+                              state.update(hp=28,attempts=2,points=16,ammo=9,score=50)
+                              route.abort();return
+                          assert key==writes[0],"reload must preserve original action key"
+                          reply({"kind":"siege","city":"Chicago","day":2,"hit":True,"damage":14,"points":8,"hp_after":28,"max_hp":72,"echo":False,"final_blow":False,"repeated":True})
+                          return
+                      if path=="/v1/auth/session":
+                          if state["guest"]:reply({"detail":"Not authenticated"},401)
+                          else:
+                              links=([{"provider":"discord","subject":"123456789012345678"}]
+                                     if state.get("staff_discord_only",False) else [{"provider":"underworld"}])
+                              reply({"player_id":fake,"csrf":"fixture-csrf","links":links})
+                      elif path=="/v1/game/me":reply({"registered":True,"player_id":fake,"mr_username":"QA Siege Player","city":"Chicago","phase":"live","day":2,"score":state["score"],"resources":{"snowballs":state["ammo"],"warmth":80,"snowflakes":53,"today_pvp":0}})
+                      elif path=="/v1/game/targets":reply({"targets":[]})
+                      elif path=="/v1/game/wardrobe":reply({"balance":53,"unlocked":list(set(state["equipped"].values())|set(keys[1:])), "equipped":state["equipped"]})
+                      elif path=="/v1/game/world":reply({"day":2,"city":"Chicago","boss_hp":76,"boss_max_hp":150,"boss_attempts":1,"boss_points":5,"siege_hp":state["hp"],"siege_max_hp":72,"siege_attempts":state["attempts"],"siege_points":state["points"],"boss_enabled":True})
+                      elif path=="/v1/game/progress":reply({"registered":True,"score":state["score"],"snowballs":state["ammo"],"snowflakes":53,"boss_hp":76,"boss_max_hp":150,"inventory":{}})
+                      elif path=="/v1/staff/access":
+                          reply({"allowed":state.get("staff",False)})
+                      elif path=="/v1/staff/lab":
+                          if not state.get("staff",False):
+                              reply({"detail":"Staff access required"},403)
+                          else:
+                              reply({"scope":"DISPOSABLE_WEB_TEST_LAB","shared_game_unchanged":True,
+                                     "discord_bot_unchanged":True,"official_prizes_enabled":False,
+                                     "active":state.get("lab_active",False),"session_id":"f"*32,
+                                     "day":state.get("lab_day",1),"theme":"Fixture Day",
+                                     "last_action":"Ready for QA testing",
+                                     "totals":{"pvp":state.get("lab_pvp",0),"pve":state.get("lab_pve",0),"ledger":0,"awards":0},
+                                     "boss":{"boss_hp":130,"boss_initial_hp":150},
+                                     "players":[],"comparisons":state.get("lab_checks",[]),"weekly_report":state.get("lab_week"),"history":[]})
+                      elif path=="/v1/staff/control":
+                          if not state.get("staff",False):
+                              reply({"detail":"Staff access required"},403)
+                          else:
+                              reply({"scope":"ISOLATED_QA_ONLY","read_only":True,"official_prizes_enabled":False,
+                                     "phase":"live","game_day":2,"server_time":"2026-12-21T18:00:00+00:00",
+                                     "schedule":{"planned_start":"2026-12-20T18:00:00+00:00","started_at":"2026-12-20T18:00:00+00:00","projected_end":"2026-12-27T18:00:00+00:00","pause_seconds":0},
+                                     "totals":{"players":2,"flagged":1,"score_rows":4,"combat":2,"boss_siege":1,"award_rows":0,"unlinked":1,"disqualified":0},
+                                     "risks":{"flagged_players":1,"invalid_balances":0,"pvp_ledger_mismatches":0},
+                                     "reconciliation_ok":True,"boss":{"day":2,"theme":"The Snow Don","boss_hp":110,"boss_initial_hp":150},
+                                     "sieges":[{"city":"Chicago","hp":70,"initial_hp":100}],
+                                     "players":[{"mr_username":"QA Tester","city":"Chicago","score":42,"review_state":"self_declared","player_id":fake}],
+                                     "days":[{"day":2,"category":"pvp","points":42,"entries":2}],
+                                     "audit":[{"action":"player:flag","reason":"Fixture staff review","created_at_utc":"2026-12-21T18:00:00+00:00"}],
+                                     "prize_preview":[{"place":1,"name":"QA Tester","city":"Chicago","points":42}],
+                                     "prize_policy":"No real prizes."})
+                      elif path=="/v1/game/arcade":
+                          started=state.get("arcade_started",False);finished=state.get("arcade_step",0)==5
+                          reply({"player_id":fake,"day":2,"phase":"live","daily_cap":3,"completed":int(finished),"bests_total":100 if finished else 0,
+                                 "games":[{"key":key,"title":title,"rounds":rounds,"award_name":"Fixture ribbon","description":"Choose an answer."} for key,title,rounds in modes],
+                                 "records":[{"mode":key,"name":title,"personal_best":100 if key=="gallery" and finished else 0,"games_played":int(key=="gallery" and finished),"attempts_today":int(key=="gallery" and started),"active_id":run_id if key=="gallery" and started and not finished else None} for key,title,rounds in modes],
+                                 "stamps":["played_gallery"] if finished else [],"stamp_labels":{"played_gallery":"Gallery ticket"}})
+                      elif path=="/v1/game/arcade/session/"+run_id:reply(arcade_run())
+                      elif path=="/v1/game/arcade/board":
+                          q=parse_qs(url.query);reply({"mode":q.get("mode",["gallery"])[0],"daily":q.get("daily",["false"])[0]=="true","players":[{"name":"QA Winter Player","city":"Chicago","best":100,"games":1}],"cities":[{"city":"Chicago","score":100,"players":1}]})
+                      elif path=="/v1/game/activities":
+                          found=state.get("clue_found",False)
+                          reply({"player_id":fake,"day":2,"phase":"live",
+                                 "quests":[{"key":"hit","name":"Daily fixture","progress":0,"target":3,"claimed":False}],
+                                 "daily_gift":"Claim a quest","bonus_gift":"Not today",
+                                 "inventory":{"quantities":{"cocoa":1},"uses_today":{}},
+                                 "item_names":{"cocoa":"Hot Chocolate"},"use_caps":{"cocoa":3},
+                                 "equipped_title":"Snowball Recruit","titles":[],"history":[],
+                                 "case":{"title":"Fixture case","scene":"Fictional story",
+                                         "clues":[{"key":"window","label":"Window","found":found,"text":"Fictional clue discovered." if found else None}],
+                                         "suspects":[{"key":"suspect","label":"Suspect"}],"guesses":0,"max_guesses":2,"solved":False,"locked":False,"secret_ready":False}})
+                      elif path=="/v1/game/headquarters":reply({"registered":True,"phase":"live","day":2,"server_time":datetime.now(timezone.utc).isoformat(),"daily_points":12,"rank":3,"season_points":state["score"],"caps":{"snowballs":12,"warmth":100,"pvp":300},"today_pvp":0,"timers":{},"title":"Snowball Recruit","rarity":"Common","quests":[],"trophies":[],"records":{},"next_action":"Find a rival","next_action_route":"fight","daily_gift":"Opened","bonus_gift":"Not today"})
+                      elif path=="/v1/web/community":
+                          city_names=["Chicago","Detroit","Las Vegas","Los Angeles","New York","Philadelphia"]
+                          totals={"throws":4,"hits":2,"boss_damage":16,"siege_damage":8,"quests":1,"gifts":0,"arcade":1}
+                          reply({"phase":"live","day":2,"theme":"Fortification frenzy","verified_only":True,"chat_relay":False,
+                                 "totals":totals,"objectives_met":1,"updates":[{"city":"Chicago","kind":"arcade","count":1,"unit":"arcade runs completed"}],
+                                 "cities":[{"city":city,"rival":None,"members":1,"activity":totals if city=="Chicago" else {},"objective":{"name":"Fortress Breakers","detail":"Work together","progress":12 if city=="Chicago" else 0,"target":12,"unit":"damage","completed":city=="Chicago"}} for city in city_names]})
+                      elif path=="/v1/web/wire":
+                          day=int(parse_qs(url.query).get("day",[2])[0])
+                          reply({"phase":"live","current_day":2,"day":day,"complete":day==1,
+                                 "available_days":[1,2],"verified_only":True,"theme":"Fortification frenzy",
+                                 "headlines":[
+                                     {"key":"community","category":"Community","title":"The community noticeboard","detail":"0 quests claimed • 0 casual arcade runs"},
+                                     {"key":"boss","category":"Boss","title":"The Snow Don's icy resistance","detail":"74 verified damage by 1 raider"},
+                                     {"key":"lead","category":"Championship","title":"QA Winter Player leads the snowball racket","detail":"93 verified individual points • Chicago"},
+                                     {"key":"cities","category":"Cities","title":"Fortresses under siege","detail":"0 of six city forts cleared"},
+                                     {"key":"streets","category":"Combat","title":"Snowball skirmishes across six cities","detail":"5 throws • 3 hits • 0 knockouts"}]})
+                      elif path=="/v1/web/territory":
+                          d=int(parse_qs(url.query).get("day",[2])[0])
+                          reply({"day":d,"current_day":2,"phase":"live","banners":[],"matches":[],"districts":[],"honorary_only":True})
+                      else:route.continue_()
+                  page.route("**/*",route_request)
+                  def nav(dest):
+                      selector=".play-dock" if w<=780 else ".topnav"
+                      page.locator(selector+' [data-nav="'+dest+'"]').click()
+                      expect(page.locator("#page-"+dest)).to_have_class("panel active")
+                  page.goto(root,wait_until="domcontentloaded",timeout=45000)
+                  expect(page.locator("#eventConnectionText")).to_contain_text("Connected",timeout=30000)
+                  nav("boss")
+                  assert page.locator("#page-boss #siegeButton").count()==0
+                  expect(page.locator("#bossCityLink")).to_be_visible()
+                  page.locator("#bossCityLink").click()
+                  expect(page.locator("#page-cities")).to_have_class("panel active")
+                  expect(page.locator("#siegeTitle")).to_have_text("Chicago vs "+rival,timeout=30000)
+                  expect(page.locator("#siegeHpText")).to_have_text("42 / 72 HP")
+                  expect(page.locator("#siegeAttempts")).to_have_text("3")
+                  expect(page.locator("#siegeRivalSkyline")).to_have_attribute("src","/art/cities/"+rival.lower().replace(" ","_")+".webp")
+                  page.locator("#territoryDay").select_option("1")
+                  expect(page.locator("#territoryDayLabel")).to_contain_text("Historical")
+                  page.locator("#citySelectors [data-city='New York']").click()
+                  expect(page.locator("#siegeTitle")).to_have_text("Chicago vs "+rival)
+                  expect(page.locator("#siegeButton")).to_be_enabled()
+                  assert writes==[]
+                  page.locator("#siegeButton").click()
+                  expect(page.locator("#siegeButton")).to_have_text("Retry previous siege",timeout=30000)
+                  page.reload(wait_until="domcontentloaded")
+                  expect(page.locator("#eventConnectionText")).to_contain_text("Connected",timeout=30000)
+                  expect(page.locator("#page-cities")).to_have_class("panel active")
+                  expect(page.locator("#siegeButton")).to_have_text("Retry previous siege")
+                  page.locator("#siegeButton").click()
+                  expect(page.locator("#siegeOutcomeTitle")).to_have_text("Previously recorded siege",timeout=30000)
+                  expect(page.locator("#siegeHpText")).to_have_text("28 / 72 HP")
+                  expect(page.locator("#siegeAttempts")).to_have_text("2")
+                  assert len(writes)==2 and writes[0]==writes[1]
+                  page.locator("#citySiege").screenshot(path=f"qa-screenshots/{label}-siege.png")
+                  nav("home")
+                  expect(page.locator("#hqGear")).to_have_attribute("data-cosmetic","goggles")
+                  def bounds(prefix,kind):
+                      return page.locator("#"+prefix+kind).evaluate("(n)=>{const p=n.parentElement.getBoundingClientRect(),b=n.getBoundingClientRect();return {x:(b.left-p.left)/p.width,y:(b.top-p.top)/p.height,w:b.width/p.width,h:b.height/p.height}}")
+                  def ready(prefix):
+                      page.locator("#"+prefix+"PortraitWell").scroll_into_view_if_needed()
+                      page.wait_for_function("(p)=>['Portrait','Gear','Trail'].every(k=>{const n=document.getElementById(p+k);return n.complete&&n.naturalWidth>0})",arg=prefix)
+                  ready("hq")
+                  b=bounds("hq","Gear");assert .19<b["y"]+b["h"]/2<.31 and .48<b["x"]+b["w"]/2<.59,b
+                  b=bounds("hq","Trail");assert b["x"]>.6 and b["x"]+b["w"]<=1.01,b
+                  page.locator("#hqPortraitWell").screenshot(path=f"qa-screenshots/{label}-hq-fit.png")
+                  nav("shop")
+                  expect(page.locator("#fitGear")).to_have_attribute("data-cosmetic","goggles")
+                  ready("fit")
+                  for kind in ("Gear","Trail"):
+                      a,b=bounds("hq",kind) if page.locator("#page-home").is_visible() else (None,None),bounds("fit",kind)
+                      assert b["w"]>0
+                  # All eight actual artworks and both gear selections are rendered using the same fitting renderer.
+                  for portrait in keys:
+                      for gear in ("goggles","scarf"):
+                          page.evaluate("([portrait,gear])=>{S.market.preview={frame:'gold_frame',gear:gear,trail:'candy_trail',...(portrait==='recruit'?{}:{portrait:portrait})}; if(portrait==='recruit'){S.shop.equipped={...S.shop.equipped};delete S.shop.equipped.portrait;} showShop()}",[portrait,gear])
+                          ready("fit")
+                          b=bounds("fit","Gear");t=bounds("fit","Trail")
+                          if gear=="goggles":
+                              assert .18<b["y"]+b["h"]/2<.32 and .48<b["x"]+b["w"]/2<.59,(portrait,gear,b)
+                          else:
+                              assert .32<b["y"]<.53 and .43<b["x"]+b["w"]/2<.60,(portrait,gear,b)
+                          assert t["x"]>.6 and t["x"]+t["w"]<=1.01,t
+                          if label=="desktop":
+                              page.locator("#fitPortraitWell").screenshot(path=f"qa-screenshots/{portrait}-{gear}.png")
+                  nav("home")
+                  page.locator("#page-home [data-nav='activities']").first.click()
+                  expect(page.locator("#page-activities")).to_be_visible()
+                  clue=page.locator("#activitiesContent [data-activity='clue']")
+                  expect(clue).to_be_enabled(timeout=30000)
+                  expect(page.locator("#activitiesContent [data-activity='accuse']")).to_be_disabled()
+                  clue.click()
+                  expect(page.locator("#activitiesResult")).to_contain_text("Fictional clue discovered.")
+                  expect(clue).to_have_text("Found",timeout=30000)
+                  expect(clue).to_be_disabled()
+                  page.locator("#activitiesContent").screenshot(path=f"qa-screenshots/{label}-activities.png")
+                  assert page.evaluate("document.documentElement.scrollWidth-innerWidth")<=2
+                  page.locator("#page-activities [data-nav='arcade']").click()
+                  expect(page.locator("#page-arcade")).to_be_visible()
+                  expect(page.locator("#arcadeLobby .arcade-card")).to_have_count(5,timeout=30000)
+                  page.locator("#arcadeLobby [data-value='gallery']").click()
+                  expect(page.locator("#arcadeRun")).to_contain_text("Round 1 / 5")
+                  for step in range(5):
+                      choice=page.locator("#arcadeRun [data-value='Bell']")
+                      expect(choice).to_be_enabled(timeout=30000)
+                      choice.click()
+                      expect(page.locator("#arcadeRun")).to_contain_text("Run complete!" if step==4 else f"Round {step+2} / 5",timeout=30000)
+                  assert len(set(arcade_writes))==5
+                  expect(page.locator("#arcadeStamps .earned")).to_have_count(1)
+                  expect(page.locator("#arcadeBoardRefresh")).to_be_enabled()
+                  page.locator("#arcadeBoardRefresh").click()
+                  expect(page.locator("#arcadeBoard")).to_contain_text("QA Winter Player")
+                  page.locator("#arcadeBoardPeriod").select_option("daily")
+                  page.locator("#arcadeBoardRefresh").click()
+                  expect(page.locator("#arcadeBoard")).to_contain_text("City Cup")
+                  page.locator("#arcadeLobby").screenshot(path=f"qa-screenshots/{label}-arcade.png")
+                  assert page.evaluate("document.documentElement.scrollWidth-innerWidth")<=2
+                  assert page.locator("#staffNav").is_hidden()
+                  assert page.locator("#page-staff").is_hidden()
+                  nav("home")
+                  state["staff"]=True
+                  state["staff_discord_only"]=True
+                  page.reload(wait_until="domcontentloaded")
+                  expect(page.locator("#eventConnectionText")).to_contain_text("Connected",timeout=30000)
+                  assert page.evaluate("S.session.links.every(l=>l.provider==='discord')")
+                  page.evaluate("S.staffCheckedIdentity=null;refreshStaffAccess()")
+                  page.wait_for_function("!document.getElementById('staffNav').classList.contains('hidden')")
+                  expect(page.locator("#staffOnlyNotice")).to_be_visible()
+                  expect(page.locator("#underworldRequired")).to_be_hidden()
+                  if w>780:
+                      expect(page.locator("#staffShortcut")).to_be_visible()
+                      page.locator("#staffShortcut").click()
+                  else:
+                      page.locator("#menuToggle").click()
+                      expect(page.locator("#staffNav")).to_be_visible()
+                      page.locator("#staffNav").click()
+                  expect(page.locator("#page-staff")).to_be_visible()
+                  expect(page.locator("#staffPlayers")).to_contain_text("QA Tester",timeout=30000)
+                  expect(page.locator("#staffRisks")).to_contain_text("Reconciliation: PASS")
+                  expect(page.locator("#staffPrizes")).to_contain_text("42 points")
+                  expect(page.locator("#staffLabStart")).to_be_enabled(timeout=30000)
+                  expect(page.locator("#staffLabDayReset")).to_be_disabled()
+                  page.locator("#staffLabDay").select_option("2")
+                  page.locator("#staffLabConfirm").fill("START TEST")
+                  page.locator("#staffLabStart").click()
+                  expect(page.locator("#staffLabStatus")).to_contain_text("Day 2/7",timeout=30000)
+                  expect(page.locator("#staffLabDayReset")).to_be_enabled()
+                  page.locator("#staffLabSnowballs").fill("9")
+                  page.locator("#staffLabArmour").fill("15")
+                  page.locator("#page-staff [data-lab-action='configure']").click()
+                  expect(page.locator("#staffLabStatus")).to_contain_text("Day 2/7",timeout=30000)
+                  page.locator("#staffLabOutcome").select_option("hit")
+                  page.locator("#page-staff [data-lab-action='pvp']").click()
+                  expect(page.locator("#staffLabComparisons")).to_contain_text("PASS",timeout=30000)
+                  page.locator("#staffLabArcade").select_option("trivia")
+                  page.locator("#page-staff [data-lab-action='arcade']").click()
+                  expect(page.locator("#staffLabComparisons")).to_contain_text("trivia",timeout=30000)
+                  page.locator("#page-staff [data-lab-action='mission']").click()
+                  expect(page.locator("#staffLabComparisons")).to_contain_text("mission",timeout=30000)
+                  expect(page.locator("#staffLabStats")).to_contain_text("1",timeout=30000)
+                  page.locator("#staffLabDay").select_option("6")
+                  page.locator("#staffLabConfirm").fill("RESET TEST DAY")
+                  page.locator("#staffLabDayReset").click()
+                  expect(page.locator("#staffLabStatus")).to_contain_text("Day 6/7",timeout=30000)
+                  page.locator("#staffLabConfirm").fill("END TEST")
+                  page.locator("#staffLabEnd").click()
+                  expect(page.locator("#staffLabStart")).to_be_enabled(timeout=30000)
+                  expect(page.locator("#staffLabStatus")).to_contain_text("No disposable web test",timeout=30000)
+                  expect(page.locator("#staffLabStats")).to_contain_text("Shared QA")
+                  page.locator("#staffLabConfirm").fill("SIMULATE 7 DAYS")
+                  page.locator("#staffLabWeek").click()
+                  expect(page.locator("#staffLabWeekSummary")).to_contain_text("7 days",timeout=30000)
+                  expect(page.locator("#staffLabWeekSummary tbody tr")).to_have_count(7)
+                  expect(page.locator("#staffLabExport")).to_be_enabled()
+                  page.locator("#staffLabConfirm").fill("RESET ALL TEST DATA")
+                  page.locator("#staffLabResetAll").click()
+                  expect(page.locator("#staffLabWeekSummary")).to_contain_text("No seven-day simulation",timeout=30000)
+                  # The lab buttons scroll deep within the page; return to the staff
+                  # heading before checking that sticky status does not cover it.
+                  page.evaluate("window.scrollTo({top:Math.max(0,document.getElementById('page-staff').getBoundingClientRect().top+scrollY-180),behavior:'instant'})")
+                  page.wait_for_timeout(75)
+                  staff_top=page.locator("#staffTitle").evaluate("n=>n.getBoundingClientRect().top")
+                  bar_bottom=page.locator("#playStatus").evaluate("n=>n.getBoundingClientRect().bottom")
+                  assert staff_top>=bar_bottom-3,(staff_top,bar_bottom)
+                  page.screenshot(path=f"qa-screenshots/{label}-staff-viewport.png")
+                  # Element capture auto-scrolls beneath the sticky bar; hide it for this crop only.
+                  page.locator("#page-staff").screenshot(path=f"qa-screenshots/{label}-staff.png",style=".play-status{visibility:hidden!important}")
+                  assert page.evaluate("document.documentElement.scrollWidth-innerWidth")<=2
+                  state["staff"]=False
+                  state["staff_discord_only"]=False
+                  page.evaluate("S.staffCheckedIdentity=null;refreshStaffAccess()")
+                  page.wait_for_function("document.getElementById('staffNav').classList.contains('hidden')")
+                  expect(page.locator("#staffNav")).to_be_hidden()
+                  expect(page.locator("#page-staff")).to_be_hidden()
+                  page.reload(wait_until="domcontentloaded")
+                  expect(page.locator("#eventConnectionText")).to_contain_text("Connected",timeout=30000)
+                  assert page.evaluate("S.session.links.some(l=>l.provider==='underworld')")
+                  nav("home")
+                  page.locator("#page-home [data-nav='community']").click()
+                  expect(page.locator("#communityCities .activity-card")).to_have_count(6,timeout=30000)
+                  expect(page.locator("#communityTotals .activity-card")).to_have_count(6)
+                  expect(page.locator("#communityMilestones")).to_contain_text("1 / 6")
+                  expect(page.locator("#communityFeed")).to_contain_text("Chicago")
+                  # One persistent iframe lives in the sidebar, never inside a changing page.
+                  frame=page.locator("#streetsChatFrame")
+                  dock=page.locator("#streetsChatDock")
+                  assert frame.count()==1
+                  assert frame.evaluate("n=>n.closest('aside.sidebar')!==null")
+                  assert frame.get_attribute("src") is None
+                  page.evaluate("configureStreets('https://discord.com/channels/123456789012345678/987654321012345678')")
+                  expect(page.locator("#streetsChatEnable")).to_be_enabled()
+                  page.route("https://e.widgetbot.io/**",lambda route:route.fulfill(status=200,content_type="text/html",body="<p>Widget test frame</p>"))
+                  if w<=980:
+                      page.locator("#streetsChatLauncher").click()
+                      expect(dock).to_be_visible()
+                      expect(page.locator("#streetsChatLauncher")).to_have_attribute("aria-expanded","true")
+                  else:
+                      page.locator("#streetsTopLink").click()
+                      expect(dock).to_be_visible()
+                  # Opening the dock is the player's explicit opt-in and launches chat.
+                  expect(frame).to_have_attribute("src","https://e.widgetbot.io/channels/123456789012345678/987654321012345678")
+                  expect(page.locator("#streetsChatEmbed")).to_be_visible()
+                  assert frame.evaluate("n=>n.getBoundingClientRect().width>=280")
+                  page.evaluate("window.__originalChatFrame=document.getElementById('streetsChatFrame')")
+                  if w>980:
+                      chat_top=dock.evaluate("n=>n.getBoundingClientRect().top")
+                      status_bottom=page.locator("#playStatus").evaluate("n=>n.getBoundingClientRect().bottom")
+                      assert chat_top>=status_bottom-3,(chat_top,status_bottom)
+                  dock.screenshot(path=f"qa-screenshots/{label}-persistent-chat.png")
+                  if w<=980:
+                      page.locator("#streetsChatClose").click()
+                      expect(dock).to_be_hidden()
+                  nav("combat")
+                  expect(page.locator("#page-combat")).to_be_visible()
+                  assert page.evaluate("window.__originalChatFrame===document.getElementById('streetsChatFrame')")
+                  expect(frame).to_have_attribute("src","https://e.widgetbot.io/channels/123456789012345678/987654321012345678")
+                  nav("home")
+                  page.locator("#page-home [data-nav='community']").click()
+                  expect(page.locator("#page-community")).to_be_visible()
+                  if w<=980:
+                      page.locator("#streetsChatLauncher").click()
+                      expect(dock).to_be_visible()
+                      expect(frame).to_have_attribute("src","https://e.widgetbot.io/channels/123456789012345678/987654321012345678")
+                  # Changing player identities disconnects only this chat session.
+                  page.evaluate("S.session=null;updateStreetsChat()")
+                  assert frame.get_attribute("src") is None
+                  expect(page.locator("#streetsChatEnable")).to_have_text("Sign in to enter chat")
+                  page.locator("#streetsChatEnable").click()
+                  expect(page.locator("#authDialog")).to_be_visible()
+                  page.locator("#closeAuth").click()
+                  expect(page.locator("#authDialog")).to_be_hidden()
+                  page.evaluate("(id)=>{S.session={player_id:id,csrf:'fixture-csrf',links:[{provider:'underworld'}]};updateStreetsChat()}",fake)
+                  if w<=980:
+                      page.locator("#streetsChatLauncher").click()
+                      expect(dock).to_be_visible()
+                      page.locator("#streetsChatClose").click()
+                      expect(dock).to_be_hidden()
+                  page.locator("#communityRefresh").click()
+                  expect(page.locator("#communityRefresh")).to_be_enabled(timeout=30000)
+                  page.locator("#page-community").screenshot(path=f"qa-screenshots/{label}-community.png")
+                  assert page.evaluate("document.documentElement.scrollWidth-innerWidth")<=2
+                  nav("combat");expect(page.locator("#noRivals")).to_be_visible()
+                  nav("wire");expect(page.locator("#wirePaper")).to_be_visible()
+                  expect(page.locator("#wirePaper")).to_have_class("wire-paper has-wire-template")
+                  expect(page.locator("#wireEdition")).to_contain_text("DAY 2 / 7")
+                  expect(page.locator("#wireHeadlines .wire-story")).to_have_count(4)
+                  assert page.locator("#wireHeadlines .wire-story .wire-byline").all_text_contents()==["Combat","Boss","Cities","Community"]
+                  page.locator("#wireDay").select_option("1")
+                  expect(page.locator("#wireEdition")).to_contain_text("DAY 1 / 7")
+                  expect(page.locator("#wireEdition")).to_contain_text("ARCHIVE")
+                  page.locator("#refreshWire").click()
+                  expect(page.locator("#wireDay")).to_be_enabled()
+                  expect(page.locator("#wireLead")).to_contain_text("QA Winter Player")
+                  page.locator("#wireDay").select_option("current")
+                  expect(page.locator("#wireEdition")).to_contain_text("DAY 2 / 7")
+                  # A child can be internally well aligned yet clipped by its parent.
+                  width=page.locator(".wire-frontpage").evaluate("""n=>{
+                      const p=n.parentElement.getBoundingClientRect(),r=n.getBoundingClientRect();
+                      return {left:r.left-p.left,right:r.right-p.right,width:r.width,parent:p.width,scroll:n.scrollWidth-n.clientWidth};
+                  }""")
+                  assert abs(width["left"])<=2 and abs(width["right"])<=2 and abs(width["width"]-width["parent"])<=2 and width["scroll"]<=2,width
+                  geometry=page.locator(".wire-frontpage").evaluate("""n=>{
+                      const box=n.getBoundingClientRect();
+                      return [...n.querySelectorAll('.wire-edition-line,.wire-lead-block,.wire-story')].map(e=>{
+                          const r=e.getBoundingClientRect();return {x:(r.x-box.x)/box.width,y:(r.y-box.y)/box.height,w:r.width/box.width,h:r.height/box.height,overflow:e.scrollHeight-e.clientHeight};
+                      });
+                  }""")
+                  assert len(geometry)==6,geometry
+                  for b in geometry:
+                      assert b["x"]>=0 and b["y"]>=0 and b["x"]+b["w"]<=1.001 and b["y"]+b["h"]<=1.001,b
+                      assert b["overflow"]<=3,b
+                  assert .12<geometry[0]["y"]<.16 and .25<geometry[1]["y"]<.31,geometry
+                  assert geometry[2]["x"]<geometry[3]["x"] and geometry[2]["y"]<geometry[4]["y"],geometry
+                  page.locator("#wirePaper").screenshot(path=f"qa-screenshots/{label}-newspaper.png",style=".play-status,.play-feedback,.play-dock,.toast{visibility:hidden!important}")
+                  expect(page.locator("#siteBanner")).to_be_visible()
+                  assert page.locator("#siteBanner").evaluate("n=>n.complete&&n.naturalWidth>0")
+                  assert page.locator(".topbar").evaluate("n=>getComputedStyle(n).backgroundImage.includes('snowfall-header-city.webp')")
+                  if w<=780:
+                      page.locator("#menuToggle").click()
+                      expect(page.locator("#menuToggle")).to_have_attribute("aria-expanded","true")
+                      page.locator("#primaryNav [data-nav='wire']").click()
+                      expect(page.locator("#menuToggle")).to_have_attribute("aria-expanded","false")
+                  nav("cities");expect(page.locator("#citySiege")).to_be_visible()
+                  assert page.evaluate("document.documentElement.scrollWidth-innerWidth")<=2
+                  assert not errors,errors
+                  print(label,"PASS siege, historical isolation, artwork geometry and fictional single attack")
+                  page.close()
+              browser.close()
+          # Collect actual browser-rendered portrait crops for visual review.
+          sheet=Image.new("RGB",(8*170,2*194),"#112735")
+          draw=ImageDraw.Draw(sheet)
+          for i,key in enumerate(keys):
+              for j,gear in enumerate(("goggles","scarf")):
+                  im=Image.open(f"qa-screenshots/{key}-{gear}.png").convert("RGB")
+                  im.thumbnail((162,162))
+                  sheet.paste(im,(i*170+4,j*194+4));draw.text((i*170+4,j*194+168),key+" "+gear,fill="#f3dba7")
+          sheet.save("qa-screenshots/cosmetic-contact-sheet.jpg",quality=90)
+          print("PASS all writes intercepted; live game unchanged")
+          PY
+      - name: Save screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snowfall-v298e-scenario-screenshots
+          path: qa-screenshots/
+          if-no-files-found: ignore

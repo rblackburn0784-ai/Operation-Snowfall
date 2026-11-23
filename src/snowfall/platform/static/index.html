@@ -4,11 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#101b25">
+  <meta name="snowfall-web-release" content="2.9.8l">
   <meta name="description" content="Operation Snowfall — the seven-day winter city showdown. Isolated staging preview.">
   <title>Operation Snowfall | The Winter Underworld</title>
   <link rel="icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/static/app.css?v=296i">
-  <script defer src="/static/app.js?v=296i"></script>
+  <link rel="stylesheet" href="/static/app.css?v=298l-r3">
+  <script defer src="/static/app.js?v=298l-r2"></script>
 </head>
 <body>
   <a class="skip-link" href="#mainContent">Skip to game content</a>
@@ -16,19 +17,40 @@
   <div class="snow dust-b" aria-hidden="true"></div>
   <header class="topbar">
     <a class="brand" href="/" aria-label="Operation Snowfall home">
-      <span class="brand-mark" id="brandFallback">❄</span><img id="brandIcon" class="brand-icon hidden" alt="" width="48" height="48"><img id="siteBanner" class="site-banner header-banner hidden" alt="Operation Snowfall — The Winter Underworld" width="2048" height="682" fetchpriority="high">
+      <span class="brand-mark" id="brandFallback">❄</span><img id="brandIcon" class="brand-icon hidden" alt="" width="48" height="48"><img id="siteBanner" class="site-banner header-banner hidden" alt="Operation Snowfall — The Winter Underworld" width="1000" height="394" fetchpriority="high">
       <span class="brand-lines" id="bannerFallback"><strong>OPERATION<br>SNOWFALL</strong><small>THE WINTER UNDERWORLD</small></span>
     </a>
     <nav class="topnav" id="primaryNav" aria-label="Game sections">
-      <button class="nav-item active" data-nav="home">Headquarters</button>
-      <button class="nav-item" data-nav="combat">Snowball Alley</button>
-      <button class="nav-item" data-nav="boss">The Snow Don</button>
-      <button class="nav-item" data-nav="shop">Winter Market</button>
-      <button class="nav-item" data-nav="cities">City Wars</button>
-      <button class="nav-item" data-nav="wire">Snowfall Wire</button>
+      <button class="nav-item nav-home active" type="button" data-nav="home">Headquarters</button>
+      <div class="nav-group" data-nav-group="combat boss cities">
+        <button class="nav-group-trigger" type="button" aria-controls="navBattles" aria-expanded="false">Snowball Wars <span class="nav-chevron" aria-hidden="true">⌄</span></button>
+        <div class="nav-popover" id="navBattles" role="group" aria-label="Snowball Wars sections">
+          <button class="nav-item" type="button" data-nav="combat"><strong>Snowball Alley</strong><small>Player battles and targets</small></button>
+          <button class="nav-item" type="button" data-nav="boss"><strong>The Snow Don</strong><small>Boss fights and raids</small></button>
+          <button class="nav-item" type="button" data-nav="cities"><strong>City Wars</strong><small>Rivalries and sieges</small></button>
+        </div>
+      </div>
+      <div class="nav-group" data-nav-group="shop activities arcade">
+        <button class="nav-group-trigger" type="button" aria-controls="navWinter" aria-expanded="false">Winter Fun <span class="nav-chevron" aria-hidden="true">⌄</span></button>
+        <div class="nav-popover" id="navWinter" role="group" aria-label="Winter Fun sections">
+          <button class="nav-item" type="button" data-nav="shop"><strong>Winter Market</strong><small>Shop and customise</small></button>
+          <button class="nav-item" type="button" data-nav="activities"><strong>Activities</strong><small>Daily missions and mysteries</small></button>
+          <button class="nav-item" type="button" data-nav="arcade"><strong>Winter Arcade</strong><small>Seasonal games and records</small></button>
+        </div>
+      </div>
+      <div class="nav-group" data-nav-group="wire community staff">
+        <button class="nav-group-trigger" type="button" aria-controls="navCommunity" aria-expanded="false">Community <span class="nav-chevron" aria-hidden="true">⌄</span></button>
+        <div class="nav-popover" id="navCommunity" role="group" aria-label="Community sections">
+          <button class="nav-item" type="button" data-nav="community"><strong>The Streets</strong><small>Gather with your city</small></button>
+          <button class="nav-item" type="button" data-nav="wire"><strong>Snowfall Wire</strong><small>News and event stories</small></button>
+          <button class="nav-item nav-chat-action" type="button" data-chat-open><strong>Open Streets Chat</strong><small>Join the conversation</small></button>
+          <button class="nav-item hidden" id="staffNav" type="button" data-nav="staff" aria-label="Staff event control centre"><strong>Event Control</strong><small>Staff-only operations</small></button>
+        </div>
+      </div>
     </nav>
     <div class="topbar-actions">
-      <a id="streetsTopLink" class="button button-outline button-small hidden" target="_blank" rel="noopener noreferrer">#the-streets ↗</a>
+      <button id="streetsTopLink" class="button button-outline button-small" data-chat-open>💬 The Streets chat</button>
+      <button id="staffShortcut" type="button" class="button button-gold button-small hidden" data-nav="staff" aria-label="Open Event Control Centre">⚙ Event Control</button>
       <button id="menuToggle" class="button button-outline button-small menu-toggle" type="button" aria-controls="primaryNav" aria-expanded="false">☰ Menu</button>
       <button id="authToggle" class="button button-outline button-small">Sign in</button>
     </div>
@@ -64,7 +86,7 @@
       <img id="finaleArt" alt="" loading="lazy">
       <div class="event-finale-copy"><p class="eyebrow" id="finaleKicker">THE WINTER UNDERWORLD</p><h2 id="eventFinaleTitle"></h2><p id="finaleText"></p><div class="finale-actions"><button class="button button-gold" data-nav="wire">Read the Wire</button><button class="button button-outline" data-nav="cities">View standings</button></div></div>
     </section>
-    <div class="play-status hidden" id="playStatus" aria-label="Your current resources"><strong id="playPlayer">Your character</strong><span>❄ <b id="playAmmo">—</b> snowballs</span><span>◈ <b id="playWarmth">—</b> warmth</span><span>✦ <b id="playFlakes">—</b> flakes</span><span>★ <b id="playPoints">—</b> pts</span><button id="playRefresh" class="tiny-link">↻ Refresh</button></div>
+    <div class="play-status hidden status-art-bar" id="playStatus" aria-label="Your current resources"><strong id="playPlayer">Your character</strong><span><img id="playAmmoArt" class="status-inline-icon" src="/art/v290/status/v298l/snowballs_1.webp" alt=""> <b id="playAmmo">—</b> snowballs</span><span><img id="playWarmthArt" class="status-inline-icon" src="/art/v290/status/v298l/warmth_1.webp" alt=""> <b id="playWarmth">—</b> warmth</span><span><img id="playFlakesArt" class="status-inline-icon" src="/art/v290/status/v298l/currency_1.webp" alt=""> <b id="playFlakes">—</b> flakes</span><span><img id="playPointsArt" class="status-inline-icon" src="/art/v290/status/v298l/points_1.webp" alt=""> <b id="playPoints">—</b> pts</span><button id="playRefresh" class="tiny-link">↻ Refresh</button></div>
     <div id="playFeedback" class="play-feedback hidden" role="status"><span id="playFeedbackText"></span><button id="playFeedbackClose" class="tiny-link" aria-label="Dismiss message">✕</button></div>
     <div class="page-grid">
       <div class="main-column">
@@ -75,13 +97,14 @@
             <div><h3>Ready to play?</h3><p>Use your Underworld character. Linking Discord is optional; your progress stays shared.</p></div>
             <button class="button button-gold" id="loginCTA">Sign in to play</button>
           </div>
+          <div id="staffOnlyNotice" class="welcome-card hidden" role="status"><div class="welcome-icon">⚙</div><div><h3>Discord staff access verified</h3><p>You can open Event Control without an Underworld login. Underworld is only required for gameplay.</p></div><button type="button" class="button button-gold" data-nav="staff">Open Event Control</button></div>
           <div id="underworldRequired" class="welcome-card hidden" role="status"><div class="registration-inner"><h3>Continue through Underworld to play</h3><p>Your Discord account is recognised. Enter through Underworld to keep one character, then link Discord in Account settings.</p><a id="underworldResume" class="button button-gold hidden">Open Underworld ↗</a></div></div>
           <div id="registration" class="welcome-card hidden">
             <div class="welcome-icon">✍</div>
             <div class="registration-inner">
               <h3>Choose your character and city</h3><p>One quick setup, then you can play. Your city determines your rivals.</p>
               <form id="registerForm" class="inline-form">
-                <label>Character name<input id="characterName" maxlength="32" minlength="2" required placeholder="e.g. TheSnowDude" autocomplete="off"></label>
+                <label>Character name<input id="characterName" maxlength="28" minlength="2" required placeholder="e.g. TheSnowDude" autocomplete="off"></label>
                 <label>Home city<select id="cityChoice" required><option value="" selected disabled>Choose your city</option><option>Chicago</option><option>New York</option><option>Detroit</option><option>Philadelphia</option><option>Las Vegas</option><option>Los Angeles</option></select></label>
                 <button type="submit" class="button button-gold">Create character &amp; play</button>
               </form>
@@ -90,20 +113,20 @@
           <div id="playerDashboard" class="hidden">
             <div class="quick-play-heading"><div><p class="eyebrow">READY FOR THE STREETS</p><h3 id="playGreeting">Your next move</h3><p id="playCoach">Choose an activity to get started.</p></div><button class="button button-gold" id="playPrimary">Play now</button></div>
             <div class="stat-cards">
-              <div class="stat"><span>❄ SNOWBALLS</span><strong id="ammoValue">—</strong><div class="hq-meter"><span id="hqAmmoMeter"></span></div><small id="ammoSub">Regenerates over time</small></div>
-              <div class="stat"><span>◈ WARMTH</span><strong id="warmthValue">—</strong><div class="hq-meter warmth-meter"><span id="hqWarmthMeter"></span></div><small id="hqWarmthSub">Stay out of the cold</small></div>
-              <div class="stat"><span>✦ SNOWFLAKES</span><strong id="flakeValue">—</strong><small>Spend in the winter market</small></div>
-              <div class="stat"><span>★ TOTAL POINTS</span><strong id="scoreValue">—</strong><small>Official shared score</small></div>
+              <div class="stat resource-stat resource-ammo-stat"><span>❄ SNOWBALLS</span><img id="hqAmmoArt" class="resource-art resource-art-ammo" src="/art/v290/status/v298l/snowballs_1.webp" alt="" loading="lazy"><strong id="ammoValue">—</strong><div class="hq-meter"><span id="hqAmmoMeter"></span></div><small id="ammoSub">Regenerates over time</small></div>
+              <div class="stat resource-stat resource-warmth-stat"><span>◈ WARMTH</span><div class="warmth-artwork"><img id="hqColdArt" class="resource-art resource-cold-art" src="/art/v290/status/v298l/cold_1.webp" alt="" loading="lazy"></div><strong id="warmthValue">—</strong><small id="hqColdLabel">Cold status: —</small><small id="hqWarmthSub">Stay out of the cold</small><div class="hq-meter warmth-meter"><img id="hqWarmthArt" class="resource-art resource-warmth-bar" src="/art/v290/status/v298l/warmth_1.webp" alt="" loading="lazy"><span id="hqWarmthMeter" aria-hidden="true"></span></div></div>
+              <div class="stat resource-stat"><span>✦ SNOWFLAKES</span><img id="hqCurrencyArt" class="resource-art" src="/art/v290/status/v298l/points_1.webp" alt="" loading="lazy"><strong id="flakeValue">—</strong><small>Spend in the winter market</small></div>
+              <div class="stat resource-stat"><span>★ TOTAL POINTS</span><img id="hqPointsArt" class="resource-art" src="/art/v290/status/v298l/currency_1.webp" alt="" loading="lazy"><strong id="scoreValue">—</strong><small>Official shared score</small></div>
             </div>
             <div class="hq-next">
               <div><p class="eyebrow">YOUR NEXT MOVE</p><p id="hqNextMove">Choose your next action.</p></div>
               <button class="button button-outline button-small hidden" id="hqRecommended">Open</button>
             </div>
-            <div class="quick-actions"><button class="button button-gold" data-nav="combat">❄ Throw a snowball</button><button class="button button-outline" id="hqBossLink" data-nav="boss">🎯 Attack Snow Don</button><button class="button button-outline" data-nav="shop">✦ Winter Market</button><button class="button button-outline" data-nav="cities">⚑ City Wars &amp; siege</button></div>
+            <div class="quick-actions"><button class="button button-gold" data-nav="combat">❄ Throw a snowball</button><button class="button button-outline" id="hqBossLink" data-nav="boss">🎯 Attack Snow Don</button><button class="button button-outline" data-nav="shop">✦ Winter Market</button><button class="button button-outline" data-nav="cities">⚑ City Wars &amp; siege</button><button class="button button-outline" data-nav="activities">🎄 Winter Activities</button><button class="button button-outline" data-nav="arcade">🎮 Winter Arcade</button><button class="button button-outline" data-nav="community">The Streets &amp; community</button></div>
             <section class="hq-missions" aria-labelledby="hqMissionsTitle" id="hqMissions">
               <div class="hq-section-head"><div><p class="eyebrow">FROM THE DESK OF THE DON</p><h3 id="hqMissionsTitle">Daily assignments</h3></div><span id="hqQuestCount" class="subtle">—</span></div>
               <div id="hqQuestList" class="hq-quest-list"></div>
-              <p id="hqGiftStatus" class="subtle">Gift status unavailable.</p>
+              <p id="hqGiftStatus" class="subtle">Gift status unavailable.</p><button class="button button-gold" data-nav="activities">Claim assignments &amp; open presents</button>
             </section>
             <details class="play-details"><summary>Cooldowns &amp; daily limits</summary>
             <div class="hq-field-grid">
@@ -119,14 +142,15 @@
             <div class="collector-card" id="hqCollector" data-rarity="Common">
               <img class="collector-office" src="/art/v290/cosmetics/backgrounds/headquarters.webp" alt="" loading="lazy">
               <div class="collector-shade"></div>
-              <div id="hqBannerWell" class="collector-banner-well hidden"><img id="hqBanner" class="collector-banner hidden" alt=""></div>
               <div class="collector-layout">
                 <div class="collector-profile">
+                  <div id="hqBannerWell" class="collector-banner-well"><img id="hqBanner" class="collector-banner hidden" alt=""><strong id="hqBannerText" class="collector-banner-name">Your character</strong></div>
                   <div class="portrait-well" id="hqPortraitWell">
                     <img id="hqPortrait" class="portrait-layer" src="/art/v290/portraits/recruit_m.webp" alt="Recruit profile">
                     <img id="hqTrail" class="trail-layer hidden" alt="">
                     <img id="hqGear" class="gear-layer hidden" alt="">
                     <img id="hqFrame" class="frame-layer hidden" alt="">
+                    <span id="hqSnowball" class="snowball-foreground" aria-hidden="true"></span>
                   </div>
                   <button class="button button-outline button-small" data-nav="shop">Edit appearance</button>
                 </div>
@@ -210,7 +234,7 @@
             <p class="subtle" style="margin-top:.8rem">This staging database is independent of the live Discord Christmas event. Only linked QA accounts can share its progress.</p>
           </div>
           <details id="crossPlatformPanel" class="side-card hidden" style="margin-top:1.1rem"><summary>Advanced QA verification</summary>
-            <p class="eyebrow">v2.9.6i · CROSS-PLATFORM TEST LAB</p>
+            <p class="eyebrow">v2.9.8e · CROSS-PLATFORM TEST LAB</p>
             <h3>One character. One scoreboard. Verified gameplay.</h3>
             <p>Check that Discord and Snowfall Web read and update the same official Snowfall character. Testing never awards extra points.</p>
             <p id="verificationState" role="status"><strong>Not started</strong></p>
@@ -242,13 +266,32 @@
 
         <section id="page-combat" class="panel" aria-labelledby="combatTitle">
           <div class="section-heading"><div><p class="eyebrow">THE STREETS ARE GETTING SLIPPERY</p><h2 id="combatTitle">Snowball Alley</h2></div><span class="pill">PvP / REAL GAME RULES</span></div>
+          <div class="alley-winter-scene" role="img" aria-label="Snow-covered cobbled winter street, glowing lamps and distant snowy city"><div class="alley-scene-caption"><p class="eyebrow">THE WINTER UNDERWORLD</p><strong>The streets are yours. Make every throw count.</strong></div></div>
           <p class="section-desc">Choose a rival and throw. Standard is a balanced shot; the game handles the rules.</p><div class="play-action-status" id="combatStatus" role="status">Sign in to find rivals.</div>
-          <div class="action-card">
-            <img class="mode-art" src="/art/v290/combat/snowball_volley.png" alt="Illustrated snowball volley" loading="lazy">
+          <div class="action-card alley-action-card">
+            <div class="rival-stage" aria-label="Selected rival's actual equipped appearance">
+              <div id="rivalEmpty" class="rival-empty"><img src="/art/v290/combat/snowball_volley.png" alt="" loading="lazy"><span>Choose an eligible rival to see their outfit.</span></div>
+              <div id="rivalAppearance" class="rival-appearance hidden">
+                <div id="rivalBannerWell" class="collector-banner-well"><img id="rivalBanner" class="collector-banner hidden" alt=""><strong id="rivalBannerText" class="collector-banner-name">Rival</strong></div>
+                <div id="rivalPortraitWell" class="portrait-well">
+                  <img id="rivalPortrait" class="portrait-layer" src="/art/v290/portraits/recruit_m.webp" alt="Selected rival portrait">
+                  <img id="rivalTrail" class="trail-layer hidden" alt="">
+                  <img id="rivalGear" class="gear-layer hidden" alt="">
+                  <img id="rivalFrame" class="frame-layer hidden" alt="">
+                  <span id="rivalSnowball" class="snowball-foreground" aria-hidden="true"></span>
+                </div>
+                <p id="rivalVisualStatus" class="rival-appearance-note" role="status">Verified equipped outfit</p>
+              </div>
+            </div>
             <div class="action-main"><h3>Choose your rival</h3><p>Only currently eligible opponents appear. Entering the arena allows rivals to challenge you.</p>
               <div class="controls-grid">
                 <label>Rival<select id="targetSelect"><option value="">Sign in to discover rivals</option></select></label>
                 <label>Throwing style<select id="throwStyle"><option value="quick">Quick Shot</option><option value="standard" selected>Standard Throw</option><option value="power">Power Shot</option><option value="golden">Golden Snowball</option></select></label>
+              </div>
+              <div class="alley-resource-strip" aria-label="Current ammunition and warmth"><div><img id="alleyAmmoArt" src="/art/v290/status/v298l/snowballs_1.webp" alt=""><span>Snowballs ready <strong id="alleyAmmoCount">—</strong></span></div><div><img id="alleyColdArt" src="/art/v290/status/v298l/cold_1.webp" alt=""><span><strong id="alleyColdStatus">Cold status: —</strong><small id="alleyWarmthCount">Warmth — / 100</small></span></div></div>
+              <div id="alleyLoadout" class="alley-loadout">
+                <div id="alleyLoadoutIcon" class="alley-loadout-icon" data-style="standard" aria-hidden="true"><img id="alleyLoadoutTrail" class="alley-loadout-trail hidden" alt=""><span class="snowball-foreground"></span></div>
+                <div><strong id="alleyLoadoutName">Your snowball: Standard Throw</strong><small id="alleyLoadoutDetail">Equip a Snowstorm or Candy Cane Trail in Winter Market to customise its appearance.</small></div>
               </div>
               <p id="targetDetail" class="subtle" role="status"></p><p id="throwStyleHint" class="subtle"></p>
               <div class="actions-inline"><button class="button button-gold" id="throwButton">❄ Throw snowball</button><button class="button button-outline" id="readyButton">Enter arena</button><button class="button button-ghost" id="findTargets">Find rivals ↻</button></div>
@@ -280,7 +323,7 @@
           <div class="section-heading"><div><p class="eyebrow">FINE GOODS FOR QUESTIONABLE PEOPLE</p><h2 id="shopTitle">Winter Market</h2></div><span class="pill">COSMETICS & CRAFTING</span></div>
           <p class="section-desc">Browse cosmetics, try on outfits for free, or craft items using Snowflakes.</p>
           <div class="market-hero"><img src="/art/v290/cosmetics/backgrounds/shop.webp" alt="The illustrated winter market from the Snowfall Discord event" loading="lazy"><div><p class="eyebrow">FROSTED FINERY</p><h3>Dress like you own the winter streets.</h3><p>Your purchased cosmetics are shared with the Discord game.</p></div></div>
-          <div class="market-toolbar market-wallet"><div><p class="eyebrow">YOUR WINTER WALLET</p><span>✦ <strong id="shopBalance">—</strong> Snowflakes</span><p id="marketOwned" class="subtle">Sign in to load your wardrobe</p></div><button class="button button-outline button-small" id="refreshShop">↻ Refresh market</button></div>
+          <div class="market-toolbar market-wallet"><img id="marketCurrencyArt" class="market-wallet-art" src="/art/v290/status/v298l/currency_1.webp" alt=""><div><p class="eyebrow">YOUR WINTER WALLET</p><span>✦ <strong id="shopBalance">—</strong> Snowflakes</span><p id="marketOwned" class="subtle">Sign in to load your wardrobe</p></div><button class="button button-outline button-small" id="refreshShop">↻ Refresh market</button></div>
           <div class="market-jumps"><button class="button button-gold" data-jump="marketCatalogue">Browse items</button><button class="button button-outline" data-jump="marketFitting">Try on</button><button class="button button-outline" data-jump="marketWorkshop">Workshop</button></div>
           <section class="market-feature" aria-labelledby="featuredTitle">
             <div class="market-feature-art"><img id="featuredArt" alt="" class="hidden"><span id="featuredRarity" class="market-rarity">Featured selection</span></div>
@@ -291,11 +334,13 @@
             <p class="section-desc" id="fitStatus" role="status">Preview any item for free. Your equipped outfit is unchanged.</p>
             <div class="fitting-stage" id="fitCollector" data-rarity="Common">
               <img class="collector-office" src="/art/v290/cosmetics/backgrounds/headquarters.webp" alt="" loading="lazy"><div class="collector-shade"></div>
-              <div id="fitBannerWell" class="collector-banner-well hidden"><img id="fitBanner" class="collector-banner hidden" alt=""></div>
               <div class="fitting-layout">
-                <div class="collector-profile"><div class="portrait-well" id="fitPortraitWell">
+                <div class="collector-profile">
+                  <div id="fitBannerWell" class="collector-banner-well"><img id="fitBanner" class="collector-banner hidden" alt=""><strong id="fitBannerText" class="collector-banner-name">Guest fitting model</strong></div>
+                  <div class="portrait-well" id="fitPortraitWell">
                   <img id="fitPortrait" class="portrait-layer" src="/art/v290/portraits/recruit_m.webp" alt="Recruit profile">
                   <img id="fitTrail" class="trail-layer hidden" alt=""><img id="fitGear" class="gear-layer hidden" alt=""><img id="fitFrame" class="frame-layer hidden" alt="">
+                  <span id="fitSnowball" class="snowball-foreground" aria-hidden="true"></span>
                 </div><p id="fitRarity" class="hq-rarity">Common style preview</p></div>
                 <div class="fit-outfit"><p class="eyebrow">PREVIEW ONLY · NOT EQUIPPED</p><h3 id="fitPlayerName">Guest fitting model</h3><dl class="equipped-list">
                   <div><dt>Portrait</dt><dd id="fitPortraitName">Recruit</dd></div><div><dt>Frame</dt><dd id="fitFrameName">None</dd></div><div><dt>Banner</dt><dd id="fitBannerName">None</dd></div><div><dt>Gear</dt><dd id="fitGearName">None</dd></div><div><dt>Trail</dt><dd id="fitTrailName">None</dd></div>
@@ -367,36 +412,213 @@
           <div class="section-heading compact"><div><p class="eyebrow">THE TOP OPERATIVES</p><h2>Official leaderboard</h2></div></div>
           <div id="leaderboard" class="scoreboard"></div>
         </section>
+        <section id="page-activities" class="panel" aria-labelledby="activitiesTitle">
+          <div class="section-heading"><div><p class="eyebrow">THE WINTER UNDERWORLD · YOUR DAILY DOSSIER</p><h2 id="activitiesTitle">Winter Activities</h2></div></div>
+          <div class="activity-intro"><img src="/art/v290/mysteries/case_board.webp" alt="Winter detective case board" loading="lazy"><div><h3>More than snowball fights</h3><p>Claim assignments, open presents, use your equipment and investigate the seven Christmas cases. Your progress is shared with Discord.</p><div class="activity-actions"><button class="button button-outline" id="activitiesRefresh">Refresh activities</button><button class="button button-gold" data-nav="arcade">Visit Winter Arcade</button></div></div></div>
+          <p id="activitiesStatus" class="play-action-status" role="status">Sign in and register to open your daily dossier.</p>
+          <div id="activitiesResult" class="play-outcome hidden" role="status"></div>
+          <div id="activitiesContent" class="activity-grid"></div>
+          <button class="button button-outline" data-nav="home">Back to Headquarters</button>
+        </section>
+        <section id="page-arcade" class="panel" aria-labelledby="arcadeTitle">
+          <div class="section-heading"><div><p class="eyebrow">THE WINTER UNDERWORLD · NO-PRIZE SOCIAL GAMES</p><h2 id="arcadeTitle">Winter Arcade</h2></div><span class="pill">HONORARY SCORES</span></div>
+          <div class="arcade-intro"><div><h3>Five games. One shared passport.</h3><p>Play without spending snowballs. Each game allows three starts per event day, shared with Discord. Resume an unfinished run at any time that day.</p></div><button class="button button-outline" id="arcadeRefresh">Refresh arcade</button></div>
+          <p id="arcadeStatus" class="play-action-status" role="status">Sign in to see your arcade records.</p>
+          <div id="arcadeRun" class="arcade-run hidden" aria-label="Current arcade game"></div>
+          <div id="arcadeLobby" class="arcade-lobby"></div>
+          <section class="activity-card arcade-passport" aria-labelledby="arcadePassportTitle"><h3 id="arcadePassportTitle">My Arcade Passport</h3><div id="arcadeStamps" class="arcade-stamps"></div></section>
+          <section class="activity-card arcade-rankings" aria-labelledby="arcadeBoardTitle"><h3 id="arcadeBoardTitle">High scores &amp; City Cup</h3><p>Honorary rankings only. No championship points or prizes.</p><div class="arcade-filters"><label>Game<select id="arcadeBoardMode"><option value="gallery">Target Gallery</option><option value="safe">Frozen Safecracker</option><option value="snowman">Snowman Builder</option><option value="catch">Snowflake Catch</option><option value="trivia">Christmas Trivia</option></select></label><label>Period<select id="arcadeBoardPeriod"><option value="season">Season</option><option value="daily">Today</option></select></label><button class="button button-outline" id="arcadeBoardRefresh">View rankings</button></div><div id="arcadeBoard" aria-live="polite"></div></section>
+          <button class="button button-outline" data-nav="activities">Back to Winter Activities</button>
+        </section>
+        <section id="page-community" class="panel" aria-labelledby="communityTitle">
+          <div class="section-heading"><div><p class="eyebrow">THE WINTER UNDERWORLD · COMMUNITY DISPATCH</p><h2 id="communityTitle">The Streets</h2></div><span class="pill">LIVE CHAT &amp; COMMUNITY</span></div>
+          <div class="activity-intro"><img src="/art/v290/wire/backgrounds/newsroom_editorial.png" alt="The illustrated Snowfall newsroom" loading="lazy"><div><h3>Meet the winter underworld</h3><p>Chat with the community without leaving Snowfall. The messages are shared with Discord's #the-streets channel.</p><p class="subtle">The embedded chat is provided by WidgetBot, a separate service. It may ask you to sign in with Discord or create a guest identity; your Underworld name isn't automatically used for chat.</p><a id="communityStreetsLink" class="tiny-link hidden" target="_blank" rel="noopener noreferrer">Optional: open the channel in Discord</a><p id="communityStreetsUnavailable" class="subtle hidden">The #the-streets channel link has not been configured.</p></div></div>
+          <div class="community-toolbar"><p id="communityStatus" role="status" class="play-action-status">Loading the streets…</p><button id="communityRefresh" class="button button-outline">Refresh dispatch</button></div>
+          <div id="communityTotals" class="community-totals"></div>
+          <div class="community-columns"><section class="activity-card"><h3>Latest city activity</h3><p class="subtle">Today's verified totals, ordered by most recent recorded activity. Not a chat transcript.</p><div id="communityFeed"></div></section>
+          <section class="activity-card"><h3>Community milestones</h3><p id="communityMilestones"></p><p class="subtle">City objectives and arcade records are honorary. Official rewards remain unchanged.</p><div class="activity-actions"><button class="button button-outline" data-nav="cities">City Wars</button><button class="button button-outline" data-nav="arcade">Winter Arcade</button><button class="button button-outline" data-nav="wire">Snowfall Wire</button></div></section></div>
+          <h3>City noticeboards</h3><div id="communityCities" class="activity-grid"></div>
+          <button class="button button-outline" data-nav="home">Back to Headquarters</button>
+        </section>
+        <section id="page-staff" class="panel" aria-labelledby="staffTitle">
+          <div class="section-heading"><div><p class="eyebrow">THE WINTER OPERATIONS BUREAU · STAFF ONLY</p><h2 id="staffTitle">Event Control Centre 2.0</h2></div><span class="pill">QA · TEST LAB</span></div>
+          <div class="staff-heading"><div><h3>Watch the event, protect the players.</h3><p>Monitor the shared QA event, inspect individual players and audit host review decisions. Use the separate Test Lab for safe gameplay rehearsals without affecting shared progress.</p></div><button id="staffRefresh" class="button button-outline">Refresh control centre</button></div>
+          <p id="staffStatus" class="play-action-status" role="status">Checking staff authorisation…</p>
+          <div id="staffMetrics" class="staff-metrics" aria-label="Event status metrics"></div>
+          <section class="activity-card staff-section staff-case-desk" aria-labelledby="staffCaseTitle">
+            <div class="staff-lab-title"><div><p class="eyebrow">ACCOUNT INTEGRITY · QA STAFF ONLY</p><h3 id="staffCaseTitle">Player Search &amp; Review Desk</h3></div><span class="pill">PERMISSION-GATED</span></div>
+            <p>Find any registered QA character, inspect real scoring and combat history, check Underworld / Discord linking, and investigate anomalies. Flags are leads for investigation, not proof of abuse.</p>
+            <p id="staffRoleStatus" class="play-action-status" role="status">Verifying organiser permissions…</p>
+            <form id="staffPlayerSearchForm" class="staff-search-controls">
+              <label>Character name or player ID<input id="staffPlayerQuery" type="search" maxlength="60" placeholder="Search any registered character" autocomplete="off"></label>
+              <label>City<select id="staffPlayerCity"><option value="all">All six cities</option><option>Chicago</option><option>Detroit</option><option>Las Vegas</option><option>Los Angeles</option><option>New York</option><option>Philadelphia</option></select></label>
+              <label>Review status<select id="staffPlayerState"><option value="all">All statuses</option><option value="self_declared">Unreviewed</option><option value="flagged">Flagged</option><option value="cleared">Cleared</option><option value="disqualified">Disqualified</option></select></label>
+              <button class="button button-gold" type="submit">Search players</button>
+            </form>
+            <p id="staffPlayerSearchStatus" class="subtle" role="status">No search run yet.</p>
+            <div class="staff-table-wrap"><table aria-label="Staff player search results"><thead><tr><th>Character</th><th>City</th><th>Points</th><th>Review state</th><th>Action</th></tr></thead><tbody id="staffPlayerResults"></tbody></table></div>
+            <div class="staff-lab-actions staff-player-pager"><button type="button" id="staffPlayerPrev" class="button button-outline button-small">Previous page</button><span id="staffPlayerPage">Page —</span><button type="button" id="staffPlayerNext" class="button button-outline button-small">Next page</button></div>
+            <div id="staffPlayerDossier" class="staff-dossier" aria-live="polite"><p class="subtle">Select Inspect beside a character to view their player dossier.</p></div>
+            <form id="staffReviewForm" class="staff-review-form hidden">
+              <h4>Host-only QA account review</h4>
+              <p class="subtle">A flag temporarily excludes the account from eligible prize rankings until cleared. Only explicitly configured hosts can apply this reversible QA review; no scores, inventory or prizes are edited.</p>
+              <div class="staff-lab-config">
+                <label>Review action<select id="staffReviewAction"><option value="flag">Flag for manual investigation</option><option value="clear">Clear the review flag</option></select></label>
+                <label>Specific reason (12–220 characters)<input id="staffReviewReason" minlength="12" maxlength="220" autocomplete="off" placeholder="Evidence and review reference" required></label>
+                <label>Typed confirmation<input id="staffReviewConfirm" maxlength="40" autocomplete="off" placeholder="FLAG QA PLAYER or CLEAR QA PLAYER" required></label>
+              </div>
+              <p id="staffReviewHelp" class="subtle">Type FLAG QA PLAYER for flagging, or CLEAR QA PLAYER for clearing.</p>
+              <button id="staffReviewSubmit" class="button button-gold" type="submit">Review selected player</button>
+            </form>
+            <div class="staff-lab-actions"><button id="staffPlayerExport" type="button" class="button button-outline button-small" disabled>Download private player dossier (JSON)</button></div>
+            <p class="subtle">No automatic sanctions. Actions are confirmation-protected, state-checked and audited in the isolated QA database. Production review changes, account relinking and destructive operations are unavailable.</p>
+          </section>
+          <section class="activity-card staff-section staff-lab" aria-labelledby="staffLabTitle">
+            <div class="staff-lab-title"><div><p class="eyebrow">DISPOSABLE STAFF REHEARSALS · SEPARATE DATABASE</p><h3 id="staffLabTitle">Test Lab 2.0</h3></div><span class="pill">NO SHARED SCORES</span></div>
+            <p>Run temporary Day 1–7 scenarios against the real Snowfall combat engines using fictional test characters. The live Discord bot, mirrored website progression, prizes and shared QA event dates are never changed.</p>
+            <p id="staffLabStatus" class="play-action-status" role="status">Loading your private test session…</p>
+            <div class="staff-lab-config">
+              <label for="staffLabDay">Test event day<select id="staffLabDay"><option value="1">Day 1</option><option value="2">Day 2</option><option value="3">Day 3</option><option value="4">Day 4</option><option value="5">Day 5</option><option value="6">Day 6</option><option value="7">Day 7</option></select></label>
+              <label for="staffLabReason">Staff reason / test reference<input id="staffLabReason" type="text" minlength="8" maxlength="220" value="Event control rehearsal" placeholder="Why are you running this test?"></label>
+              <label for="staffLabConfirm">Confirmation for start, reset or end<input id="staffLabConfirm" type="text" maxlength="40" autocomplete="off" placeholder="Type the confirmation shown below"></label>
+            </div>
+            <div class="staff-lab-actions">
+              <button id="staffLabStart" type="button" class="button button-gold" data-lab-action="start">Start test day</button>
+              <button id="staffLabDayReset" type="button" class="button button-outline" data-lab-action="day">Switch / reset test day</button>
+              <button id="staffLabEnd" type="button" class="button button-outline" data-lab-action="end">End &amp; erase test</button>
+              <button id="staffLabRefresh" type="button" class="button button-outline">Refresh lab</button>
+            </div>
+            <p class="subtle">Confirmation phrases: <strong>START TEST</strong>, <strong>RESET TEST DAY</strong>, <strong>END TEST</strong>. Reset and end permanently discard only this Web Test Lab's temporary data. Test sessions expire after 90 minutes or on service restart.</p>
+            <div id="staffLabStats" class="staff-lab-stats" aria-live="polite"></div>
+            <div class="staff-lab-encounters">
+              <button type="button" class="button button-outline" data-lab-action="pvp">❄ Run PvP throw</button>
+              <button type="button" class="button button-outline" data-lab-action="boss">☃ Test Snow Don</button>
+              <button type="button" class="button button-outline" data-lab-action="siege">🏰 Test city siege</button>
+              <button type="button" class="button button-outline" data-lab-action="resupply">↻ Refill test players</button>
+            </div>
+            <p class="subtle">Refill confirmation: <strong>RESUPPLY TEST</strong>. Individual combat cooldowns and daily scoring caps are respected until the separate test players are refilled or the day is reset.</p>
+            <details class="staff-lab-advanced" open>
+              <summary>Controlled gameplay scenarios &amp; resources</summary>
+              <p class="subtle">Modify fictional players only; configuration respects the same resource bounds as the live game.</p>
+              <div class="staff-lab-config staff-lab-scenarios">
+                <label>Fictional player
+                  <select id="staffLabPlayer"><option value="0">Chicago · test attacker</option><option value="1">Detroit · test rival</option><option value="2">Las Vegas · test player</option><option value="3">Los Angeles · test player</option><option value="4">New York · test player</option><option value="5">Philadelphia · test player</option></select>
+                </label>
+                <label>Snowballs (0–12)<input id="staffLabSnowballs" type="number" min="0" max="12" placeholder="Leave unchanged"></label>
+                <label>Warmth (0–100)<input id="staffLabWarmth" type="number" min="0" max="100" placeholder="Leave unchanged"></label>
+                <label>Armour HP (0–25)<input id="staffLabArmour" type="number" min="0" max="25" placeholder="Leave unchanged"></label>
+                <label>Throw cooldown remaining (0–30 sec)<input id="staffLabCooldown" type="number" min="0" max="30" placeholder="Leave unchanged"></label>
+                <label>Snow Don current HP<input id="staffLabBossHp" type="number" min="0" placeholder="Leave unchanged"></label>
+              </div>
+              <button type="button" class="button button-outline" data-lab-action="configure">Apply test-only settings</button>
+              <div class="staff-lab-config">
+                <label>Combat result
+                  <select id="staffLabOutcome"><option value="random">Natural random result</option><option value="hit">Force a hit (deterministic RNG)</option><option value="miss">Force a miss (deterministic RNG)</option></select>
+                </label>
+                <label>Winter Arcade game
+                  <select id="staffLabArcade"><option value="gallery">Target Gallery</option><option value="safe">Safecracker</option><option value="snowman">Snowman Builder</option><option value="catch">Snowflake Catch</option><option value="trivia">Christmas Trivia</option></select>
+                </label>
+                <label>Arcade outcome
+                  <select id="staffLabArcadeOutcome"><option value="perfect">Perfect answers</option><option value="miss">Incorrect answers</option></select>
+                </label>
+                <label>Daily mission
+                  <select id="staffLabMission"><option value="community">Community objective</option><option value="throws">Attack objective</option><option value="rivals">Rival objective</option></select>
+                </label>
+              </div>
+              <div class="staff-lab-actions">
+                <button type="button" class="button button-outline" data-lab-action="arcade">Test selected arcade</button>
+                <button type="button" class="button button-outline" data-lab-action="mission">Test &amp; claim mission</button>
+              </div>
+            </details>
+            <section class="staff-lab-week">
+              <h4>Seven-day event simulation</h4>
+              <p class="subtle">Run the actual engines against a separate disposable seven-day timeline, without resetting the current Test Lab or awarding prizes.</p>
+              <div class="staff-lab-actions">
+                <button id="staffLabWeek" type="button" class="button button-gold" data-lab-action="simulate_week">Simulate all 7 days</button>
+                <button id="staffLabExport" type="button" class="button button-outline">Download full test results</button>
+                <button id="staffLabResetAll" type="button" class="button button-outline" data-lab-action="reset_all">Reset all my test data</button>
+              </div>
+              <p class="subtle">To run the week, type <strong>SIMULATE 7 DAYS</strong>; to erase all of your disposable tests and reports, type <strong>RESET ALL TEST DATA</strong>.</p>
+              <div id="staffLabWeekSummary" aria-live="polite"></div>
+            </section>
+            <section class="staff-lab-checks">
+              <h4>Expected versus actual scoring</h4>
+              <p class="subtle">Engine-awarded points are compared with the isolated test ledger. Arcade scores are honorary and must create zero official points.</p>
+              <div class="staff-table-wrap"><table><thead><tr><th>Scenario</th><th>Day</th><th>Expected</th><th>Actual</th><th>Difference</th><th>Result</th></tr></thead><tbody id="staffLabComparisons"></tbody></table></div>
+            </section>
+            <div class="staff-lab-two">
+              <div><h4>Test player scores</h4><div id="staffLabPlayers"></div></div>
+              <div><h4>Rehearsal action history</h4><div id="staffLabHistory"></div></div>
+            </div>
+          </section>
+          <div class="staff-dashboard-columns">
+            <section class="activity-card"><h3>Event schedule &amp; lifecycle</h3><div id="staffSchedule"></div><p class="subtle">Lifecycle changes remain in the existing audited Discord /snowadmin controls. Player-review changes alone can be made by explicitly approved hosts; event lifecycle is not controlled here.</p></section>
+            <section class="activity-card"><h3>Audit &amp; integrity flags</h3><p class="subtle">Potential issues require staff review; flags are not automatic misconduct findings.</p><div id="staffRisks"></div></section>
+          </div>
+          <section class="activity-card staff-section"><h3>Snow Don &amp; City Sieges</h3><div id="staffBoss"></div></section>
+          <section class="activity-card staff-section"><h3>Player registry &amp; moderation queue</h3><p class="subtle">Top 60 overview by recorded score. Use Player Search &amp; Review Desk above to inspect every registered character; score corrections stay outside this website.</p><div class="staff-table-wrap"><table><thead><tr><th>Character</th><th>City</th><th>Score</th><th>Review</th></tr></thead><tbody id="staffPlayers"></tbody></table></div><p id="staffPlayersStatus" class="subtle"></p></section>
+          <div class="staff-dashboard-columns">
+            <section class="activity-card"><h3>Daily scoring breakdown</h3><div id="staffDaily"></div></section>
+            <section class="activity-card"><h3>Recent staff audit entries</h3><div id="staffAudit"></div></section>
+          </div>
+          <section class="activity-card staff-section" aria-labelledby="staffBotToolsTitle"><h3 id="staffBotToolsTitle">Discord bot &amp; QA operations</h3>
+            <p>Discord's separate test-channel rehearsal uses the existing <code>/snowadmin</code> commands. It isn't remotely operated by this website; the live bot worker remains independent and shared-QA host mutations remain disabled.</p>
+            <div class="staff-lab-actions">
+              <button type="button" class="button button-outline" data-staff-copy="/snowadmin status">Copy bot status command</button>
+              <button type="button" class="button button-outline" data-staff-copy="/snowadmin launch-check">Copy bot audit command</button>
+              <button type="button" class="button button-outline" data-staff-copy="/snowadmin test-status">Copy bot test-status command</button>
+              <button id="staffExportDiagnostics" type="button" class="button button-outline">Download private QA diagnostic report</button>
+            </div>
+            <p class="subtle">The diagnostic report contains staff-only player names and audit findings. Keep it private. Player flags can be reviewed by approved hosts. No official score or prize edits can be performed here.</p>
+          </section>
+          <section class="activity-card staff-section"><h3>Provisional individual prize preview</h3><p class="subtle">Preview only. Uses the existing ledger and ranking tie-breaks; excludes flagged and disqualified entries. No prize allocation or payment is performed.</p><div id="staffPrizes"></div><p id="staffPrizeNote" class="subtle"></p></section>
+          <div class="staff-footer"><button class="button button-outline" data-nav="home">Back to Headquarters</button><p>All staff information is private and must not be copied into public chat.</p></div>
+        </section>
         <section id="page-wire" class="panel" aria-labelledby="wireTitle">
           <div class="section-heading"><div><p class="eyebrow">AMERICA'S COLDEST UNDERWORLD DISPATCH</p><h2 id="wireTitle">The Snowfall Wire</h2></div><span class="pill">VERIFIED GAME EVENTS</span></div>
           <div class="wire-toolbar"><label>Read an edition<select id="wireDay"><option value="current">Latest edition</option></select></label><button id="refreshWire" class="button button-outline button-small">↻ Refresh edition</button></div>
-          <article class="wire-paper" id="wirePaper" data-edition="waiting">
+          <article class="wire-paper" id="wirePaper" data-edition="waiting" aria-label="The Snowfall Wire newspaper">
+            <div class="wire-frontpage">
             <img class="wire-masthead" src="/art/v290/wire/banners/snowfall_wire_masthead.png" alt="The Snowfall Wire" loading="lazy">
             <div class="wire-edition-line"><span id="wireEdition">AWAITING KICKOFF</span><span>QA · NO PRIZES</span></div>
-            <img id="wireEditionArt" src="/art/v290/wire/backgrounds/front_page_template.png" alt="Original Snowfall Wire newspaper artwork" loading="lazy">
-            <div class="wire-editorial"><p class="wire-byline" id="wireTheme">THE WINTER UNDERWORLD</p><h3 id="wireLead">The streets are waiting</h3><p id="wireLeadDetail">Verified dispatches appear once the event opens.</p><div id="wireHeadlines" class="wire-headlines"></div></div>
+            <div class="wire-edition-body">
+            <div class="wire-editorial"><div class="wire-lead-block"><p class="wire-byline" id="wireTheme">THE WINTER UNDERWORLD</p><h3 id="wireLead">The streets are waiting</h3><p id="wireLeadDetail">Verified dispatches appear once the event opens.</p></div><div id="wireHeadlines" class="wire-headlines"></div></div>
+            </div>
+            </div>
             <p id="wireNotice" class="wire-notice" role="status">Connecting to verified game events…</p>
           </article>
           <div class="wire-newsroom"><img src="/art/v290/wire/backgrounds/newsroom_editorial.png" alt="Original illustrated Snowfall newsroom" loading="lazy"><div><p class="eyebrow">FROM THE EDITOR'S DESK</p><h3>News from the streets</h3><p>These editions use the Discord newsroom's verified game-ledger reports. Community fiction and editorial submissions remain in Discord. Historical dispatches reflect currently eligible records, not an award announcement.</p><button class="button button-outline" data-nav="cities">Explore City Wars</button></div></div>
         </section>
       </div>
 
-      <aside class="sidebar">
+      <aside class="sidebar" id="persistentSidebar" aria-label="Live community chat and event updates">
+          <section class="streets-chat-shell side-chat-shell" id="streetsChatDock" aria-labelledby="streetsChatTitle">
+            <div class="streets-chat-heading"><div><p class="eyebrow">CHAT ON EVERY PAGE</p><h3 id="streetsChatTitle">#the-streets · Live chat</h3></div><button id="streetsChatClose" type="button" class="button button-outline button-small" aria-label="Close chat panel">✕ Close</button></div>
+            <p id="streetsChatStatus" role="status" class="subtle">Open the chat to join the conversation.</p>
+            <button id="streetsChatEnable" type="button" class="button button-gold">Enter The Streets chat</button>
+            <div id="streetsChatEmbed" class="streets-chat-embed hidden">
+              <iframe id="streetsChatFrame" title="The Streets live Discord chat within Snowfall" loading="lazy" referrerpolicy="no-referrer" allow="clipboard-write; fullscreen"></iframe>
+            </div>
+            <div class="streets-chat-footer"><span class="subtle">WidgetBot · separate Discord or guest chat identity</span><button id="streetsChatDisconnect" type="button" class="tiny-link hidden">Disconnect chat</button></div>
+            <p class="subtle streets-chat-notice">Chat is provided by WidgetBot; your Underworld account is not shared with it. Existing Discord moderation applies.</p>
+          </section>
+
         <div class="side-card radio wire-side"><img src="/art/v290/wire/banners/breaking_news.png" alt="Breaking news" loading="lazy"><p class="eyebrow">THE SNOWFALL WIRE</p><h3 id="wireSideTitle">Special bulletin</h3><p id="wireSideDetail">Verified dispatches from the shared game.</p><button class="button button-outline full" data-nav="wire">Read the Wire</button><span>📻 WINTER RADIO · QA EDITION</span></div>
-        <div class="side-card streets-card"><p class="eyebrow">COMMUNITY CORNER</p><h3>Meet on #the-streets</h3><p>Talk with the community in the existing Discord server. Chat opens in Discord; Snowfall doesn't copy or publish messages.</p><a id="streetsLink" class="button button-gold hidden" target="_blank" rel="noopener noreferrer">Open #the-streets ↗</a><p id="streetsUnavailable" class="subtle">Discord channel link has not been configured for this QA website.</p></div>
         <div class="side-card status"><p class="eyebrow">SEASON STATUS</p><h3 id="sideStatus">Connecting…</h3><p id="sideStatusDetail">Checking the game backend</p><div class="side-divider"></div><div class="side-row"><span>Player identity</span><strong id="identityStatus">Guest</strong></div><div class="side-row"><span>Database</span><strong>PostgreSQL</strong></div><div class="side-row"><span>Service</span><strong>STAGING</strong></div></div>
         <div class="side-card"><p class="eyebrow">THE RULES OF THE GAME</p><h3>Cold hands. Clean records.</h3><p>Unique actions, score caps, anti-spam checks and duplicate reward protection apply to every platform.</p></div>
       </aside>
     </div>
+    <div id="streetsChatBackdrop" class="streets-chat-backdrop hidden" aria-hidden="true"></div>
+    <button type="button" id="streetsChatLauncher" class="button button-gold" aria-controls="streetsChatDock" aria-expanded="false" aria-label="Open The Streets chat">💬 Chat</button>
   </main>
 
-  <footer><div class="footer-logo">❄ OPERATION SNOWFALL</div><p>STAGING EXPERIENCE · FICTITIOUS GAMEPLAY · NO LIVE UNDERWORLD ACCOUNT ACCESS</p><div class="footer-preferences"><button id="atmosphereToggle" type="button" class="button button-outline button-small" aria-pressed="true">Atmosphere on</button><button class="tiny-link" data-nav="wire">Newspaper archive</button></div><span>© Winter Operations Bureau · v2.9.6i</span></footer>
+  <footer><div class="footer-logo">❄ OPERATION SNOWFALL</div><p>STAGING EXPERIENCE · FICTITIOUS GAMEPLAY · NO LIVE UNDERWORLD ACCOUNT ACCESS</p><div class="footer-preferences"><button id="atmosphereToggle" type="button" class="button button-outline button-small" aria-pressed="true">Atmosphere on</button><button class="tiny-link" data-nav="wire">Newspaper archive</button></div><span>© Winter Operations Bureau · v2.9.8e</span></footer>
 
   <div id="authDialog" class="dialog-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="authTitle">
     <div class="dialog"><button class="dialog-close" id="closeAuth" aria-label="Close sign-in">×</button>
-      <p class="eyebrow">WELCOME TO THE STREETS</p><h2 id="authTitle">Enter the snowfall.</h2><p class="muted">Continue with your existing Underworld character, or use Discord if already linked.</p><a id="underworldLogin" class="button button-gold full hidden">Open Underworld ↗</a><p id="underworldLoginHelp" class="subtle">In Underworld, sign in and select the ❄ Snowfall button.</p>
-      <div class="auth-separator">ALREADY LINKED?</div>
-      <button id="discordLogin" class="button button-outline full">Continue with Discord</button>
+      <p class="eyebrow">WELCOME TO THE STREETS</p><h2 id="authTitle">Enter the snowfall.</h2><p class="muted">Play using your Underworld character. Event staff can sign in with Discord alone — no Underworld login is required to access Event Control.</p><a id="underworldLogin" class="button button-gold full hidden">Open Underworld ↗</a><p id="underworldLoginHelp" class="subtle">In Underworld, sign in and select the ❄ Snowfall button.</p>
+      <div class="auth-separator">DISCORD PLAYERS &amp; EVENT STAFF</div>
+      <button id="discordLogin" class="button button-outline full">Continue with Discord · Staff Sign-in</button><p class="subtle staff-oauth-help">Staff access is granted only after Discord verifies the account against the authorised user IDs. Underworld remains optional for staff and required for playing.</p>
       <details class="underworld-auth"><summary>Advanced test assertion</summary><p>Sign in to Underworld and select the ❄ Snowfall button. The sites connect without sharing passwords. For development only, a signed test assertion can be submitted here.</p><form id="underworldForm"><textarea id="underworldAssertion" rows="3" placeholder="Paste a trusted backend-signed assertion only"></textarea><button class="button button-outline full" type="submit">Verify assertion</button></form></details>
       <details class="underworld-auth" id="qaLoginTools"><summary>QA test access</summary>      <form id="demoForm"><label>Staging access code<input id="demoCode" type="password" autocomplete="off" minlength="28" required placeholder="Private QA code"></label><label>Test player<select id="demoSlot"><option value="1">Test Player One</option><option value="2">Test Player Two</option><option value="3">Test Player Three</option></select></label><button type="submit" class="button button-gold full">Sign in to staging</button></form>
 </details>

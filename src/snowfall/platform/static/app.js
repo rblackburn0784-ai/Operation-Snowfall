@@ -1,10 +1,62 @@
-/* Operation Snowfall v2.9.6i — City Wars siege and fitted cosmetics. */
+/* Operation Snowfall v2.9.8l — status and resource artwork integration. */
 "use strict";
-const S={session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
+const S={staffRole:null,staffDirectory:null,staffDossier:null,staffSelected:null,staffDirectoryBusy:false,staffDossierBusy:false,staffReviewBusy:false,staffDirectorySeq:0,staffDossierSeq:0,staffLab:null,staffLabPending:false,staffAllowed:false,staffCheckedIdentity:null,staffAccessCheckedAt:0,staffData:null,staffPending:false,staffStale:false,streetsDrawerOpen:false,streetsReturnFocus:null,streetsEmbedUrl:null,streetsChatOpen:false,community:null,communityPending:false,communityStale:false,privateQueued:false,arcade:null,arcadeRun:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
 const txt=(id,v)=>{const node=el(id),value=v==null?"—":String(v);if(node&&node.textContent!==value)node.textContent=value};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=v=>Number(v??0).toLocaleString("en-GB");
+/* v2.9.8l: All thresholds are client-side visual stages. They never influence
+   resource caps, regeneration, purchases, score ledger or combat decisions. */
+const STATUS_ART_ROOT="/art/v290/status/v298l/";
+const STATUS_ART_KINDS=Object.freeze(["snowballs","warmth","cold","currency","points"]);
+const COLD_LABELS=Object.freeze(["Comfortable","Chilly","Cold","Freezing"]);
+function resourceStage(kind,value){
+ if(!STATUS_ART_KINDS.includes(kind)||value==null||value===""||!Number.isFinite(Number(value))||Number(value)<0)return null;
+ const amount=Number(value);
+ if(kind==="warmth"||kind==="cold")return amount>=75?1:amount>=50?2:amount>=25?3:4;
+ if(kind==="snowballs")return amount<=2?1:amount<=5?2:amount<=9?3:4; // actual 0–12 ammo cap
+ if(kind==="currency")return amount<=24?1:amount<=74?2:amount<=149?3:4;
+ return amount<=99?1:amount<=299?2:amount<=599?3:4;
+}
+function resourceArtUrl(kind,value,stageKind=kind){
+ const stage=resourceStage(stageKind,value);
+ return stage===null||!STATUS_ART_KINDS.includes(kind)?null:STATUS_ART_ROOT+kind+"_"+stage+".webp";
+}
+function paintResourceArt(id,kind,value,stageKind=kind){
+ const node=el(id);
+ if(!node)return;
+ const path=resourceArtUrl(kind,value,stageKind);
+ if(!path){
+  node.classList?.add("hidden");node.removeAttribute?.("src");
+  delete node.dataset.stage;delete node.dataset.empty;
+  return;
+ }
+ if(node.getAttribute?.("src")!==path)node.setAttribute?.("src",path);
+ node.classList?.remove("hidden");
+ node.dataset.stage=String(resourceStage(stageKind,value));
+ node.dataset.empty=kind==="snowballs"&&Number(value)===0?"true":"false";
+}
+function showResourceArtwork(resources,score){
+ const r=resources||{};
+ for(const [id,kind,value,stageKind] of [
+  ["playAmmoArt","snowballs",r.snowballs],["hqAmmoArt","snowballs",r.snowballs],
+  ["alleyAmmoArt","snowballs",r.snowballs],
+  ["playWarmthArt","warmth",r.warmth],["hqWarmthArt","warmth",r.warmth],
+  ["hqColdArt","cold",r.warmth],["alleyColdArt","cold",r.warmth],
+  ["playFlakesArt","currency",r.snowflakes],
+  // HQ artwork follows the requested presentation: crystal snowflakes on
+  // the left, gold tokens on the right. Stage thresholds still follow the
+  // actual snowflake balance and official score respectively.
+  ["hqCurrencyArt","points",r.snowflakes,"currency"],
+  ["marketCurrencyArt","currency",r.snowflakes],
+  ["playPointsArt","points",score],["hqPointsArt","currency",score,"points"]
+ ])paintResourceArt(id,kind,value,stageKind);
+ const stage=resourceStage("cold",r.warmth),cold=stage===null?"—":COLD_LABELS[stage-1];
+ txt("hqColdLabel","Cold status: "+cold);
+ txt("alleyColdStatus","Cold status: "+cold);
+ txt("alleyAmmoCount",r.snowballs==null?"—":fmt(r.snowballs));
+ txt("alleyWarmthCount",r.warmth==null?"Warmth — / 100":"Warmth "+fmt(r.warmth)+" / 100");
+}
 const CITY_SLUG=Object.freeze({
  "Chicago":"chicago","Detroit":"detroit","Las Vegas":"las_vegas",
  "Los Angeles":"los_angeles","New York":"new_york","Philadelphia":"philadelphia"
@@ -29,6 +81,13 @@ const COSMETIC_ART=Object.freeze({
  "winter_enforcer_f":"/art/v290/portraits/winter_enforcer_f.webp",
  "frost_spectre_f":"/art/v290/portraits/frost_spectre_f.webp"
 });
+// Product thumbnails and featured Market art continue to use COSMETIC_ART.
+ // The equipped avatar/fitting-room illustration uses the player's supplied
+ // transparent neck-wrapped design. Both map to the same existing cosmetic key.
+const WORN_COSMETIC_ART=Object.freeze({
+ "scarf":"/art/v290/cosmetics/gear/scarf_worn.png"
+});
+function wornCosmeticArt(key){return WORN_COSMETIC_ART[key]||COSMETIC_ART[key]||null}
 const HQ_SLOTS=Object.freeze({
  portrait:["noir_detective","winter_enforcer","frost_spectre","recruit_f","noir_detective_f","winter_enforcer_f","frost_spectre_f"],
  frame:["ice_frame","gold_frame","holly_frame"],
@@ -45,12 +104,13 @@ function profileLayers(wardrobe){
  const layers={};
  for(const slot of Object.keys(HQ_SLOTS)){
   const key=ownedEquipped(wardrobe,slot);
-  layers[slot]={key,src:key?COSMETIC_ART[key]:slot==="portrait"?"/art/v290/portraits/recruit_m.webp":null};
+  layers[slot]={key,src:key?wornCosmeticArt(key):slot==="portrait"?"/art/v290/portraits/recruit_m.webp":null};
  }
  return layers;
 }
+const MARKET_TRAIL_NAMES=Object.freeze({snow_trail:"Snowstorm Trail",candy_trail:"Candy Cane Trail"});
 function cosmeticName(key){return S.items.find(item=>item.key===key)?.name||
-    (key?key.split("_").map(word=>word[0].toUpperCase()+word.slice(1)).join(" "):"None");}
+    MARKET_TRAIL_NAMES[key]||(key?key.split("_").map(word=>word[0].toUpperCase()+word.slice(1)).join(" "):"None");}
 // Portrait landmarks measured on the original 530 × 549 artwork.
  // Coordinates use the square cover crop (9.5 source pixels removed top/bottom).
 const PORTRAIT_FIT=Object.freeze({
@@ -65,14 +125,18 @@ const PORTRAIT_FIT=Object.freeze({
 });
 function cosmeticPlacement(portrait,gear,framed){
  const p=Object.hasOwn(PORTRAIT_FIT,portrait)?PORTRAIT_FIT[portrait]:PORTRAIT_FIT.recruit;
- // The portrait sits in a 2% inset, or 6% when a frame is equipped.
- const inset=framed?6:2,scale=(100-2*inset)/100;
+ // Keep faces, gear and trails aligned after reducing the portrait size inside
+ // the original frame artwork. These proportions match CSS portrait insets.
+ const inset=framed?10:4,scale=(100-2*inset)/100;
  const point=n=>+(inset+n*scale).toFixed(3),size=n=>+(n*scale).toFixed(3);
  const [ex,ey,ew,angle]=p.eyes,[nx,ny,nw]=p.neck;
  if(gear==="goggles")return {left:point(ex),top:point(ey),width:size(ew),transform:"translate(-50%,-49%) rotate("+angle+"deg)"};
- if(gear==="scarf")return {left:point(nx),top:point(ny),width:size(nw),transform:"translateX(-50%)"};
+ // The worn scarf is tightly cropped transparent art with an opening for the
+ // neck. Its top edge starts just below the chin; the hanging tails follow the
+ // coat naturally. Catalogue images never use this transform.
+ if(gear==="scarf")return {left:point(nx),top:point(ny+3.5),width:size(nw*.9),transform:"translateX(-50%)"};
  if(gear==="boots")return {left:point(7),top:point(67),width:size(26),transform:"none"};
- if(gear==="snow_trail"||gear==="candy_trail")return {left:point(66),top:point(57),width:size(30),transform:"none"};
+ if(gear==="snow_trail"||gear==="candy_trail")return {left:point(66),top:point(61),width:size(30),transform:"none"};
  return null;
 }
 function alignProfileLayer(node,placement){
@@ -80,13 +144,59 @@ function alignProfileLayer(node,placement){
  node.style.height=placement?"auto":"";
  node.style.transform=placement?placement.transform:"";
 }
-function renderProfileLayers(prefix,layers){
+/* The decorated edges of Market banners are not usable writing space.
+   These ratios describe their central ribbon, NOT the full PNG bounding box. */
+const BANNER_NAME_SAFE_WIDTH=Object.freeze({
+ none:.94,midnight_banner:.38,aurora_banner:.37,gilded_banner:.34
+});
+function fitBannerName(prefix){
+ const node=el(prefix+"BannerText"),well=el(prefix+"BannerWell");
+ if(!node?.style)return;
+ // Never use overflow clipping: it used to silently erase the end of names.
+ node.style.fontSize="";
+ node.style.overflow="";
+ node.style.transform="";
+ const banner=well?.dataset?.banner||"none";
+ const ratio=BANNER_NAME_SAFE_WIDTH[banner]||BANNER_NAME_SAFE_WIDTH.none;
+ const containerWidth=well?.clientWidth||0;
+ const available=containerWidth>0?containerWidth*ratio:node.clientWidth||0;
+ if(typeof window==="undefined"||typeof window.getComputedStyle!=="function"||
+     !Number.isFinite(available)||available<=0)return;
+ let size=parseFloat(window.getComputedStyle(node).fontSize);
+ if(!Number.isFinite(size)||size<=0)return;
+ for(let pass=0;pass<8&&node.scrollWidth>available+.5;pass++){
+  const smaller=Math.max(8,size*Math.min(.98,available/node.scrollWidth)*.975);
+  if(smaller>=size-.01)break;
+  size=smaller;
+  node.style.fontSize=size.toFixed(2)+"px";
+ }
+ // Long character names remain whole and centred even at narrow widths.
+ if(node.scrollWidth>available+.5){
+  node.style.transform="scaleX("+Math.max(.15,available/node.scrollWidth*.98).toFixed(3)+")";
+ }
+}
+function fitVisibleBannerNames(){
+ for(const name of ["hq","fit","rival"])fitBannerName(name);
+}
+function renderProfileLayers(prefix,layers,displayName="Winter player"){
  const framed=!!layers.frame.key,portrait=layers.portrait.key||"recruit";
- const well=el(prefix+"PortraitWell");
+ const well=el(prefix+"PortraitWell"),bannerWell=el(prefix+"BannerWell");
+ if(!well||!bannerWell)return;
  well.classList.toggle("has-frame",framed);well.dataset.portrait=portrait;
- el(prefix+"BannerWell").classList.toggle("hidden",!layers.banner.key);
+ well.dataset.trail=layers.trail.key||"none";
+ bannerWell.classList.remove("hidden");
+ bannerWell.classList.toggle("has-banner",!!layers.banner.key);
+ bannerWell.dataset.banner=layers.banner.key||"none";
+ txt(prefix+"BannerText",displayName);
+ fitBannerName(prefix);
+ // Layout may not have settled yet when switching tabs or the Market preview;
+ // follow up in the next animation frame using the actual available width.
+ if(typeof requestAnimationFrame==="function"){
+  requestAnimationFrame(()=>fitBannerName(prefix));
+ }
  for(const slot of Object.keys(layers)){
   const id=slot[0].toUpperCase()+slot.slice(1),node=el(prefix+id),layer=layers[slot];
+  if(!node)continue;
   if(layer.src){
    if(node.getAttribute("src")!==layer.src)node.setAttribute("src",layer.src);
    node.classList.remove("hidden");
@@ -94,16 +204,63 @@ function renderProfileLayers(prefix,layers){
   node.dataset.cosmetic=layer.key||"";
   if(slot==="gear"||slot==="trail")alignProfileLayer(node,cosmeticPlacement(portrait,layer.key,framed));
   const name=layer.key?cosmeticName(layer.key):slot==="portrait"?"Recruit":"None";
-  if(slot==="portrait")node.alt=name+" profile";
+  if(slot==="portrait")node.alt=displayName+" · "+name+" profile";
   txt(prefix+id+"Name",name);
  }
 }
 function showWardrobe(){
  const wardrobe=S.session&&S.me?.registered?S.shop:null;
- renderProfileLayers("hq",profileLayers(wardrobe));
+ renderProfileLayers("hq",profileLayers(wardrobe),wardrobe?S.me?.mr_username||"Your character":"Your character");
  txt("hqWardrobeStatus",wardrobe?
      fmt(wardrobe.unlocked?.length||0)+" cosmetics owned · shared with Discord":
      "Wardrobe not loaded — refresh to check equipped cosmetics.");
+}
+
+/* PvP preview uses the eligible rival's server-supplied equipped items, never
+   the viewer's wardrobe or client-side Market try-on selections. */
+function rivalWardrobe(appearance){
+ const equipped={},unlocked=[];
+ if(appearance&&typeof appearance==="object"&&!Array.isArray(appearance)){
+  for(const slot of Object.keys(HQ_SLOTS)){
+   const key=appearance[slot];
+   if(HQ_SLOTS[slot].includes(key)&&Object.hasOwn(COSMETIC_ART,key)){
+    equipped[slot]=key;unlocked.push(key);
+   }
+  }
+ }
+ return {unlocked,equipped};
+}
+function showRivalAppearance(selected){
+ if(!el("rivalAppearance"))return;
+ el("rivalAppearance").classList.toggle("hidden",!selected);
+ el("rivalEmpty")?.classList.toggle("hidden",!!selected);
+ if(!selected)return;
+ const wardrobe=rivalWardrobe(selected.appearance),layers=profileLayers(wardrobe);
+ renderProfileLayers("rival",layers,selected.mr_username);
+ const equipped=Object.values(layers).filter(layer=>layer.key).map(layer=>cosmeticName(layer.key));
+ txt("rivalVisualStatus",equipped.length
+  ?"Equipped: "+equipped.join(" · "):"Default recruit outfit · no equipped cosmetics");
+}
+const THROW_STYLE_NAMES=Object.freeze({quick:"Quick Shot",standard:"Standard Throw",power:"Power Shot",golden:"Golden Snowball"});
+function showSnowballLoadout(style){
+ const well=el("alleyLoadoutIcon");
+ if(!well)return;
+ const trail=S.session&&S.me?.registered?ownedEquipped(S.shop,"trail"):null;
+ const title=Object.hasOwn(THROW_STYLE_NAMES,style)?THROW_STYLE_NAMES[style]:THROW_STYLE_NAMES.standard;
+ well.dataset.trail=trail||"none";
+ well.dataset.style=style||"standard";
+ const trailArt=el("alleyLoadoutTrail");
+ if(trailArt){
+  trailArt.classList.toggle("hidden",!trail);
+  if(trail)trailArt.setAttribute("src",COSMETIC_ART[trail]);
+  else trailArt.removeAttribute("src");
+ }
+ txt("alleyLoadoutName","Your snowball · "+title);
+ const addon=trail?cosmeticName(trail)+" equipped from Winter Market":
+    S.shop?"Default snowball · equip a Snowstorm or Candy Cane Trail in Winter Market":
+    "Equip a Snowstorm or Candy Cane Trail in Winter Market";
+ const golden=style==="golden"&&Number(S.progress?.inventory?.golden||0)<1;
+ txt("alleyLoadoutDetail",addon+(golden?" · Golden Snowball required in inventory":""));
 }
 const MEDALS=Object.freeze(["first_flurry","deadeye","rival_hunter","critical_ace","knockout_artist","don_destroyer","boss_regular","fort_breaker","quest_master","gift_collector","golden_legend","seven_days","cocoa_club","first_style","collector","full_outfit"]);
 const RARITIES=["Common","Rare","Epic","Legendary"];
@@ -158,15 +315,15 @@ function showHq(){
   txt("hqTimer"+key[0].toUpperCase()+key.slice(1),"—");
  if(h)updateHqTimers();
  const recommendation=el("hqRecommended");
- const routes={world:["boss","Open raid"],fight:["combat","Find rivals"],player:["combat","Enter arena"],rankings:["cities","View standings"],quests:["missions","View assignments"]};
+ const routes={world:["boss","Open raid"],fight:["combat","Find rivals"],player:["combat","Enter arena"],rankings:["cities","View standings"],quests:["missions","View assignments"],arcade:["arcade","Open Winter Arcade"]};
  const next=h?routes[h.next_action_route]:null;
  recommendation.classList.toggle("hidden",!next);
  recommendation.dataset.destination=next?.[0]||"";
  recommendation.textContent=next?.[1]||"Open";
- if(h)txt("hqNextMove",h.next_action+(["arcade","guide"].includes(h.next_action_route)?" See Discord for this feature.":""));
+ if(h)txt("hqNextMove",h.next_action+(["guide"].includes(h.next_action_route)?" See Discord for this feature.":""));
  txt("hqQuestCount",h?quests.filter(q=>q.claimed).length+" / "+quests.length+" claimed":"Unavailable");
- el("hqQuestList").innerHTML=quests.length?quests.map(q=>"<article class='hq-quest'><strong>"+esc(q.name)+"</strong><span>"+(q.claimed?"Claimed":Number(q.progress)>=Number(q.target)?"Ready to claim in Discord":"In progress")+"</span><div class='hq-meter'><span style='width:"+hqPercent(q.progress,q.target)+"%'></span></div><small>"+fmt(q.progress)+" / "+fmt(q.target)+"</small></article>").join(""):"<p class='subtle'>"+(h?"No daily assignments are available.":"Refresh to load your assignments.")+"</p>";
- txt("hqGiftStatus",h?"Daily gift: "+h.daily_gift+" · Bonus: "+h.bonus_gift+" · Open gifts in Discord.":"Gift status unavailable.");
+ el("hqQuestList").innerHTML=quests.length?quests.map(q=>"<article class='hq-quest'><strong>"+esc(q.name)+"</strong><span>"+(q.claimed?"Claimed":Number(q.progress)>=Number(q.target)?"Ready to claim":"In progress")+"</span><div class='hq-meter'><span style='width:"+hqPercent(q.progress,q.target)+"%'></span></div><small>"+fmt(q.progress)+" / "+fmt(q.target)+"</small></article>").join(""):"<p class='subtle'>"+(h?"No daily assignments are available.":"Refresh to load your assignments.")+"</p>";
+ txt("hqGiftStatus",h?"Daily gift: "+h.daily_gift+" · Bonus: "+h.bonus_gift+" · Open gifts in Winter Activities.":"Gift status unavailable.");
  txt("hqTrophyCount",h?earned.length+" / "+trophies.length+" collected":"Achievements unavailable — refresh to retry.");
  el("hqTrophyGrid").innerHTML=trophies.map(t=>hqMedal(t)).join("");
  el("hqFeatured").innerHTML=earned.slice().sort((a,b)=>(Number(b.title===h.title)-Number(a.title===h.title))||RARITIES.indexOf(b.rarity)-RARITIES.indexOf(a.rarity)||String(a.badge).localeCompare(String(b.badge))).slice(0,3).map(t=>hqMedal(t,true)).join("");
@@ -175,9 +332,14 @@ function showHq(){
 }
 function configureBranding(branding){
  const banner=el("siteBanner"),icon=el("brandIcon");
- if(branding?.banner){
+ const header=banner.closest(".topbar");
+ header?.classList.toggle("has-city-header",Boolean(branding?.city_header));
+ header?.classList.toggle("has-city-title",Boolean(branding?.title));
+ document.body.classList.toggle("has-city-wallpaper",Boolean(branding?.wallpaper));
+ el("wirePaper")?.classList.toggle("has-wire-template",Boolean(branding?.wire_template));
+ if(branding?.title||branding?.banner){
   banner.onerror=()=>{banner.classList.add("hidden");el("bannerFallback").classList.remove("hidden")};
-  banner.src="/static/snowfall-site-banner.webp";
+  banner.src=branding?.title?"/static/snowfall-title.png?v=297a":"/static/snowfall-site-banner.webp";
   banner.classList.remove("hidden");el("bannerFallback").classList.add("hidden");
  }
  if(branding?.icon){
@@ -203,14 +365,93 @@ function safeStreetsUrl(value){
 }
 function configureStreets(value){
  const url=safeStreetsUrl(value);
- for(const id of ["streetsLink","streetsTopLink"]){
+ for(const id of ["communityStreetsLink"]){
   const link=el(id);if(!link)continue;
   link.classList.toggle("hidden",!url);
   if(url)link.href=url;else link.removeAttribute("href");
  }
- el("streetsUnavailable").classList.toggle("hidden",!!url);
+ el("communityStreetsUnavailable")?.classList.toggle("hidden",!!url);
+ S.streetsEmbedUrl=streetsEmbedUrl(url);
+ updateStreetsChat();
 }
 
+function streetsEmbedUrl(channelUrl){
+ const valid=safeStreetsUrl(channelUrl);
+ if(!valid)return "";
+ const p=new URL(valid).pathname;
+ return "https://e.widgetbot.io"+p;
+}
+function updateStreetsChat(){
+ const frame=el("streetsChatFrame"),embed=el("streetsChatEmbed"),button=el("streetsChatEnable");
+ if(!frame||!embed||!button)return;
+ const eligible=!!(S.session&&S.me?.registered&&hasPlayIdentity(S.session,S.config));
+ const configured=!!S.streetsEmbedUrl;
+ if(!eligible||!configured){
+   S.streetsChatOpen=false;
+   frame.removeAttribute("src");
+   embed.classList.add("hidden");
+ }
+ button.disabled=!configured;
+ button.textContent=!S.session?"Sign in to enter chat":!hasPlayIdentity(S.session,S.config)?"Connect Underworld":!S.me?.registered?"Go to Headquarters":"Enter The Streets chat";
+ button.classList.toggle("hidden",S.streetsChatOpen&&eligible);
+ el("streetsChatDisconnect")?.classList.toggle("hidden",!S.streetsChatOpen);
+ txt("streetsChatStatus",!configured?"The Discord channel isn't configured yet.":!S.session?"Sign in through Underworld to enter chat.":!eligible?"Register your character in Headquarters before joining.":S.streetsChatOpen?"Chat is open below. Discord members and website visitors can message in the same room.":"Enter chat to connect to WidgetBot. Messages stay here in the Snowfall page.");
+}
+function openStreetsChat(){
+ updateStreetsChat();
+ if(!S.streetsEmbedUrl)return;
+ if(!S.session){closeStreetsDock(false);authModal();return}
+ if(!hasPlayIdentity(S.session,S.config)){
+  closeStreetsDock(false);section("home");el("accountTools").open=true;
+  notice("Return through Underworld to use your character.","error");return;
+ }
+ if(!S.me?.registered){
+  closeStreetsDock(false);section("home");notice("Register your character at Headquarters to join chat.","error");return;
+ }
+ const frame=el("streetsChatFrame");
+ if(!S.streetsChatOpen){
+   frame.src=S.streetsEmbedUrl;
+   S.streetsChatOpen=true;
+ }
+ el("streetsChatEmbed").classList.remove("hidden");
+ updateStreetsChat();
+}
+function closeStreetsDock(restoreFocus=true){
+ if(!S.streetsDrawerOpen)return;
+ S.streetsDrawerOpen=false;
+ el("streetsChatDock")?.classList.remove("drawer-open");
+ el("streetsChatBackdrop")?.classList.add("hidden");
+ document.body.classList.remove("streets-drawer-open");
+ el("streetsChatLauncher")?.setAttribute("aria-expanded","false");
+ if(restoreFocus&&S.streetsReturnFocus?.isConnected)S.streetsReturnFocus.focus({preventScroll:true});
+ S.streetsReturnFocus=null;
+ // Keep the iframe mounted: closing the mobile drawer is NOT a logout.
+}
+function openStreetsDock(){
+ const dock=el("streetsChatDock");
+ if(!dock)return;
+ if(window.matchMedia("(max-width:980px)").matches){
+  S.streetsReturnFocus=document.activeElement;
+  S.streetsDrawerOpen=true;
+  dock.classList.add("drawer-open");
+  el("streetsChatBackdrop").classList.remove("hidden");
+  document.body.classList.add("streets-drawer-open");
+  el("streetsChatLauncher").setAttribute("aria-expanded","true");
+  el("streetsChatClose").focus({preventScroll:true});
+ }else{
+  dock.scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"});
+ }
+ // The player's explicit click authorizes the opt-in chat connection.
+ if(S.streetsEmbedUrl&&S.session&&S.me?.registered&&hasPlayIdentity(S.session,S.config))openStreetsChat();
+ else updateStreetsChat();
+}
+function disconnectStreetsChat(){
+ const frame=el("streetsChatFrame");
+ if(frame)frame.removeAttribute("src");
+ S.streetsChatOpen=false;
+ el("streetsChatEmbed")?.classList.add("hidden");
+ updateStreetsChat();
+}
 let timer;
 function notice(message,kind){
  const node=el("toast");node.textContent=String(message);node.className="toast "+(kind||"");
@@ -224,55 +465,127 @@ function nextActionId(){
  return "web-ui-"+(crypto.randomUUID?crypto.randomUUID():
         String(Date.now())+"-"+Math.random()).replace(/[^A-Za-z0-9_-]/g,"");
 }
+// Store only pending operation keys and their opaque IDs in this browser tab.
+ // No passwords, session cookies, CSRF values or names are persisted.
+const RECOVERABLE_ACTIONS=new Set(["/v1/game/throw","/v1/game/boss","/v1/game/siege","/v1/game/craft","/v1/game/wardrobe/purchase","/v1/game/activities/action","/v1/game/arcade/move"]);
+function pendingStoreKey(){
+ const id=String(S.session?.player_id||"");
+ return /^[1-9][0-9]{0,18}$/.test(id)?"snowfall-pending-v1:"+String(S.config?.season||"qa")+":"+id:null;
+}
+function savePending(){
+ const storage=pendingStoreKey();if(!storage)return;
+ const prefix=String(S.session.player_id)+"|";
+ const entries=Array.from(S.pendingActions).filter(([k])=>k.startsWith(prefix)).slice(0,32);
+ try{if(entries.length)sessionStorage.setItem(storage,JSON.stringify(entries));else sessionStorage.removeItem(storage)}catch{}
+}
+function restorePending(){
+ const storage=pendingStoreKey();if(!storage)return;
+ const prefix=String(S.session.player_id)+"|";
+ try{
+  const entries=JSON.parse(sessionStorage.getItem(storage)||"[]");
+  if(!Array.isArray(entries))return;
+  for(const entry of entries.slice(0,32)){
+   if(!Array.isArray(entry)||entry.length!==2)continue;
+   const [key,id]=entry;
+   if(typeof key!=="string"||!key.startsWith(prefix)||key.length>350||typeof id!=="string"||!/^[A-Za-z0-9_-]{12,100}$/.test(id))continue;
+   const split=key.indexOf("|",prefix.length),path=key.slice(prefix.length,split);
+   if(!RECOVERABLE_ACTIONS.has(path))continue;
+   const body=JSON.parse(key.slice(split+1));
+   if(!body||Array.isArray(body)||typeof body!=="object")continue;
+   S.pendingActions.set(key,id);
+   if(path==="/v1/game/throw"&&/^[1-9][0-9]{0,18}$/.test(body.target_player_id)&&["quick","standard","power","golden"].includes(body.style))S.lastThrow={body:{target_player_id:body.target_player_id,style:body.style}};
+  }
+ }catch{}
+}
+function clearPending(key){S.pendingActions.delete(key);savePending()}
+function uncertainResponse(action=true){const err=Error(action?"Connection interrupted. Your action may have succeeded. Check shared progress, then retry the same action safely.":"Connection interrupted. Refresh to load the latest game data.");err.status=0;return err}
 async function request(path,method,body,mutation,unique){
  const headers={"Accept":"application/json"};
  if(body!==undefined)headers["Content-Type"]="application/json";
  if(mutation)headers["X-Snowfall-CSRF"]=S.session?.csrf||"";
+ if(S.session?.player_id&&path!=="/v1/auth/session"&&(mutation||path.startsWith("/v1/game/")||path.startsWith("/v1/verification/")))headers["X-Snowfall-Player"]=String(S.session.player_id);
  const key=unique?requestKey(path,body):null;
  if(key){
-  if(!S.pendingActions.has(key))S.pendingActions.set(key,nextActionId());
+  if(!S.pendingActions.has(key)){
+   if(S.pendingActions.size>=32)throw Error("Resolve earlier unconfirmed actions before starting another.");
+   S.pendingActions.set(key,nextActionId());savePending();
+  }
   headers["Idempotency-Key"]=S.pendingActions.get(key);
  }
  const abort=new AbortController();
  const clock=setTimeout(()=>abort.abort(),15000);
- let response;
+ let response,data,decoded=false;
  try{
   response=await fetch(path,{
    method:method||"GET",headers,credentials:"same-origin",cache:"no-store",
    body:body===undefined?undefined:JSON.stringify(body),signal:abort.signal
   });
- }catch{
-  // The server may have committed an action before the response was lost.
-  // KEEP the key for the player's next attempt rather than spending twice.
-  let err=Error("Connection interrupted. Your action may have succeeded. "+
-      "Check shared progress, then retry the same action safely.");
-  err.status=0;throw err;
- }finally{clearTimeout(clock)}
- let data={};try{data=await response.json()}catch{}
+  try{data=await response.json();decoded=data!==null&&typeof data==="object"&&!Array.isArray(data)}catch{}
+ }catch{throw uncertainResponse(!!mutation||!!unique)}
+ finally{clearTimeout(clock)}
+ if(response.ok&&!decoded)throw uncertainResponse(!!mutation||!!unique);
  if(!response.ok){
-  if(key&&response.status<500)S.pendingActions.delete(key);
+  // A proxy/timeout/auth failure does not establish whether a prior
+  // attempt committed. Only explicit game validation rejections end it.
+  if(key&&decoded&&[400,409,422].includes(response.status)&&data.detail!=="Account changed in another tab; sign in again")clearPending(key);
+  data=decoded?data:{};
   let err=Error(typeof data.detail==="string"?data.detail:
       "Request failed ("+response.status+")");
   err.status=response.status;
-  if(response.status>=500)err.message+=". Status uncertain — check progress before retrying.";
+  if(response.status>=500||response.status===408||response.status===429)err.message+=". Status uncertain — check progress before retrying.";
   throw err;
  }
- if(key)S.pendingActions.delete(key);
+ if(key)clearPending(key);
  return data;
 }
 const get=path=>request(path);
 const post=(path,body,mutate,unique)=>request(path,"POST",body,mutate,unique);
+/* One menu controller for desktop dropdowns, mobile accordions and keyboard access. */
+function closeNavigationMenus({mobile=true,restoreFocus=false}={}){
+ const opened=document.querySelector(".nav-group.open .nav-group-trigger");
+ const mobileWasOpen=mobile&&el("primaryNav")?.classList.contains("open");
+ for(const group of document.querySelectorAll(".nav-group")){
+  group.classList.remove("open");
+  group.querySelector(".nav-group-trigger")?.setAttribute("aria-expanded","false");
+ }
+ if(mobile){
+  el("primaryNav")?.classList.remove("open");
+  el("menuToggle")?.setAttribute("aria-expanded","false");
+ }
+ if(restoreFocus){
+  if(mobileWasOpen)el("menuToggle")?.focus();
+  else if(opened)opened.focus();
+  else if(mobile)el("menuToggle")?.focus();
+ }
+}
+function reflectNavigationGroup(name){
+ for(const group of document.querySelectorAll(".nav-group")){
+  const active=(group.dataset.navGroup||"").split(" ").includes(name);
+  const trigger=group.querySelector(".nav-group-trigger");
+  group.classList.toggle("active",active);
+  if(trigger){
+   trigger.classList.toggle("active",active);
+   if(active)trigger.setAttribute("aria-current","true");
+   else trigger.removeAttribute("aria-current");
+  }
+ }
+}
 function section(name,{record=true,focus=true}={}){
- if(!["home","combat","boss","shop","cities","wire"].includes(name))name="home";
+ if(!["home","combat","boss","shop","cities","wire","activities","arcade","community","staff"].includes(name))name="home";
+ if(name==="staff"&&S.staffAllowed!==true)name="home";
  document.querySelectorAll(".panel").forEach(n=>n.classList.toggle("active",n.id==="page-"+name));
  document.querySelectorAll(".nav-item").forEach(n=>{
   const active=n.dataset.nav===name;
   n.classList.toggle("active",active);
   n.setAttribute("aria-pressed",String(active));
  });
- el("primaryNav").classList.remove("open");
- el("menuToggle").setAttribute("aria-expanded","false");
+ closeNavigationMenus();
+ reflectNavigationGroup(name);
+ if(name==="staff"){void refreshStaffDashboard();void refreshStaffLab();void refreshStaffDirectory(1)}
  if(name==="shop")showShop();
+ if(name==="community"){updateStreetsChat();showCommunity();void refreshCommunity()}
+ if(name==="arcade"){showArcade();if(S.session){if(S.busy||S.privatePending)S.privateQueued=true;else void loadPrivate().catch(e=>notice(e.message,"error"))}}
+ if(name==="activities"){showActivities();if(S.session){if(S.busy||S.privatePending)S.privateQueued=true;else void loadPrivate().catch(e=>notice(e.message,"error"))}}
  if(name==="cities"){showCities();showBoard();if(!S.territoryPending&&!S.busy)void refreshTerritory();if(S.session&&!S.privatePending&&!S.busy)void loadPrivate().catch(e=>notice(e.message,"error"))}
  if(name==="boss"){showBoss();if(!S.bossPending&&!S.busy)void refreshBossVisual()}
  if(name==="wire"){showWire();if(!S.wirePending&&!S.busy)void refreshWire()}
@@ -281,6 +594,7 @@ function section(name,{record=true,focus=true}={}){
  if(focus&&heading){heading.tabIndex=-1;heading.focus({preventScroll:true})}
  document.querySelector(".page-grid").scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"});
  updatePlayControls();
+ if(typeof requestAnimationFrame==="function")requestAnimationFrame(fitVisibleBannerNames);
 }
 let authReturnFocus=null;
 function authModal(){
@@ -305,8 +619,12 @@ function hasPlayIdentity(session,config){return !!session&&(!config?.staging||se
 function syncPlayIdentity(){
  const id=S.session?String(S.session.player_id):null;
  if(id===S.playIdentity)return;
- S.playIdentity=id;S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
- el("targetSelect").value="";el("combatOutcome").classList.add("hidden");el("siegeOutcome").classList.add("hidden");el("playFeedback").classList.add("hidden");
+ S.playIdentity=id;S.staffLab=null;S.staffRole=null;S.staffDirectory=null;S.staffDossier=null;S.staffSelected=null;S.staffDirectorySeq++;S.staffDossierSeq++;S.staffDirectoryBusy=false;S.staffDossierBusy=false;S.staffReviewBusy=false;S.staffAllowed=false;S.staffCheckedIdentity=null;S.staffAccessCheckedAt=0;S.staffData=null;updateStaffNavigation();closeStreetsDock(false);disconnectStreetsChat();S.arcade=null;S.arcadeRun=null;S.arcadeBoard=null;S.arcadeBoardSeq++;showArcade();S.activities=null;el("activitiesResult")?.classList.add("hidden");showActivities();S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
+ // Never show the prior account's selected rival or equipped Market style
+ // while the next login's authoritative records are still loading.
+ S.targets=[];S.shop=null;showRivalAppearance(null);
+ S.pendingActions.clear();restorePending();
+ el("targetSelect").value="";el("combatOutcome").classList.add("hidden");el("siegeOutcome").classList.add("hidden");el("bossRecap").classList.add("hidden");el("playFeedback").classList.add("hidden");
 }
 function timeLeft(value,now){const t=Date.parse(value);return Number.isFinite(t)?Math.max(0,Math.ceil((t-now)/1000)):0}
 function shortTime(seconds){const n=Math.max(0,Math.ceil(seconds||0));if(n<60)return n+"s";const m=Math.ceil(n/60);return m<60?m+" min":Math.floor(m/60)+"h "+(m%60)+"m"}
@@ -365,6 +683,7 @@ function updatePlayControls(){
   txt("playPlayer",S.me.mr_username);txt("playGreeting","Ready, "+S.me.mr_username+"?");
   for(const [id,key] of [["playAmmo","snowballs"],["playWarmth","warmth"],["playFlakes","snowflakes"]])txt(id,r?.[key]);
   txt("playPoints",S.me.score);
+  showResourceArtwork(r,S.me.score);
  }
  const body={target_player_id:el("targetSelect").value,style:el("throwStyle").value};
  const pendingThrow=!!S.lastThrow&&S.pendingActions.has(requestKey("/v1/game/throw",S.lastThrow.body));
@@ -377,7 +696,9 @@ function updatePlayControls(){
  disabled("bossButton",bossBlock);disabled("siegeButton",siegeBlock);disabled("readyButton",readyBlock);disabled("craftButton",craftBlock);
  el("findTargets").disabled=!!(S.busy||S.privatePending);el("playRefresh").disabled=!!(S.busy||S.privatePending);
  txt("combatStatus",throwBlock||(pendingThrow?"Previous throw unconfirmed — retry safely with the same action ID.":!S.targetsReady?"Rival list unavailable — refresh.":S.targets.length?"Choose your rival and take a shot.":"No eligible rivals right now."));
- txt("raidPlayStatus",bossBlock||"Ready to attack · 1 snowball per attempt.");
+ const bossPending=S.pendingActions.has(requestKey("/v1/game/boss",{}));
+ txt("raidPlayStatus",bossBlock||(bossPending?"Previous raid attempt unconfirmed — retry safely.":"Ready to attack · 1 snowball per attempt."));
+ if(bossPending)txt("bossButton","Retry previous raid");else txt("bossButton",S.raid?.state==="defeated"?"Attack frozen echo":"Attack the Snow Don");
  const rules=S.config?.play_rules||{},w=S.world;
  txt("raidQuota",registered&&w&&typeof w.boss_attempts==="number"&&typeof rules.boss_limit==="number"?Math.max(0,rules.boss_limit-w.boss_attempts)+" boss attempts left today":"Daily boss attack limits apply.");
  const siegePending=S.pendingActions.has(requestKey("/v1/game/siege",{}));
@@ -389,6 +710,8 @@ function updatePlayControls(){
  const price=rules.craft_costs?.[el("craftChoice").value],actual=typeof price==="number"?price-(el("craftChoice").value==="fort"&&S.me?.day===2?2:0):null;
  txt("craftHint",(actual!=null?"Cost: "+actual+" Snowflakes. ":"")+(craftBlock||"Crafted items go into your shared inventory."));
  const selected=S.targets.find(t=>String(t.player_id)===body.target_player_id);
+ showRivalAppearance(selected);
+ showSnowballLoadout(body.style);
  txt("targetDetail",selected?selected.city+" · "+fmt(selected.warmth)+" warmth · "+fmt(selected.hits_remaining)+" scoring hits left today.":"");
  const style=rules.styles?.[body.style];
  txt("throwStyleHint",Array.isArray(style)?"Base accuracy "+Math.round(style[0]*100)+"% · "+style[1]+" damage · "+style[2]+" base points. Modifiers may apply.":"Choose a throwing style.");
@@ -412,7 +735,7 @@ function showMe(){
  txt("identityStatus",signed?"Signed in":"Guest");
  el("loggedOutNotice").classList.toggle("hidden",signed);
  el("registration").classList.toggle("hidden",!signed||!allowed||!!S.me?.registered||!S.me);
- el("underworldRequired").classList.toggle("hidden",!signed||allowed);
+ el("underworldRequired").classList.toggle("hidden",!signed||allowed||S.staffAllowed);
  el("playerDashboard").classList.toggle("hidden",!signed||!S.me?.registered);
  el("linkedIdentity").classList.toggle("hidden",!signed);
  el("accountTools").classList.toggle("hidden",!signed);
@@ -440,7 +763,7 @@ function showMe(){
  showVerification();
  txt("welcomeName",S.me.mr_username);txt("welcomeCity",S.me.city+" · Day "+(S.me.day||"—"));
   txt("hqCityName",S.me.city+" winter headquarters");
-  const citySlug=CITY_SLUG[S.me.city];
+  const citySlug=Object.hasOwn(CITY_SLUG,S.me.city)?CITY_SLUG[S.me.city]:null;
   const cityImage=el("hqCityArt");
   if(citySlug){cityImage.src="/art/cities/"+citySlug+".webp";el("hqCityCrest").src="/art/v290/cities/crests/"+citySlug+"_crest.png";}
   else {cityImage.removeAttribute("src");el("hqCityCrest").removeAttribute("src");}
@@ -452,6 +775,7 @@ function showMe(){
  txt("ammoValue",S.me.resources?.snowballs);txt("warmthValue",S.me.resources?.warmth);
  txt("flakeValue",S.me.resources?.snowflakes);txt("scoreValue",fmt(S.me.score));
  txt("shopBalance",fmt(S.me.resources?.snowflakes));
+ showResourceArtwork(S.me.resources,S.me.score);
  txt("ammoSub",S.me.resources?.next_snowball_at?"Regenerating snowballs":"Ready for action");
  txt("phaseValue",S.me.phase.toUpperCase());txt("sideStatus",S.me.phase.toUpperCase());
  txt("sideStatusDetail","Day "+(S.me.day||"—")+" of 7 · "+S.me.city);
@@ -594,7 +918,7 @@ function showTargets(){
  updatePlayControls();
 }
 function showBoard(){
- el("leaderboard").innerHTML=S.board.length?S.board.map((r,i)=>"<div class='score-row'><span class='rank'>"+(i+1)+"</span><div><strong>"+esc(r.mr_username)+"</strong><small>"+esc(r.city)+"</small></div><strong>"+fmt(r.score)+" pts</strong></div>").join(""):"<div class='empty'>The scoreboard is waiting for its first winner.</div>";
+ el("leaderboard").innerHTML=S.board.length?S.board.map((r,i)=>"<div class='score-row'><span class='rank'>"+(i+1)+"</span><div><strong>"+esc(r.mr_username)+"</strong><small>"+esc(r.city)+"</small></div><span class='score-total'><img src='"+resourceArtUrl("points",r.score)+"' alt='' loading='lazy'><strong>"+fmt(r.score)+" pts</strong></span></div>").join(""):"<div class='empty'>The scoreboard is waiting for its first winner.</div>";
 }
 // Original Discord v290 artwork landmarks and city palette.
 const CITY_META=Object.freeze({
@@ -764,7 +1088,7 @@ function marketState(item,wardrobe){
 }
 function marketEligible(item,kind){
  const w=marketWardrobe();
- if(S.busy||!w||!S.catalogReady||!item||["flagged","disqualified"].includes(S.me?.review_state))return false;
+ if(S.busy||S.privatePending||!w||!S.catalogReady||!item||["flagged","disqualified"].includes(S.me?.review_state))return false;
  if(S.config?.staging&&!S.session?.links?.some(x=>x.provider==="underworld"))return false;
  const state=marketState(item,w);
  return kind==="equip"?state==="owned":
@@ -790,7 +1114,7 @@ function fittingLayers(wardrobe,overrides,items){
  const layers=profileLayers(wardrobe);
  for(const slot of MARKET_SLOTS){
   const key=overrides[slot],item=marketItem(key,items);
-  if(item?.category===slot&&HQ_SLOTS[slot].includes(key)&&Object.hasOwn(COSMETIC_ART,key))layers[slot]={key,src:COSMETIC_ART[key]};
+  if(item?.category===slot&&HQ_SLOTS[slot].includes(key)&&Object.hasOwn(COSMETIC_ART,key))layers[slot]={key,src:wornCosmeticArt(key)};
  }
  return layers;
 }
@@ -803,7 +1127,7 @@ function syncMarketIdentity(){
 }
 function showFitting(){
  const w=marketWardrobe(),layers=fittingLayers(w,S.market.preview,S.items),actual=profileLayers(w);
- renderProfileLayers("fit",layers);
+ renderProfileLayers("fit",layers,w?S.me?.mr_username||"Winter player":"Guest fitting model");
  const changed=MARKET_SLOTS.filter(slot=>layers[slot].key!==actual[slot].key);
  // A preview becomes normal equipped state after an explicit successful equip.
  for(const slot of MARKET_SLOTS)if(!changed.includes(slot))delete S.market.preview[slot];
@@ -900,23 +1224,36 @@ async function loadPublic(){
  showBoard();showCities();showBoss();showShop();
 }
 async function loadPrivate(){
- if(S.privatePending)return;
+ if(S.privatePending){S.privateQueued=true;return;}
  S.privatePending=true;updatePlayControls();
- try{await readPrivate();S.privateFresh=!!S.session&&!!S.me}catch(e){S.privateFresh=false;throw e}finally{S.privatePending=false;updatePlayControls()}
+ try{await readPrivate();S.privateFresh=!!S.session&&!!S.me}catch(e){S.privateFresh=false;throw e}finally{S.privatePending=false;updateStreetsChat();showActivities();showArcade();updatePlayControls();if(S.privateQueued&&!S.busy){S.privateQueued=false;if(S.session)void loadPrivate().catch(e=>notice(e.message,"error"))}}
 }
 async function readPrivate(){
  syncPlayIdentity();
- if(!S.session){S.me=null;S.world=null;S.hq=null;S.shop=null;S.targetsReady=false;S.targets=[];S.progress=null;S.verification=null;S.pendingActions.clear();showMe();showShop();showTargets();showSiege();return}
- try{S.me=await get("/v1/game/me")}
- catch(e){if(e.status===401){S.session=null;S.me=null;S.world=null;S.hq=null;S.shop=null;S.progress=null;S.targetsReady=false;S.targets=[];S.verification=null;showMe();showShop();showTargets();showSiege();return}throw e}
+ if(!S.session){S.activities=null;showActivities();S.me=null;S.world=null;S.hq=null;S.shop=null;S.targetsReady=false;S.targets=[];S.progress=null;S.verification=null;S.pendingActions.clear();showMe();showShop();showTargets();showSiege();return}
+ try{
+  S.me=await get("/v1/game/me");
+  if(String(S.me?.player_id)!==String(S.session?.player_id)){const err=Error("Account changed in another tab; sign in again");err.status=409;throw err}
+ }
+ catch(e){if(e.status===401||e.message==="Account changed in another tab; sign in again"){S.session=null;S.me=null;S.world=null;S.hq=null;S.shop=null;S.progress=null;S.targetsReady=false;S.targets=[];S.verification=null;showMe();showShop();showTargets();showSiege();return}throw e}
  if(S.me.registered){
-  const results=await Promise.allSettled([get("/v1/game/world"),get("/v1/game/wardrobe"),get("/v1/game/targets"),get("/v1/game/progress"),get("/v1/game/headquarters")]);
+  const results=await Promise.allSettled([get("/v1/game/world"),get("/v1/game/wardrobe"),get("/v1/game/targets"),get("/v1/game/progress"),get("/v1/game/headquarters"),el("page-activities")?.classList.contains("active")?get("/v1/game/activities"):Promise.resolve(null),el("page-arcade")?.classList.contains("active")?get("/v1/game/arcade"):Promise.resolve(null)]);
+  if(results.some(r=>r.status==="rejected"&&(r.reason?.status===401||r.reason?.message==="Account changed in another tab; sign in again"))){
+   S.session=null;return readPrivate();
+  }
   S.world=results[0].status==="fulfilled"?results[0].value:null;
   S.shop=results[1].status==="fulfilled"?results[1].value:null;
   S.targetsReady=results[2].status==="fulfilled"&&Array.isArray(results[2].value.targets);
   S.targets=S.targetsReady?results[2].value.targets:[];
   S.progress=results[3].status==="fulfilled"?results[3].value:null;
   S.hq=results[4].status==="fulfilled"?results[4].value:null;
+  S.activities=results[5]?.status==="fulfilled"?results[5].value:null;
+  S.arcade=results[6]?.status==="fulfilled"?results[6].value:null;
+  if(S.arcadeRun&&S.arcade&&String(S.arcade.player_id)===String(S.session.player_id)){
+   if(S.arcadeRun.day!==S.arcade.day)S.arcadeRun=null;
+   else try{S.arcadeRun=await get("/v1/game/arcade/session/"+encodeURIComponent(S.arcadeRun.session_id));reconcileArcadeMoves(S.arcadeRun)}
+   catch{S.arcadeRun=null}
+  }
   S.hqClock=Number.isFinite(Date.parse(S.hq?.server_time))?Date.parse(S.hq.server_time)-Date.now():0;
   const linked=(S.session.links||[]).some(x=>x.provider==="discord")&&
                (S.session.links||[]).some(x=>x.provider==="underworld");
@@ -925,7 +1262,8 @@ async function readPrivate(){
     catch{S.verification=null}
   }else S.verification=null;
  }else{S.shop=null;S.world=null;S.hq=null;S.progress=null;S.targetsReady=false;S.targets=[];S.verification=null;}
- showMe();showTargets();showBoss();showShop();showCities();
+ showMe();showTargets();showBoss();showShop();showCities();showActivities();showArcade();
+ void refreshStaffAccess();
 }
 function updateDiscardSubmit(){
  el("discardConfirm").disabled=!S.discard||!el("discardAcknowledge").checked||
@@ -959,7 +1297,7 @@ async function loadDiscardOffer(){
  notice("Choose carefully: your separate Discord character will be retired only if you confirm.","error");
 }
 async function refresh(){await Promise.all([loadPublic(),loadPrivate()]);await Promise.all([refreshBossVisual(),refreshTerritory(),refreshWire()]);showEvent()}
-async function resume(){try{S.session=await get("/v1/auth/session")}catch{S.session=null}await refresh()}
+async function resume(){try{S.session=await get("/v1/auth/session")}catch(e){if(e.status!==401)throw e;S.session=null}await refresh()}
 async function act(fn){
  if(S.busy||S.privatePending)return;
  if(!S.session)return authModal();
@@ -970,7 +1308,7 @@ async function act(fn){
   try{await refresh()}catch(e){S.privateFresh=false;playFeedback("Action recorded. Refresh to see updated resources.", "warning");notice("Action recorded; refresh failed.","error")}
  }catch(e){playFeedback(e.message,"error");notice(e.message,"error");if(S.lastThrow&&S.pendingActions.has(requestKey("/v1/game/throw",S.lastThrow.body)))showTargets()}
 
- finally{S.busy=false;document.querySelectorAll(".actions-inline button,.craft-card button").forEach(b=>b.disabled=false);showBoss();showShop();updatePlayControls()}
+ finally{S.busy=false;document.querySelectorAll(".actions-inline button,.craft-card button").forEach(b=>b.disabled=false);showBoss();showShop();showActivities();showArcade();updatePlayControls();if(S.privateQueued&&!S.privatePending){S.privateQueued=false;if(S.session)void loadPrivate().catch(e=>notice(e.message,"error"))}}
 }
 function registered(){
  if(!S.session){authModal();return false}
@@ -1030,23 +1368,24 @@ function showEvent(){
  else txt("heroPlay",S.me?.registered?"Play now ↗":"Enter the event ↗");
  updatePlayControls();
 }
-const WIRE_ART=Object.freeze({waiting:"front_page_template.png",live:"front_page_template.png",archive:"front_page_template.png",final:"final_day_edition.png"});
 function wireHeadlineMarkup(h){
  return "<article class='wire-story'><p class='wire-byline'>"+esc(h.category)+"</p><h4>"+esc(h.title)+"</h4><p>"+esc(h.detail)+"</p></article>";
 }
+const WIRE_SLOTS=Object.freeze([["streets","Combat"],["boss","Boss"],["cities","Cities"],["community","Community"]]);
+function wireSlots(heads){
+ return WIRE_SLOTS.map(([key,category])=>heads.find(h=>h?.key===key)||{key,category,title:"Awaiting dispatch",detail:"No verified report for this edition yet."});
+}
 function showWire(){
- const w=S.wire,heads=Array.isArray(w?.headlines)?w.headlines:[],lead=heads.find(h=>h.key==="lead")||heads[0];
+ const w=S.wire,heads=Array.isArray(w?.headlines)?w.headlines:[],lead=heads.find(h=>h?.key==="lead");
  const kind=!w?.day?"waiting":w.complete&&w.day===7?"final":w.complete?"archive":"live";
  el("wirePaper").dataset.edition=kind;
  const select=el("wireDay");
  select.innerHTML='<option value="current">Latest edition</option>'+ (w?.available_days||[]).filter(d=>Number.isInteger(d)&&d>=1&&d<=7).map(d=>'<option value="'+d+'">Day '+d+'</option>').join("");
  select.value=S.wireDay;select.disabled=S.wirePending;
- const art=el("wireEditionArt"),src="/art/v290/wire/backgrounds/"+WIRE_ART[kind];
- if(art.getAttribute("src")!==src)art.src=src;
  txt("wireEdition",w?.day?"DAY "+w.day+" / 7 · "+(w.complete?"ARCHIVE": "LIVE DISPATCH"):"AWAITING KICKOFF");
  txt("wireTheme",w?.theme||"THE WINTER UNDERWORLD");
  txt("wireLead",lead?.title||"The streets are waiting");txt("wireLeadDetail",lead?.detail||"Verified dispatches appear once the event opens.");
- el("wireHeadlines").innerHTML=heads.filter(h=>h!==lead).map(wireHeadlineMarkup).join("");
+ el("wireHeadlines").innerHTML=wireSlots(heads).map(wireHeadlineMarkup).join("");
  txt("wireNotice",S.wireStale?"Refresh unavailable — "+(w?"last known edition shown.":"no edition loaded."):w?.day?w.complete?"Historical ledger dispatch · review-cleared records as of this refresh. Not a prize announcement.":"Live figures may change until the day closes.":"No edition has opened yet.");
  txt("wireSideTitle",lead?.title||"Special bulletin");
  txt("wireSideDetail",(w?.day?"Day "+w.day+" · ":"")+(lead?.detail||"Verified dispatches from the shared game."));
@@ -1065,7 +1404,63 @@ async function refreshWire(){
  }finally{if(seq===S.wireRequest){S.wirePending=false;showWire();showEvent()}}
 }
 function bind(){
+ bindActivities();bindArcade();
+ if(el("communityRefresh"))el("communityRefresh").onclick=()=>void refreshCommunity();
+ if(el("staffRefresh"))el("staffRefresh").onclick=()=>void refreshStaffDashboard();
+ if(el("staffPlayerSearchForm"))el("staffPlayerSearchForm").onsubmit=e=>{e.preventDefault();void refreshStaffDirectory(1)};
+ if(el("staffPlayerPrev"))el("staffPlayerPrev").onclick=()=>void refreshStaffDirectory(Math.max(1,(S.staffDirectory?.page||1)-1));
+ if(el("staffPlayerNext"))el("staffPlayerNext").onclick=()=>void refreshStaffDirectory((S.staffDirectory?.page||1)+1);
+ if(el("staffPlayerResults"))el("staffPlayerResults").onclick=e=>{const b=e.target.closest("button[data-player-id]");if(b)void inspectStaffPlayer(b.dataset.playerId)};
+ if(el("staffReviewForm"))el("staffReviewForm").onsubmit=e=>{e.preventDefault();void submitStaffReview()};
+ if(el("staffReviewAction"))el("staffReviewAction").onchange=()=>showStaffPlayerDesk();
+ if(el("staffPlayerExport"))el("staffPlayerExport").onclick=downloadStaffPlayerDossier;
+ if(el("staffLabRefresh"))el("staffLabRefresh").onclick=()=>void refreshStaffLab();
+ if(el("staffLabExport"))el("staffLabExport").onclick=downloadLabResults;
+ for(const btn of document.querySelectorAll("[data-lab-action]"))btn.onclick=()=>void staffLabAction(btn.dataset.labAction);
+ for(const btn of document.querySelectorAll("[data-staff-copy]"))btn.onclick=()=>navigator.clipboard.writeText(btn.dataset.staffCopy).then(()=>notice("Discord command copied.","success")).catch(()=>notice("Clipboard permission required.","error"));
+ if(el("staffExportDiagnostics"))el("staffExportDiagnostics").onclick=downloadStaffDiagnostics;
+ if(el("streetsChatEnable"))el("streetsChatEnable").onclick=openStreetsChat;
+ if(el("streetsChatDisconnect"))el("streetsChatDisconnect").onclick=disconnectStreetsChat;
+ for(const btn of document.querySelectorAll("[data-chat-open],#streetsChatLauncher"))btn.addEventListener("click",()=>{closeNavigationMenus();openStreetsDock()});
+ if(el("streetsChatClose"))el("streetsChatClose").onclick=()=>closeStreetsDock();
+ if(el("streetsChatBackdrop"))el("streetsChatBackdrop").onclick=()=>closeStreetsDock();
+ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.streetsDrawerOpen)closeStreetsDock()});
+ window.addEventListener("resize",()=>{if(S.streetsDrawerOpen&&!window.matchMedia("(max-width:980px)").matches)closeStreetsDock(false)});
  document.querySelectorAll("[data-nav]").forEach(b=>b.addEventListener("click",()=>section(b.dataset.nav)));
+ for(const group of document.querySelectorAll(".nav-group")){
+  const trigger=group.querySelector(".nav-group-trigger");
+  if(!trigger)continue;
+  trigger.addEventListener("click",()=>{
+   const expand=trigger.getAttribute("aria-expanded")!=="true";
+   closeNavigationMenus({mobile:false});
+   group.classList.toggle("open",expand);
+   trigger.setAttribute("aria-expanded",String(expand));
+  });
+  trigger.addEventListener("keydown",event=>{
+   if(event.key==="ArrowDown"){
+    event.preventDefault();
+    if(trigger.getAttribute("aria-expanded")!=="true")trigger.click();
+    group.querySelector(".nav-popover .nav-item:not(.hidden)")?.focus();
+   }
+  });
+ }
+ document.addEventListener("click",event=>{
+  if(event.target?.closest?.(".nav-group")||event.target?.closest?.("#menuToggle"))return;
+  // Clicking anywhere outside the header dismisses a mobile menu as well.
+  const outsideHeader=!event.target?.closest?.(".topbar");
+  closeNavigationMenus({mobile:outsideHeader});
+ });
+ document.addEventListener("keydown",event=>{
+  if(event.key==="Escape"&&(el("primaryNav")?.classList.contains("open")||document.querySelector(".nav-group.open"))){
+   event.preventDefault();closeNavigationMenus({restoreFocus:true});
+  }
+ });
+ window.addEventListener("resize",()=>{
+  if(!window.matchMedia("(max-width:1200px)").matches){
+   closeNavigationMenus();
+  }
+  fitVisibleBannerNames();
+ });
  document.querySelectorAll("[data-jump]").forEach(b=>b.addEventListener("click",()=>el(b.dataset.jump)?.scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"})));
  window.addEventListener("popstate",()=>section(location.hash.startsWith("#play-")?location.hash.slice(6):"home",{record:false}));
  el("playPrimary").onclick=()=>{const dest=el("playPrimary").dataset.destination||"boss";if(dest==="account"){el("accountTools").open=true;el("accountTools").scrollIntoView({block:"start"})}else section(dest)};
@@ -1074,10 +1469,13 @@ function bind(){
  el("targetSelect").onchange=()=>{S.chosenTarget=true;updatePlayControls()};
  el("throwStyle").onchange=updatePlayControls;
  el("menuToggle").onclick=()=>{
-  const open=el("primaryNav").classList.toggle("open");
+  const open=!el("primaryNav").classList.contains("open");
+  closeNavigationMenus();
+  if(open)el("primaryNav").classList.add("open");
   el("menuToggle").setAttribute("aria-expanded",String(open));
  };
  document.querySelectorAll(".nav-item").forEach(b=>b.setAttribute("aria-pressed",String(b.classList.contains("active"))));
+ reflectNavigationGroup("home");
  el("heroPlay").onclick=()=>eventPresentation(S.wireStale?null:S.wire,S.raid,S.bossStale).ended?section("wire"):S.session?section("home"):authModal();
  el("wireDay").onchange=()=>{S.wireDay=el("wireDay").value;void refreshWire()};
  el("refreshWire").onclick=()=>{if(!S.wirePending)void refreshWire()};
@@ -1099,18 +1497,20 @@ function bind(){
  el("demoForm").onsubmit=async e=>{
   e.preventDefault();let b=e.target.querySelector("button");b.disabled=true;
   try{
-   S.pendingActions.clear();S.session=await post("/v1/auth/demo",{code:el("demoCode").value,slot:Number(el("demoSlot").value)},false);
+   await post("/v1/auth/demo",{code:el("demoCode").value,slot:Number(el("demoSlot").value)},false);
+   S.session=await get("/v1/auth/session");
    el("demoCode").value="";closeAuth();await refresh();notice("Signed in to isolated staging.","success");
   }catch(x){notice(x.message,"error")}finally{b.disabled=false}
  };
  el("underworldForm").onsubmit=async e=>{
   e.preventDefault();
-  try{S.pendingActions.clear();S.session=await post("/v1/auth/underworld",{assertion:el("underworldAssertion").value},false);el("underworldAssertion").value="";closeAuth();await refresh();notice("Underworld assertion verified.","success")}
+  try{await post("/v1/auth/underworld",{assertion:el("underworldAssertion").value},false);S.session=await get("/v1/auth/session");el("underworldAssertion").value="";closeAuth();await refresh();notice("Underworld assertion verified.","success")}
   catch(x){notice(x.message,"error")}
  };
  el("refreshShared").onclick=async()=>{
   if(!S.session)return authModal();
   try{
+   if(S.busy||S.privatePending)return;
    S.session=await get("/v1/auth/session");
    await loadPrivate();
    if(!S.progress?.registered)throw Error("Shared progress could not be verified. Refresh and try again.");
@@ -1233,14 +1633,21 @@ async function init(){
   if(!cfg.discord_oauth)el("discordLogin").textContent="Discord login (not configured)";
   if(!cfg.underworld_assertions)el("underworldForm").querySelector("button").disabled=true;
   txt("sideStatus",(health.status||"unknown").toUpperCase());txt("sideStatusDetail","Isolated staging · "+cfg.season);
-  await resume();S.connection="ready";showEvent();
-  if(!location.search.includes("discord=")){if(location.hash.startsWith("#play-"))section(location.hash.slice(6),{record:false,focus:false});else if(S.me?.registered)section("home",{record:false,focus:false})}
+  await resume();await refreshStaffAccess({force:true});S.connection="ready";showEvent();
+  if(!location.search.includes("discord=")){
+    if(location.hash.startsWith("#play-"))section(location.hash.slice(6),{record:false,focus:false});
+    else if(location.search.includes("login=ok")&&S.staffAllowed)section("staff",{record:false,focus:false});
+    else if(S.me?.registered)section("home",{record:false,focus:false});
+  }
   const poll=()=>{
    if(document.hidden||S.busy||S.privatePending)return;
    if(!S.bossPending)void refreshBossVisual();
    if(el("page-cities").classList.contains("active")&&!S.territoryPending&&S.territoryDay==="current")void Promise.all([refreshTerritory(),refreshCityStandings()]);
    if(!S.wirePending)void refreshWire();
-   if(S.session&&["home","combat","boss","cities"].some(name=>el("page-"+name).classList.contains("active"))&&!document.activeElement?.matches("input,select,textarea")&&el("authDialog").classList.contains("hidden"))
+   if(el("page-community").classList.contains("active"))void refreshCommunity();
+   if(S.session)void refreshStaffAccess();
+   if(S.staffAllowed&&el("page-staff").classList.contains("active")){void refreshStaffDashboard();void refreshStaffLab()}
+   if(S.session&&["home","combat","boss","cities","activities","arcade"].some(name=>el("page-"+name).classList.contains("active"))&&!document.activeElement?.matches("input,select,textarea")&&el("authDialog").classList.contains("hidden"))
     void loadPrivate().catch(()=>{});
   };
   setInterval(poll,30000);document.addEventListener("visibilitychange",poll);
@@ -1274,3 +1681,467 @@ async function init(){
  }catch(e){S.connection="offline";txt("eventConnectionText","Connection unavailable. Retry to reconnect.");el("eventRetry").classList.remove("hidden");txt("sideStatus","OFFLINE");txt("sideStatusDetail",e.message);notice("Staging service unavailable: "+e.message,"error")}
 }
 document.addEventListener("DOMContentLoaded",init);
+
+/* v2.9.8 — server-authoritative player activities. */
+function activityButton(action,item,label,disabled=false){
+ return "<button type='button' class='button button-outline' data-activity='"+esc(action)+"' data-item='"+esc(item)+"'"+(disabled?" disabled":"")+">"+esc(label)+"</button>";
+}
+function activityCard(title,body,art=""){
+ return "<article class='activity-card'>"+(art?"<img class='activity-art' src='"+esc(art)+"' alt='' loading='lazy'>":"")+"<h3>"+esc(title)+"</h3>"+body+"</article>";
+}
+function showActivities(){
+ const root=el("activitiesContent");if(!root)return;
+ const a=S.session&&S.me?.registered&&String(S.activities?.player_id)===String(S.session.player_id)?S.activities:null;
+ const locked=!!(S.busy||S.privatePending||!S.privateFresh||a?.phase!=="live"||!hasPlayIdentity(S.session,S.config));
+ txt("activitiesStatus",!S.session?"Sign in to open your dossier.":!S.me?.registered?"Register at Headquarters first.":!a?"Refresh to load today's activities.":("Day "+(a.day??"—")+" / 7 · "+String(a.phase).toUpperCase()+" · Shared with Discord"));
+ if(!a){root.innerHTML="";return}
+ const list=Array.isArray(a.quests)?a.quests:[];
+ const quests=list.map(q=>"<div class='activity-line'><div><strong>"+esc(q.name)+"</strong><p>"+fmt(q.progress)+" / "+fmt(q.target)+(q.claimed?" · Claimed":"")+"</p></div>"+activityButton("quest",q.key,q.claimed?"Claimed":"Claim reward",locked||q.claimed||Number(q.progress)<Number(q.target))+"</div>").join("");
+ const gifts="<p>Daily present: "+esc(a.daily_gift)+" · Bonus: "+esc(a.bonus_gift)+"</p><div class='activity-actions'>"+activityButton("gift","daily","Open daily present",locked||a.daily_gift!=="Ready")+activityButton("gift","bonus","Open bonus present",locked||a.bonus_gift!=="Ready")+"</div>";
+ const inv=a.inventory||{};
+ const items=["cocoa","fort","mittens","bomb","golden"].map(k=>{
+  const n=Number(inv.quantities?.[k]||0),used=Number(inv.uses_today?.[k]||0),cap=Number(a.use_caps?.[k]||0);
+  return "<div class='activity-line'><div><strong>"+esc(a.item_names?.[k]||k)+" × "+fmt(n)+"</strong><p>"+(k==="golden"?"Use through Snowball Alley":used+" / "+cap+" used today")+"</p></div>"+(k==="golden"?"":activityButton("use",k,"Use",locked||n<1||used>=cap))+"</div>";
+ }).join("");
+ const guard="<p>Guard: "+(inv.guard_active?"Active":"Inactive")+" · Armour: "+fmt(inv.armour_hp)+" · Mittens: "+(inv.mittens_armed?"Armed":"Not armed")+" · Bomb: "+(inv.bomb_armed?"Armed":"Not armed")+"</p>"+activityButton("guard",inv.guard_active?"off":"on",inv.guard_active?"Lower guard":"Activate guard",locked);
+ const titles="<p>Equipped: "+esc(a.equipped_title)+"</p><div class='activity-actions'>"+activityButton("title","none","Default title",S.busy||S.privatePending||!S.privateFresh||!hasPlayIdentity(S.session,S.config))+(a.titles||[]).map(t=>activityButton("title",t.key,t.label,S.busy||S.privatePending||!S.privateFresh||!hasPlayIdentity(S.session,S.config)||t.label===a.equipped_title)).join("")+"</div>";
+ const c=a.case,e=a.encounter;
+ let caseBody="<p>Today's case is not open.</p>";
+ if(c){
+  const clues=(c.clues||[]).map(x=>"<div class='activity-line'><div><strong>"+esc(x.label)+"</strong><p>"+esc(x.found?x.text:"Evidence not yet examined")+"</p></div>"+activityButton("clue",x.key,x.found?"Found":"Investigate",locked||x.found)+"</div>").join("");
+  const count=(c.clues||[]).filter(x=>x.found).length;
+  caseBody="<p>"+esc(c.scene)+"</p>"+clues+"<p>"+(c.solved?"Case closed":c.locked?"No accusations remain":fmt(c.guesses)+" / "+fmt(c.max_guesses)+" accusations used · Find two clues first")+"</p>"+(c.conclusion?"<p>"+esc(c.conclusion)+"</p>":"")+"<div class='activity-actions'>"+(c.suspects||[]).map(x=>activityButton("accuse",x.key,x.label,locked||count<2||c.solved||c.locked)).join("")+"</div>";
+ }
+ const dayArt=Number.isInteger(a.day)&&a.day>=1&&a.day<=7?"/art/v290/mysteries/day_"+a.day+".webp":"/art/v290/mysteries/classified_dossier.webp";
+ const encounter=e?"<p>"+esc(e.scene)+"</p>"+(e.completed?"<p>Collected: "+esc(e.completed.souvenir)+"</p>":"<div class='activity-actions'>"+(e.choices||[]).map(x=>activityButton("encounter",x.key,x.label,locked)).join("")+"</div>"):"<p>Available once the event opens.</p>";
+ const secret=c?.secret?"<p>"+esc(c.secret.scene)+"</p><p>Collected: "+esc(c.secret.souvenir)+"</p>":c?.secret_ready?"<p>"+esc(c.secret_title)+" · "+esc(c.secret_scene)+"</p><div class='activity-actions'>"+(c.secret_choices||[]).map(x=>activityButton("secret",x.key,x.label,locked)).join("")+"</div>":"<p>Find two clues and earn daily points or complete today's surprise encounter.</p>";
+ const history=(a.history||[]).map(x=>"<div class='activity-line'><div><strong>Day "+fmt(x.day)+" · "+esc(x.title)+"</strong><p>"+fmt(x.clues)+" / 3 clues · "+(x.solved?"Solved":"Unsolved")+(x.secret?" · "+esc(x.secret):"")+"</p></div></div>").join("")||"<p>No case history yet.</p>";
+ root.innerHTML=activityCard("Daily assignments & presents",quests+gifts)+activityCard("Inventory & protection",items+guard)+activityCard(c?.title||"Christmas mysteries",caseBody,dayArt)+activityCard(e?.title||"Surprise encounter",encounter)+activityCard("Secret encounter",secret,"/art/v290/mysteries/secret_encounter.webp")+activityCard("Casebook",history,"/art/v290/mysteries/classified_dossier.webp")+activityCard("Earned titles",titles);
+}
+function bindActivities(){
+ const root=el("activitiesContent"),refreshButton=el("activitiesRefresh");
+ if(!root||!refreshButton)return;
+ refreshButton.onclick=()=>{if(registered()&&!S.busy&&!S.privatePending)void loadPrivate().catch(e=>notice(e.message,"error"))};
+ root.addEventListener("click",event=>{
+  const b=event.target.closest("button[data-activity]");
+  if(!b||!root.contains(b)||b.disabled||!registered()||S.busy||S.privatePending)return;
+  const body={action:b.dataset.activity,item:b.dataset.item,day:S.activities?.day??null};
+  if(!S.activities||String(S.activities.player_id)!==String(S.session.player_id))return;
+  if(body.action==="accuse"&&!window.confirm("Accuse "+b.textContent+"? This uses one of today's limited guesses."))return;
+  act(async()=>{
+   const result=await post("/v1/game/activities/action",body,true,true);
+   const n=el("activitiesResult");n.textContent=result.message||"Activity recorded.";n.classList.remove("hidden");
+   notice(result.message||"Activity recorded.","success");
+  });
+  showActivities();
+ });
+}
+
+/* v2.9.8a — five shared arcade games, with server-owned puzzle sessions. */
+const ARCADE_ART=Object.freeze(Object.fromEntries(["gallery","safe","snowman","catch","trivia"].map(k=>[k,"/art/v290/arcade/"+k+".webp"])));
+function arcadeAllowed(){
+ return !!(S.session&&S.me?.registered&&S.arcade&&String(S.arcade.player_id)===String(S.session.player_id));
+}
+function arcadeButton(action,value,label,disabled=false){
+ return "<button type='button' class='button button-outline' data-arcade='"+esc(action)+"' data-value='"+esc(value)+"'"+(disabled?" disabled":"")+">"+esc(label)+"</button>";
+}
+function showArcade(){
+ const lobby=el("arcadeLobby"),runNode=el("arcadeRun"),stamps=el("arcadeStamps"),board=el("arcadeBoard");
+ if(!lobby||!runNode||!stamps||!board)return;
+ const a=arcadeAllowed()?S.arcade:null;
+ const locked=!!(S.busy||S.privatePending||!S.privateFresh||a?.phase!=="live"||!hasPlayIdentity(S.session,S.config));
+ txt("arcadeStatus",!S.session?"Sign in to play.":!S.me?.registered?"Register at Headquarters to play.":!a?"Refresh to load your arcade.":("Day "+(a.day??"—")+" / 7 · "+String(a.phase).toUpperCase()+" · "+fmt(a.completed)+" completed runs · "+fmt(a.bests_total)+" combined best"));
+ el("arcadeRefresh").disabled=!!(S.busy||S.privatePending);
+ el("arcadeBoardRefresh").disabled=!a||S.busy||S.privatePending;
+ if(!a){lobby.innerHTML="";stamps.innerHTML="";board.innerHTML="";runNode.classList.add("hidden");runNode.innerHTML="";return}
+ const run=S.arcadeRun&&S.arcadeRun.day===a.day&&ARCADE_ART[S.arcadeRun.mode]?S.arcadeRun:null;
+ runNode.classList.toggle("hidden",!run);
+ if(run){
+  const round=run.current;
+  const choices=Array.isArray(round?.choices)?round.choices:[];
+  runNode.innerHTML="<img class='arcade-run-art' src='"+ARCADE_ART[run.mode]+"' alt=''><div class='arcade-run-copy'><p class='eyebrow'>"+esc(run.title)+" · Run "+fmt(run.attempt)+"</p><h3>"+(run.finished?"Run complete!":"Round "+fmt(round?.index)+" / "+fmt(run.total_rounds))+"</h3><div class='arcade-meter' aria-label='Score'><span style='width:"+Math.max(0,Math.min(100,Number(run.score)||0))+"%'></span></div><p><strong>"+fmt(run.score)+" / 100</strong> arcade points</p>"+(run.feedback?"<p class='arcade-feedback' role='status'>"+esc(run.feedback)+"</p>":"")+(run.finished?"<p>Personal records and stamps are saved to your shared passport.</p>":"<p class='arcade-prompt'>"+esc(round?.prompt)+"</p><div class='arcade-choices'>"+choices.map(v=>arcadeButton("move",v,v,locked)).join("")+"</div>")+"</div>";
+ }
+ else runNode.innerHTML="";
+ const records=Array.isArray(a.records)?a.records:[];
+ lobby.innerHTML=(a.games||[]).filter(g=>ARCADE_ART[g.key]).map(g=>{
+  const r=records.find(x=>x.mode===g.key)||{},used=Number(r.attempts_today||0),cap=Number(a.daily_cap||3);
+  const canResume=!!r.active_id;
+  return "<article class='arcade-card'><img src='"+ARCADE_ART[g.key]+"' alt='' loading='lazy'><div><p class='eyebrow'>"+fmt(g.rounds)+" rounds · "+esc(g.award_name)+"</p><h3>"+esc(g.title)+"</h3><p>"+esc(g.description)+"</p><p>Personal best: <strong>"+fmt(r.personal_best)+" / 100</strong> · "+fmt(r.games_played)+" finished</p><p>"+fmt(used)+" / "+fmt(cap)+" starts used today</p>"+arcadeButton("start",g.key,canResume?"Resume game":used>=cap?"Daily limit reached":"Play game",locked||(!canResume&&used>=cap))+"</div></article>";
+ }).join("");
+ const collected=new Set(a.stamps||[]);
+ stamps.innerHTML=Object.entries(a.stamp_labels||{}).map(([key,name])=>"<div class='arcade-stamp"+(collected.has(key)?" earned":"")+"'><span>"+(collected.has(key)?"✓":"◇")+"</span> "+esc(name)+"</div>").join("");
+ renderArcadeBoard();
+}
+function renderArcadeBoard(){
+ const root=el("arcadeBoard");if(!root||!arcadeAllowed())return;
+ const b=S.arcadeBoard;
+ if(!b){root.textContent="Choose a game and period to view the rankings.";return}
+ const row=(label,detail)=>"<div class='activity-line'><strong>"+esc(label)+"</strong><span>"+esc(detail)+"</span></div>";
+ root.innerHTML="<div class='arcade-boards'><div><h4>Player high scores</h4>"+((b.players||[]).map((p,i)=>row((i+1)+". "+p.name+" · "+p.city,fmt(p.best)+" / 100 · "+fmt(p.games)+" runs")).join("")||"<p>No finished runs yet.</p>")+"</div><div><h4>City Cup · all games</h4>"+((b.cities||[]).map((c,i)=>row((i+1)+". "+c.city,fmt(c.score)+" · "+fmt(c.players)+" players")).join("")||"<p>No city records yet.</p>")+"</div></div>";
+}
+async function loadArcadeBoard(){
+ if(!arcadeAllowed()||S.busy||S.privatePending)return;
+ const seq=++S.arcadeBoardSeq,identity=String(S.session.player_id),mode=el("arcadeBoardMode").value,daily=el("arcadeBoardPeriod").value==="daily";
+ S.arcadeBoard=null;txt("arcadeBoard","Loading rankings…");
+ try{
+  const b=await get("/v1/game/arcade/board?mode="+encodeURIComponent(mode)+"&daily="+daily);
+  if(seq!==S.arcadeBoardSeq||identity!==String(S.session?.player_id))return;
+  if(b.mode!==mode||b.daily!==daily)throw Error("Unexpected arcade rankings");
+  S.arcadeBoard=b;renderArcadeBoard();
+ }catch(e){if(seq===S.arcadeBoardSeq)txt("arcadeBoard",e.message)}
+}
+function bindArcade(){
+ const page=el("page-arcade");if(!page)return;
+ el("arcadeRefresh").onclick=()=>{if(registered()&&!S.busy&&!S.privatePending)void loadPrivate().catch(e=>notice(e.message,"error"))};
+ el("arcadeBoardRefresh").onclick=()=>void loadArcadeBoard();
+ for(const id of ["arcadeBoardMode","arcadeBoardPeriod"])el(id).onchange=()=>{S.arcadeBoardSeq++;S.arcadeBoard=null;renderArcadeBoard()};
+ page.addEventListener("click",event=>{
+  const b=event.target.closest("button[data-arcade]");
+  if(!b||b.disabled||!registered()||!arcadeAllowed()||S.busy||S.privatePending)return;
+  const a=S.arcade,action=b.dataset.arcade,value=b.dataset.value;
+  if(action==="start"&&ARCADE_ART[value]){
+   const record=a.records.find(r=>r.mode===value);if(!record)return;
+   act(async()=>{
+    const run=record.active_id?await get("/v1/game/arcade/session/"+encodeURIComponent(record.active_id)):
+      await post("/v1/game/arcade/start",{mode:value,day:a.day,attempts_today:record.attempts_today},true);
+    S.arcadeRun=run;S.arcadeBoard=null;el("arcadeRun").classList.remove("hidden");
+    notice(run.finished?"Run already completed.":"Arcade run ready.","success");
+   }).then(()=>{if(S.arcadeRun&&el("page-arcade").classList.contains("active"))el("arcadeRun").scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"})});
+  }else if(action==="move"&&S.arcadeRun&&!S.arcadeRun.finished&&S.arcadeRun.current?.choices?.includes(value)){
+   const body={session_id:S.arcadeRun.session_id,step:S.arcadeRun.step,choice:value};
+   act(async()=>{
+    const result=await post("/v1/game/arcade/move",body,true,true);
+    S.arcadeRun=result.session;S.arcadeBoard=null;notice(result.feedback||"Turn recorded.","success");
+   });
+  }
+  showArcade();
+ });
+}
+
+function reconcileArcadeMoves(run){
+ const prefix=String(S.session?.player_id)+"|/v1/game/arcade/move|";
+ let changed=false;
+ for(const key of S.pendingActions.keys()){
+  if(!key.startsWith(prefix))continue;
+  try{const b=JSON.parse(key.slice(prefix.length));if(b.session_id===run.session_id&&b.step<run.step){S.pendingActions.delete(key);changed=true}}catch{}
+ }
+ if(changed)savePending();
+}
+
+/* v2.9.8b — read-only community dispatch. No message relay. */
+function showCommunity(){
+ const c=S.community,root=el("communityCities");if(!root)return;
+ el("communityRefresh").disabled=S.communityPending;
+ txt("communityStatus",S.communityPending?"Refreshing verified dispatch…":S.communityStale?"Update unavailable — "+(c?"showing last known community totals.":"retry when connected."):!c?"The streets are awaiting a dispatch.":("Day "+(c.day??"—")+" / 7 · "+String(c.phase).toUpperCase()+" · "+c.theme));
+ if(!c){for(const id of ["communityTotals","communityFeed","communityCities"])el(id).innerHTML="";txt("communityMilestones","No verified milestones yet.");return}
+ const t=c.totals||{};
+ el("communityTotals").innerHTML=[["Snowballs thrown","throws"],["Snow Don damage","boss_damage"],["Siege damage","siege_damage"],["Assignments","quests"],["Presents","gifts"],["Arcade runs","arcade"]].map(([label,key])=>"<div class='activity-card'><span class='subtle'>"+esc(label)+"</span><strong>"+fmt(t[key])+"</strong></div>").join("");
+ const labels={combat:"Snowball Alley",boss:"Snow Don",siege:"City siege",quests:"Assignments",gifts:"Presents",arcade:"Arcade"};
+ el("communityFeed").innerHTML=(c.updates||[]).map(x=>"<div class='activity-line'><div><strong>"+esc(x.city)+" · "+esc(labels[x.kind]||"Activity")+"</strong><p>"+fmt(x.count)+" "+esc(x.unit)+" today</p></div></div>").join("")||"<p>No eligible activity recorded for this edition yet.</p>";
+ txt("communityMilestones",fmt(c.objectives_met)+" / 6 cities met today's cooperative objective · "+fmt(t.hits)+" successful hits · "+fmt(t.arcade)+" arcade runs completed.");
+ root.innerHTML=(c.cities||[]).map(x=>{
+  const o=x.objective,slug=CITY_SLUG[x.city];
+  return "<article class='activity-card'><div class='community-city-head'>"+(slug?"<img alt='' src='/art/v290/cities/crests/"+slug+"_crest.png'>":"")+"<div><h3>"+esc(x.city)+"</h3><p>"+fmt(x.members)+" registered members · "+esc(x.rival?"Rival: "+x.rival:"Awaiting daily pairing")+"</p></div></div>"+(o?"<p><strong>"+esc(o.name)+"</strong> · "+esc(o.detail)+"</p><div class='hq-meter'><span style='width:"+hqPercent(o.progress,o.target)+"%'></span></div><p>"+fmt(o.progress)+" / "+fmt(o.target)+" "+esc(o.unit)+(o.completed?" · Objective complete":"")+"</p>":"<p>Daily objectives open with the event.</p>")+"<p class='subtle'>"+fmt(x.activity?.throws)+" throws · "+fmt(x.activity?.quests)+" assignments · "+fmt(x.activity?.arcade)+" arcade runs</p></article>";
+ }).join("");
+}
+async function refreshCommunity(){
+ if(S.communityPending)return;
+ S.communityPending=true;showCommunity();
+ try{const c=await get("/v1/web/community");if(c.verified_only!==true||c.chat_relay!==false||!Array.isArray(c.cities))throw Error("Invalid community dispatch");S.community=c;S.communityStale=false}
+ catch{S.communityStale=true}
+ finally{S.communityPending=false;showCommunity()}
+}
+
+/* Staff-only read-only control centre, v2.9.8c. */
+function updateStaffNavigation(){
+ const allowed=S.staffAllowed===true;
+ for(const id of ["staffNav","staffShortcut"]){
+   const item=el(id);if(item)item.classList.toggle("hidden",!allowed);
+ }
+ if(el("staffOnlyNotice"))el("staffOnlyNotice").classList.toggle("hidden",!allowed||!S.session||hasPlayIdentity(S.session,S.config));
+ if(allowed&&el("underworldRequired"))el("underworldRequired").classList.add("hidden");
+ if(!allowed&&S.session&&!hasPlayIdentity(S.session,S.config)&&el("underworldRequired"))el("underworldRequired").classList.remove("hidden");
+ if(!allowed&&el("page-staff")?.classList.contains("active"))section("home",{record:false,focus:false});
+}
+async function refreshStaffAccess({force=false}={}){
+ const id=S.session?String(S.session.player_id):null;
+ if(!id){S.staffCheckedIdentity=null;S.staffAccessCheckedAt=0;S.staffAllowed=false;S.staffRole=null;S.staffData=null;S.staffDirectory=null;S.staffDossier=null;updateStaffNavigation();showStaffPlayerDesk();return}
+ if(!force&&id===S.staffCheckedIdentity&&Date.now()-S.staffAccessCheckedAt<90000)return;
+ S.staffCheckedIdentity=id;
+ S.staffAccessCheckedAt=Date.now();
+ try{
+   const a=await get("/v1/staff/access");
+   if(String(S.session?.player_id)!==id)return;
+   S.staffAllowed=a.allowed===true;
+   if(!S.staffAllowed){S.staffData=null;S.staffRole=null;S.staffDirectory=null;S.staffDossier=null}
+   else {
+     const role=await get("/v1/staff/role");
+     if(String(S.session?.player_id)!==id)return;
+     if(role.scope!=="ISOLATED_QA_ONLY"||!["host","organiser"].includes(role.role))throw Error("Unexpected staff role");
+     S.staffRole=role;
+   }
+ }catch{
+   if(String(S.session?.player_id)!==id)return;
+   S.staffAllowed=false;S.staffRole=null;S.staffData=null;S.staffDirectory=null;S.staffDossier=null;
+ }
+ updateStaffNavigation();showStaffPlayerDesk();
+}
+function staffTime(v){
+ const t=Date.parse(v);return Number.isFinite(t)?new Date(t).toLocaleString([],{dateStyle:"medium",timeStyle:"short"}):"—";
+}
+function staffRow(label,value){
+ return "<div class='activity-line'><strong>"+esc(label)+"</strong><span>"+esc(value??"—")+"</span></div>";
+}
+function showStaffDashboard(){
+ const d=S.staffAllowed?S.staffData:null;
+ if(!el("staffStatus"))return;
+ el("staffRefresh").disabled=!!(S.staffPending||!S.staffAllowed);
+ txt("staffStatus",!S.staffAllowed?"Authorised staff only.":S.staffPending?"Refreshing audited game records…":S.staffStale?"Refresh failed — showing last retrieved data.":!d?"Select Refresh control centre to load records.":("Verified "+staffTime(d.server_time)+" · "+String(d.phase).toUpperCase()+" · Day "+(d.game_day??"—")+" / 7 · QA · "+(S.staffRole?.can_review?"Host review enabled":"Organiser view")));
+ if(!d){
+  for(const id of ["staffMetrics","staffSchedule","staffRisks","staffBoss","staffPlayers","staffDaily","staffAudit","staffPrizes"])el(id).innerHTML="";
+  txt("staffPlayersStatus","");txt("staffPrizeNote","");return;
+ }
+ const t=d.totals||{},risk=d.risks||{},times=d.schedule||{};
+ el("staffMetrics").innerHTML=[["Registered",t.players],["Flagged",t.flagged],["Ledger entries",t.score_rows],["Snowball attacks",t.combat],["Boss & siege actions",t.boss_siege],["Recorded awards",t.award_rows]].map(([k,v])=>"<div class='activity-card'><small>"+esc(k)+"</small><strong>"+fmt(v)+"</strong></div>").join("");
+ el("staffSchedule").innerHTML=staffRow("Current phase",String(d.phase).toUpperCase())+staffRow("Registration opens",staffTime(times.registration_opens))+staffRow("Scheduled kickoff",staffTime(times.planned_start))+staffRow("Actual kickoff",staffTime(times.started_at))+staffRow("Paused since",staffTime(times.paused_at))+staffRow("Projected completion",staffTime(times.projected_end))+staffRow("Accumulated pause",fmt(times.pause_seconds)+" seconds");
+ const risks=[["Flagged players","flagged_players"],["Invalid resource balances","invalid_balances"],["Combat–ledger mismatches","pvp_ledger_mismatches"],["PvP over-cap days","pvp_over_cap"],["Quest over-cap days","quest_over_cap"],["Unbacked quest credits","quest_unbacked"],["Missing quest credits","quest_missing"],["Defense mismatches","defense_mismatches"],["Arcade attempt violations","arcade_over_limit"]];
+ el("staffRisks").innerHTML="<p><strong>Reconciliation: "+(d.reconciliation_ok?"PASS":"REVIEW REQUIRED")+"</strong></p>"+risks.map(([name,key])=>staffRow(name,fmt(risk[key]))).join("")+"<p class='subtle'>"+fmt(t.unlinked)+" QA characters without Underworld links (may include intentional fixtures).</p>";
+ const boss=d.boss;
+ const bs=boss?"<p>"+esc(boss.theme)+" · Day "+fmt(boss.day)+"</p>"+staffRow("Snow Don HP",fmt(boss.boss_hp)+" / "+fmt(boss.boss_initial_hp)):"<p>The Snow Don has not been initialised for this event day.</p>";
+ el("staffBoss").innerHTML=bs+(d.sieges||[]).map(s=>staffRow(s.city,fmt(s.hp)+" / "+fmt(s.initial_hp)+" HP")).join("");
+ el("staffPlayers").innerHTML=(d.players||[]).map(p=>"<tr><td>"+esc(p.mr_username)+"</td><td>"+esc(p.city)+"</td><td>"+fmt(p.score)+"</td><td>"+esc(p.review_state)+"</td></tr>").join("")||"<tr><td colspan='4'>No registered characters.</td></tr>";
+ txt("staffPlayersStatus",fmt((d.players||[]).length)+" shown · "+fmt(t.players)+" registered · "+fmt(t.disqualified)+" disqualified. No automatic sanctions.");
+ el("staffDaily").innerHTML=(d.days||[]).map(x=>staffRow("Day "+fmt(x.day)+" · "+x.category,fmt(x.points)+" points · "+fmt(x.entries)+" entries")).join("")||"<p>No ledger entries yet.</p>";
+ el("staffAudit").innerHTML=(d.audit||[]).map(x=>"<div class='staff-audit-line'><strong>"+esc(x.action)+"</strong><span>"+staffTime(x.created_at_utc)+"</span><p>"+esc(x.reason)+"</p></div>").join("")||"<p>No staff audit events recorded.</p>";
+ el("staffPrizes").innerHTML=(d.prize_preview||[]).map(x=>staffRow("Place "+fmt(x.place)+" · "+x.name+" ("+x.city+")",fmt(x.points)+" points")).join("")||"<p>No eligible positive-score candidates yet.</p>";
+ txt("staffPrizeNote",d.prize_policy+" · "+fmt(t.award_rows)+" existing award rows.");
+}
+async function refreshStaffDashboard(){
+ if(!S.staffAllowed||S.staffPending)return;
+ const id=String(S.session?.player_id||"");
+ S.staffPending=true;showStaffDashboard();
+ try{
+  const data=await get("/v1/staff/control");
+  if(String(S.session?.player_id)!==id||!S.staffAllowed)return;
+  if(data.read_only!==true||data.scope!=="ISOLATED_QA_ONLY"||data.official_prizes_enabled!==false)throw Error("Unexpected control centre permissions");
+  S.staffData=data;S.staffStale=false;
+ }catch(e){
+  if(String(S.session?.player_id)===id){
+   S.staffStale=true;
+   if(e.status===401||e.status===403){S.staffAllowed=false;S.staffData=null;updateStaffNavigation()}
+  }
+ }finally{S.staffPending=false;showStaffDashboard()}
+}
+
+
+/* v2.9.8d — isolated disposable staff test lab, never a shared-game mutation. */
+function showStaffLab(){
+ const root=el("staffLabStatus");if(!root)return;
+ const d=S.staffAllowed?S.staffLab:null,active=!!d?.active;
+ txt("staffLabStatus",S.staffLabPending?"Running or refreshing your private test…":!S.staffAllowed?"Staff sign-in required.":!d?"Press Refresh lab to retrieve your session.":active?"WEB TEST ONLY · Day "+d.day+"/7 · "+d.theme+" · "+d.last_action:"No disposable web test is running.");
+ for(const btn of document.querySelectorAll("[data-lab-action]")){
+  const action=btn.dataset.labAction;
+  const standalone=["simulate_week","reset_all"].includes(action);
+  btn.disabled=S.staffLabPending||!S.staffAllowed||(!standalone&&(action==="start"?active:!active));
+ }
+ el("staffLabRefresh").disabled=S.staffLabPending||!S.staffAllowed;
+ el("staffLabDay").disabled=active&&S.staffLabPending;
+ el("staffLabExport").disabled=!S.staffAllowed||S.staffLabPending||!d;
+ if(!d){for(const id of ["staffLabStats","staffLabPlayers","staffLabHistory","staffLabWeekSummary","staffLabComparisons"])el(id).innerHTML="";return}
+ const totals=d.totals||{};
+ el("staffLabStats").innerHTML=(active?[
+  ["Test Day",d.day+"/7"],["Snow Don HP",d.boss?fmt(d.boss.boss_hp)+" / "+fmt(d.boss.boss_initial_hp):"—"],
+  ["PvP throws",fmt(totals.pvp)],["Boss & siege actions",fmt(totals.pve)],
+  ["Test ledger rows",fmt(totals.ledger)],["Test awards",fmt(totals.awards)]
+ ]:[["Test Lab", "Inactive"],["Shared QA", "Unchanged"]]).map(([label,value])=>"<div class='activity-card'><small>"+esc(label)+"</small><strong>"+esc(value)+"</strong></div>").join("");
+ el("staffLabPlayers").innerHTML=(d.players||[]).map(x=>staffRow(x.mr_username+" · "+x.city,fmt(x.score)+" pts")).join("")||"<p>No active fictional test players.</p>";
+ el("staffLabHistory").innerHTML=(d.history||[]).slice(0,10).map(x=>"<div class='staff-audit-line'><strong>"+esc(x.action)+"</strong><span>"+staffTime(x.at)+"</span><p>"+esc(x.detail)+" · "+esc(x.reason)+"</p></div>").join("")||"<p>No test actions yet.</p>";
+ const rows=d.comparisons||[];
+ el("staffLabComparisons").innerHTML=rows.slice(0,35).map(x=>"<tr><td>"+esc(x.kind+(x.mode?" · "+x.mode:"")+(x.quest?" · "+x.quest:""))+"</td><td>"+fmt(x.day)+"</td><td>"+fmt(x.expected_points)+"</td><td>"+fmt(x.actual_points)+"</td><td>"+fmt(x.difference)+"</td><td>"+(x.passed&&x.arcade_passed!==false?"PASS":"REVIEW")+"</td></tr>").join("")||"<tr><td colspan='6'>No scoring checks recorded.</td></tr>";
+ const week=d.weekly_report;
+ el("staffLabWeekSummary").innerHTML=week?("<p><strong>"+(week.passed?"PASS":"REVIEW")+"</strong> · "+fmt(week.days_tested)+" days · "+fmt(week.total_points)+" temporary ledger points · "+fmt(week.official_awards)+" real awards</p><div class='staff-table-wrap'><table><thead><tr><th>Day</th><th>Theme</th><th>Checks</th><th>Score</th><th>Result</th></tr></thead><tbody>"+week.days.map(x=>"<tr><td>"+fmt(x.day)+"</td><td>"+esc(x.theme)+"</td><td>"+fmt(x.checks.length)+"</td><td>"+fmt(x.ledger_points)+"</td><td>"+(x.checks_passed?"PASS":"REVIEW")+"</td></tr>").join("")+"</tbody></table></div>"):"<p class='subtle'>No seven-day simulation recorded yet.</p>";
+}
+async function refreshStaffLab(){
+ if(!S.staffAllowed||S.staffLabPending)return;
+ const id=String(S.session?.player_id||"");
+ S.staffLabPending=true;showStaffLab();
+ try{
+  const data=await get("/v1/staff/lab");
+  if(String(S.session?.player_id)!==id||!S.staffAllowed)return;
+  if(data.scope!=="DISPOSABLE_WEB_TEST_LAB"||data.shared_game_unchanged!==true||data.official_prizes_enabled!==false)throw Error("Unrecognised QA lab scope");
+  S.staffLab=data;
+ }catch(e){if(String(S.session?.player_id)===id)notice("Test Lab: "+e.message,"error")}
+ finally{S.staffLabPending=false;showStaffLab()}
+}
+async function staffLabAction(action){
+ if(!S.staffAllowed||S.staffLabPending)return;
+ const active=!!S.staffLab?.active;
+ if(action==="start"&&active)return notice("End the existing test first.","error");
+ if(!["start","simulate_week","reset_all"].includes(action)&&!active)return notice("Start a disposable test day first.","error");
+ const reason=el("staffLabReason").value.trim();
+ if(reason.length<8)return notice("Add a staff reason of at least 8 characters.","error");
+ const confirms={start:"START TEST",day:"RESET TEST DAY",resupply:"RESUPPLY TEST",end:"END TEST",simulate_week:"SIMULATE 7 DAYS",reset_all:"RESET ALL TEST DATA"};
+ const expected=confirms[action]||"";
+ if(expected&&el("staffLabConfirm").value.trim().toUpperCase()!==expected)return notice("Type "+expected+" to confirm this test-only action.","error");
+ const day=["start","day"].includes(action)?Number(el("staffLabDay").value):null;
+ const sessionId=["start","simulate_week","reset_all"].includes(action)?null:S.staffLab?.session_id;
+ const identity=String(S.session?.player_id||"");
+ const options={};
+ if(action==="configure"){
+  options.player_index=Number(el("staffLabPlayer").value);
+  for(const [id,key] of [["staffLabSnowballs","snowballs"],["staffLabWarmth","warmth"],["staffLabArmour","armour_hp"],["staffLabCooldown","cooldown_seconds"],["staffLabBossHp","boss_hp"]]){
+    const raw=el(id).value.trim();
+    if(raw!==""){if(!/^\d+$/.test(raw))return notice("Use nonnegative whole numbers for test resources.","error");options[key]=Number(raw)}
+  }
+  if(Object.keys(options).length===1)return notice("Enter at least one resource or boss HP value.","error");
+ }
+ if(["pvp","boss","siege"].includes(action))options.outcome=el("staffLabOutcome").value;
+ if(action==="arcade"){options.mode=el("staffLabArcade").value;options.scenario=el("staffLabArcadeOutcome").value}
+ if(action==="mission")options.quest=el("staffLabMission").value;
+ const body={action,day,reason,confirmation:expected,request_id:nextActionId(),session_id:sessionId,options};
+ S.staffLabPending=true;showStaffLab();
+ try{
+  const result=await post("/v1/staff/lab/action",body,true);
+  if(String(S.session?.player_id)!==identity||!S.staffAllowed)return;
+  if(result.scope!=="DISPOSABLE_WEB_TEST_LAB"||result.shared_game_unchanged!==true)throw Error("Unexpected staff lab scope");
+  S.staffLab=result;
+  el("staffLabConfirm").value="";
+  if(action==="configure"){for(const name of ["staffLabSnowballs","staffLabWarmth","staffLabArmour","staffLabCooldown","staffLabBossHp"])el(name).value=""}
+  notice(result.action_result?.message||"Test action completed.","success");
+ }catch(e){
+  notice("Test Lab: "+e.message+" Refresh lab before another action.","error");
+ }finally{S.staffLabPending=false;showStaffLab()}
+}
+function downloadStaffDiagnostics(){
+ if(!S.staffAllowed||!S.staffData)return notice("Refresh Event Control first.","error");
+ const d=S.staffData;
+ const report={scope:"PRIVATE_QA_DIAGNOSTICS",exported_at:new Date().toISOString(),
+  season:d.season,phase:d.phase,game_day:d.game_day,totals:d.totals,
+  risks:d.risks,reconciliation_ok:d.reconciliation_ok,players:d.players,
+  audit:d.audit,prize_preview:d.prize_preview,
+  notice:"STAFF PRIVATE · QA ONLY · NO OFFICIAL PRIZES · DO NOT POST IN PUBLIC CHAT"};
+ const blob=new Blob([JSON.stringify(report,null,2)],{type:"application/json"});
+ const url=URL.createObjectURL(blob);
+ try{const a=document.createElement("a");a.href=url;a.download="snowfall-private-qa-report.json";a.click()}
+ finally{setTimeout(()=>URL.revokeObjectURL(url),1000)}
+ notice("Private QA report prepared. Do not share publicly.","success");
+}
+
+function downloadLabResults(){
+ if(!S.staffAllowed||!S.staffLab)return notice("Open an authorised Test Lab first.","error");
+ const result={...S.staffLab,exported_at:new Date().toISOString(),
+  notice:"DISPOSABLE TEST-ONLY DATA · NOT A REAL GAME OR PRIZE REPORT"};
+ const blob=new Blob([JSON.stringify(result,null,2)],{type:"application/json"});
+ const url=URL.createObjectURL(blob);
+ try{const a=document.createElement("a");a.href=url;a.download="snowfall-test-lab-v298e.json";a.click()}
+ finally{setTimeout(()=>URL.revokeObjectURL(url),1000)}
+ notice("Your private Test Lab report was downloaded.","success");
+}
+
+/* v2.9.8f — staff-only player search, investigation and audited host review. */
+function showStaffPlayerDesk(){
+ const allowed=S.staffAllowed===true,d=allowed?S.staffDirectory:null;
+ const p=allowed?S.staffDossier:null,host=S.staffRole?.can_review===true;
+ const role=allowed?(host?"Host · may flag or clear QA player reviews":"Organiser · search, audit, inspect and test only"):"Sign in with an authorised Discord staff account.";
+ txt("staffRoleStatus",role+" · No direct score edits, event resets or prizes.");
+ txt("staffPlayerSearchStatus",S.staffDirectoryBusy?"Searching QA player records…":!d?"Search by name, player ID, city or review state.":fmt(d.total)+" matching · "+fmt(d.players?.length||0)+" on page "+d.page);
+ const rows=d?.players||[];
+ el("staffPlayerResults").innerHTML=rows.map(x=>"<tr><td>"+esc(x.mr_username)+"</td><td>"+esc(x.city)+"</td><td>"+fmt(x.score)+"</td><td>"+esc(x.review_state)+"</td><td><button class='button button-outline button-small' type='button' data-player-id='"+esc(x.player_id)+"'>Inspect</button></td></tr>").join("")||"<tr><td colspan='5'>"+(d?"No matching QA characters.":"Run a player search to see results.")+"</td></tr>";
+ txt("staffPlayerPage",d?"Page "+d.page+" · "+fmt(d.total)+" total":"Page —");
+ el("staffPlayerPrev").disabled=!allowed||S.staffDirectoryBusy||!d||d.page<=1;
+ el("staffPlayerNext").disabled=!allowed||S.staffDirectoryBusy||!d||!d.has_more;
+ el("staffPlayerExport").disabled=!allowed||!p||S.staffDossierBusy;
+ const review=el("staffReviewForm");
+ review.classList.toggle("hidden",!host||!p||p.profile.review_state==="disqualified");
+ el("staffReviewSubmit").disabled=!host||!p||S.staffReviewBusy;
+ if(!p){
+  el("staffPlayerDossier").innerHTML="<p class='subtle'>"+(S.staffDossierBusy?"Loading verified QA player history…":"Select Inspect beside a character to see their dossier.")+"</p>";
+  return;
+ }
+ const x=p.profile,links=p.links||{},activity=p.score_history||[];
+ const linkName=v=>v===true?"Linked":v===false?"Not linked":"Not checked on this database";
+ const issues=p.alerts||[];
+ const history=(p.review_history||[]).map(h=>"<div class='staff-audit-line'><strong>"+esc(h.action)+"</strong><span>"+staffTime(h.created_at_utc)+"</span><p>"+esc(h.reason)+"</p></div>").join("");
+ const combat=(p.combat_history||[]).map(a=>"<div class='staff-audit-line'>Day "+fmt(a.day)+" · "+esc(a.style)+" · "+(a.hit?"Hit":"Miss")+" · "+fmt(a.points_awarded)+" pts · "+staffTime(a.happened_at_utc)+"</div>").join("");
+ const pve=(p.pve_history||[]).map(a=>"<div class='staff-audit-line'>Day "+fmt(a.day)+" · "+esc(a.kind)+" · "+(a.hit?"Hit":"Miss")+" · "+fmt(a.damage)+" damage · "+fmt(a.points_awarded)+" pts</div>").join("");
+ el("staffPlayerDossier").innerHTML="<div class='staff-dossier-header'><div><p class='eyebrow'>VERIFIED SEASON RECORD</p><h4>"+esc(x.mr_username)+"</h4><p>"+esc(x.city)+" · "+esc(x.review_state)+" · #"+esc(x.player_id)+"</p></div><strong>"+fmt(x.score)+" points</strong></div>"+
+ "<div class='staff-dossier-facts'>"+
+ staffRow("Registered",staffTime(x.joined_at_utc))+
+ staffRow("Underworld character",linkName(links.underworld))+
+ staffRow("Discord account",linkName(links.discord))+
+ staffRow("Snowballs / warmth",fmt(x.snowballs)+" / "+fmt(x.warmth))+
+ staffRow("Snowflakes / armour",fmt(x.snowflakes)+" / "+fmt(x.armour_hp))+
+ staffRow("Last throw",staffTime(x.last_throw_at))+"</div>"+
+ "<h4>Integrity signals</h4>"+(issues.length?"<ul class='staff-alerts'>"+issues.map(a=>"<li>"+esc(a)+"</li>").join("")+"</ul>":"<p class='subtle'>No account-specific alert detected. This is not proof of clean play.</p>")+
+ "<div class='staff-dossier-columns'><section><h4>Recent score ledger</h4>"+(activity.map(v=>staffRow("Day "+fmt(v.day)+" · "+v.category,fmt(v.points)+" pts · "+staffTime(v.created_at_utc))).join("")||"<p class='subtle'>No points yet.</p>")+"</section>"+
+ "<section><h4>Combat history</h4>"+(combat||"<p class='subtle'>No PvP actions yet.</p>")+"<h4>Snow Don &amp; siege history</h4>"+(pve||"<p class='subtle'>No boss or siege actions yet.</p>")+"</section></div>"+
+ "<details class='staff-review-history'><summary>Administrative history ("+fmt((p.review_history||[]).length)+")</summary>"+(history||"<p class='subtle'>No prior player-review actions.</p>")+"</details>";
+ if(host&&x.review_state!=="disqualified"){
+  const action=el("staffReviewAction");
+  if(x.review_state==="flagged"&&action.value==="flag")action.value="clear";
+  if(x.review_state!=="flagged"&&action.value==="clear")action.value="flag";
+  txt("staffReviewHelp",action.value==="flag"?"Type FLAG QA PLAYER exactly, then confirm the flag.":"Type CLEAR QA PLAYER exactly, then confirm the clearance.");
+ }
+}
+async function refreshStaffDirectory(page=1){
+ if(!S.staffAllowed||S.staffDirectoryBusy)return;
+ if(!Number.isInteger(page)||page<1||page>100)return;
+ const who=String(S.session?.player_id||""),seq=++S.staffDirectorySeq;
+ S.staffDirectoryBusy=true;showStaffPlayerDesk();
+ try{
+  const params=new URLSearchParams({q:el("staffPlayerQuery").value.trim(),
+   city:el("staffPlayerCity").value,state:el("staffPlayerState").value,page:String(page)});
+  const result=await get("/v1/staff/players?"+params.toString());
+  if(seq!==S.staffDirectorySeq||String(S.session?.player_id)!==who||!S.staffAllowed)return;
+  if(result.scope!=="ISOLATED_QA_ONLY"||result.read_only!==true||!Array.isArray(result.players))throw Error("Unexpected player directory scope");
+  S.staffDirectory=result;
+ }catch(e){notice(e.message||"Player search failed.","error")}
+ finally{if(seq===S.staffDirectorySeq){S.staffDirectoryBusy=false;showStaffPlayerDesk()}}
+}
+async function inspectStaffPlayer(id){
+ if(!S.staffAllowed||!/^\d{1,19}$/.test(String(id)))return;
+ const who=String(S.session?.player_id||""),seq=++S.staffDossierSeq;
+ S.staffSelected=String(id);S.staffDossier=null;S.staffDossierBusy=true;showStaffPlayerDesk();
+ try{
+  const result=await get("/v1/staff/players/"+encodeURIComponent(id));
+  if(seq!==S.staffDossierSeq||String(S.session?.player_id)!==who||!S.staffAllowed)return;
+  if(result.scope!=="ISOLATED_QA_ONLY"||result.read_only!==true||result.profile?.player_id!==id)throw Error("Invalid player dossier");
+  S.staffDossier=result;
+  el("staffReviewReason").value="";el("staffReviewConfirm").value="";
+ }catch(e){notice(e.message||"Dossier unavailable.","error")}
+ finally{if(seq===S.staffDossierSeq){S.staffDossierBusy=false;showStaffPlayerDesk()}}
+}
+async function submitStaffReview(){
+ if(!S.staffAllowed||!S.staffRole?.can_review||!S.staffDossier||S.staffReviewBusy)return;
+ const x=S.staffDossier.profile,action=el("staffReviewAction").value;
+ const phrase=action==="flag"?"FLAG QA PLAYER":"CLEAR QA PLAYER";
+ const reason=el("staffReviewReason").value.trim(),confirmation=el("staffReviewConfirm").value.trim();
+ if(reason.length<12)return notice("Provide a specific reason of at least 12 characters.","error");
+ if(confirmation!==phrase)return notice("Type "+phrase+" exactly to confirm this QA review.","error");
+ if(!window.confirm((action==="flag"?"Flag":"Clear")+" "+x.mr_username+"? This changes the shared QA eligibility review state and writes to the audit log."))return;
+ const who=String(S.session?.player_id||"");
+ S.staffReviewBusy=true;showStaffPlayerDesk();
+ try{
+  const result=await post("/v1/staff/players/review",{
+   player_id:x.player_id,action,expected_state:x.review_state,reason,confirmation,
+   request_id:nextActionId()
+  },true);
+  if(String(S.session?.player_id)!==who||!S.staffAllowed)return;
+  if(result.scope!=="ISOLATED_QA_ONLY"||result.player_id!==x.player_id)throw Error("Unexpected review response");
+  notice(result.replayed?"Previously recorded review confirmed.":"QA player review audited.","success");
+  await inspectStaffPlayer(x.player_id);
+  await refreshStaffDirectory(S.staffDirectory?.page||1);
+  void refreshStaffDashboard();
+ }catch(e){notice(e.message||"Review action was not applied.","error")}
+ finally{S.staffReviewBusy=false;showStaffPlayerDesk()}
+}
+function downloadStaffPlayerDossier(){
+ if(!S.staffAllowed||!S.staffDossier)return;
+ const result={...S.staffDossier,exported_at:new Date().toISOString(),
+  notice:"CONFIDENTIAL QA STAFF RECORD · NO OFFICIAL PRIZES · DO NOT SHARE PUBLICLY"};
+ const url=URL.createObjectURL(new Blob([JSON.stringify(result,null,2)],{type:"application/json"}));
+ try{const a=document.createElement("a");a.href=url;
+  a.download="snowfall-qa-player-"+S.staffDossier.profile.player_id+".json";a.click()}
+ finally{setTimeout(()=>URL.revokeObjectURL(url),1000)}
+ notice("Private player dossier exported.","success");
+}

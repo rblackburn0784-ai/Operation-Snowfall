@@ -39,9 +39,6 @@
 .territory-art figcaption{padding:.6rem .9rem;border-top:1px solid #395361;font-size:.75rem;color:var(--muted)}
 .city-crest{height:44px;width:44px;object-fit:contain;filter:drop-shadow(0 4px 9px rgba(0,0,0,.4))}
 .city-row{grid-template-columns:46px minmax(0,1fr) auto}
-.streets-card{background:linear-gradient(145deg,#243746,#152a37)}
-.streets-card>.button{margin:.95rem 0 .4rem;max-width:100%;white-space:normal;text-align:center}
-.streets-card .subtle{margin-top:.7rem;font-size:.76rem}
 #streetsTopLink{white-space:nowrap}
 @media(max-width:1120px){.topbar-actions{margin-left:auto}.topbar{gap:.7rem}}
 @media(max-width:780px){
@@ -396,7 +393,6 @@
 .wire-paper{background:#e8ddc1;color:#352d24;border:4px double #9d8965;padding:clamp(.65rem,2vw,1.4rem);box-shadow:0 8px 30px #020b1550;min-width:0}
 .wire-masthead{display:block;width:100%;max-height:150px;object-fit:contain;margin:0 auto .55rem}
 .wire-edition-line{display:flex;justify-content:space-between;gap:.4rem;flex-wrap:wrap;border-top:2px solid #68533a;border-bottom:1px solid #68533a;padding:.45rem 0;font-size:.65rem;font-weight:800;letter-spacing:.09em}
-#wireEditionArt{width:100%;max-height:270px;object-fit:contain;margin:.65rem 0 .45rem}
 .wire-editorial h3{font-family:Georgia,serif;font-size:clamp(1.55rem,3.7vw,2.5rem);line-height:1.08;color:#3c3023;margin:.3rem 0 .5rem;overflow-wrap:anywhere}
 .wire-byline{font-size:.67rem;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:#715339;margin:.25rem 0}
 .wire-editorial>p:not(.wire-byline){font-size:.92rem}
@@ -494,3 +490,641 @@ html[data-atmosphere="off"] .button:hover:not(:disabled){transform:none}
 #siegeRuleNote{font-size:.75rem;line-height:1.55;margin:.65rem 0 0}
 .siege-outcome{padding:.75rem 1rem;background:#203b3d;border-top:1px solid #83b5a5;color:#e2efe8}.siege-outcome strong{color:#f1d4a0}.siege-outcome p{margin:.3rem 0;font-size:.83rem}
 @media(max-width:560px){.siege-main{grid-template-columns:1fr;gap:.5rem}.siege-fort-art{height:145px}.siege-hero{min-height:190px}.siege-matchup img{width:52px;height:52px}.siege-health .button{flex:1 1 120px}.siege-hero-content{padding:.75rem}}
+
+/* v2.9.7a — independent city header, transparent title and wallpaper. */
+body.has-city-wallpaper{background-color:#091520;background-image:linear-gradient(180deg,rgba(7,17,26,.76),rgba(7,17,26,.54)),url('/static/snowfall-city-wallpaper.webp?v=297a');background-size:cover;background-position:center bottom;background-repeat:no-repeat;background-attachment:fixed}
+.topbar.has-city-header{min-height:112px;background-color:#0a1823;background-image:linear-gradient(90deg,rgba(6,16,24,.56),rgba(6,16,24,.72) 40%,rgba(6,16,24,.52)),url('/static/snowfall-header-city.webp?v=297a');background-size:cover;background-position:center 76%;border-bottom:1px solid #8a7550;box-shadow:0 4px 24px #060f1866}
+.topbar.has-city-title .brand .header-banner{width:clamp(185px,21vw,310px);height:auto;aspect-ratio:1000/394;object-fit:contain;filter:drop-shadow(0 2px 4px #000b)}
+.topbar.has-city-header .nav-item{color:#e1e8ea;text-shadow:0 1px 3px #000}
+.topbar.has-city-header .nav-item:hover,.topbar.has-city-header .nav-item.active{background:#213c4ceb;color:#f2cc88;box-shadow:inset 0 -2px #d5a75c}
+.topbar.has-city-header .button-outline{background:#102431eb}
+@media(max-width:1120px){.topbar.has-city-header{min-height:96px}.topbar.has-city-title .brand .header-banner{width:clamp(180px,28vw,275px)}}
+@media(max-width:780px){.topbar.has-city-header{min-height:76px;background-position:center 72%}.topbar.has-city-title .brand .header-banner{width:clamp(125px,34vw,220px)}body.has-city-wallpaper{background-size:auto 100vh;background-position:center bottom}}
+@media(max-width:480px){.topbar.has-city-title .brand .header-banner{width:clamp(110px,32vw,150px)}.topbar.has-city-header .topbar-actions{gap:.25rem}}
+@media(max-width:360px){.topbar.has-city-title .brand .header-banner{width:108px}}
+html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
+
+/* v2.9.7b — original newspaper art becomes the edition's decorative paper. */
+.wire-paper{background:#e8ddc1}
+.wire-edition-body{--wire-edition-art:url('/art/v290/wire/backgrounds/front_page_template.png');position:relative;isolation:isolate;margin-top:.65rem;min-width:0;padding:clamp(3.6rem,7.5vw,5.6rem) clamp(1.05rem,4vw,3.5rem) clamp(3.2rem,7vw,5rem);background-color:#e9d4ac;background-image:linear-gradient(180deg,transparent 0%,rgba(245,229,194,.84) 15%,rgba(245,229,194,.91) 49%,rgba(245,229,194,.86) 78%,transparent 100%),var(--wire-edition-art);background-repeat:no-repeat;background-position:center;background-size:100% 100%;border:1px solid #b09872}
+.wire-paper[data-edition="final"] .wire-edition-body{--wire-edition-art:url('/art/v290/wire/backgrounds/final_day_edition.png')}
+.wire-editorial{min-width:0}
+.wire-editorial>.wire-byline{margin:0 0 .55rem;text-align:center;letter-spacing:.14em}
+.wire-editorial>h3{text-align:center;font-size:clamp(1.65rem,4vw,3rem);line-height:1.1;margin:.25rem 0 .65rem;text-wrap:balance;color:#32271d}
+.wire-editorial>p:not(.wire-byline){text-align:center;font-size:clamp(.87rem,1.3vw,1rem);color:#3b2e20}
+.wire-headlines{column-gap:clamp(.75rem,2.5vw,1.5rem);row-gap:.8rem;margin:1rem 0 .6rem;border-top:3px double #8c7655}
+.wire-story{padding:.5rem .25rem .7rem;border-bottom:1px solid #9d8965;overflow-wrap:anywhere}
+.wire-story h4{font-size:clamp(1rem,1.6vw,1.3rem);line-height:1.2}
+.wire-story p:not(.wire-byline){font-size:.88rem;line-height:1.5}
+.wire-notice{margin:.9rem 0 0;padding-top:.55rem;text-align:center;border-top:1px solid #9d8965;color:#473626}
+@media(max-width:560px){.wire-edition-body{padding:3.4rem .85rem 3.25rem;background-size:100% 100%;background-image:linear-gradient(180deg,transparent,rgba(245,229,194,.94) 10%,rgba(245,229,194,.94) 90%,transparent),var(--wire-edition-art)}.wire-editorial>h3{font-size:1.6rem}.wire-headlines{grid-template-columns:minmax(0,1fr);gap:.3rem}.wire-story{padding:.5rem .1rem}.wire-edition-line{font-size:.58rem}}
+@media(forced-colors:active){.wire-edition-body{background:none;border:1px solid CanvasText}.wire-editorial>h3,.wire-editorial>p,.wire-story,.wire-notice{color:CanvasText}}
+
+
+/* v2.9.7c — full-page illustrated newspaper, calibrated to the uploaded 4:5
+   asset. One backdrop includes the masthead, issue strip, lead and four boxes.
+   Without art (or with forced colors), the content stays in normal document flow. */
+.wire-frontpage{container-type:inline-size;position:relative;min-width:0}
+.wire-edition-body{position:relative;margin-top:.65rem;min-width:0;padding:clamp(.6rem,2vw,1rem);background:#ead6af;border:1px solid #ac9165}
+.wire-lead-block{text-align:center;min-width:0;padding:1rem .8rem;border:3px double #92724a;overflow-wrap:anywhere}
+.wire-lead-block .wire-byline{margin:0 0 .45rem}
+.wire-lead-block h3{line-height:1.08;margin:.25rem 0 .55rem;color:#32271d;font-size:clamp(1.4rem,5cqw,3rem);text-wrap:balance}
+.wire-lead-block #wireLeadDetail{color:#3b2e20;margin:0;line-height:1.35;font-size:clamp(.8rem,2.1cqw,1.05rem)}
+.wire-edition-body .wire-headlines{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem;border:0;margin:.7rem 0 0;padding:0}
+.wire-edition-body .wire-story{min-width:0;border:3px double #92724a;padding:.8rem .65rem;overflow-wrap:anywhere}
+.wire-edition-body .wire-story .wire-byline{font-size:clamp(.65rem,1.4cqw,.8rem);margin:0 0 .35rem}
+.wire-edition-body .wire-story h4{font-size:clamp(.95rem,2.65cqw,1.45rem);margin:0 0 .45rem;line-height:1.12}
+.wire-edition-body .wire-story p:not(.wire-byline){font-size:clamp(.75rem,1.8cqw,1rem);line-height:1.36;margin:0}
+.wire-paper.has-wire-template{padding:0;border:0;background:#e8ddc1}
+.wire-paper.has-wire-template .wire-frontpage{width:100%;max-width:100%;box-sizing:border-box;aspect-ratio:4/5;min-height:680px;background:#ead6af url('/static/snowfall-wire-frontpage.webp?v=297d-r3') center/100% 100% no-repeat}
+.wire-paper.has-wire-template .wire-masthead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);margin:0}
+.wire-paper.has-wire-template .wire-edition-line{position:absolute;left:14%;right:14%;top:12.95%;height:1.65%;padding:0;margin:0;border:0;display:flex;align-items:center;justify-content:space-between;flex-wrap:nowrap;gap:.35rem;font-size:clamp(.5rem,1.5cqw,.8rem);letter-spacing:.025em;line-height:1;white-space:nowrap}
+.wire-paper.has-wire-template .wire-edition-body{position:static;min-height:0;margin:0;padding:0;border:0;background:none;container-type:normal}
+.wire-paper.has-wire-template .wire-lead-block{position:absolute;left:10%;right:10%;top:27.5%;bottom:48.3%;border:0;padding:0;display:grid;grid-template-rows:auto minmax(0,1fr) 28%;align-items:center;justify-items:center;gap:.1rem;overflow:auto;scrollbar-width:thin}
+.wire-paper.has-wire-template .wire-lead-block .wire-byline{font-size:clamp(.65rem,1.5cqw,.9rem);line-height:1.15;margin:0}
+.wire-paper.has-wire-template .wire-lead-block h3{font-size:clamp(1.35rem,5.3cqw,3.5rem);margin:0;line-height:1.05;text-align:center}
+.wire-paper.has-wire-template .wire-lead-block #wireLeadDetail{align-self:center;font-size:clamp(.75rem,2cqw,1.15rem);margin:0;line-height:1.2}
+.wire-paper.has-wire-template .wire-edition-body .wire-headlines{position:absolute;left:5.8%;right:5.8%;top:55.8%;bottom:14.2%;column-gap:6%;row-gap:10%;margin:0;padding:0;grid-template-rows:repeat(2,minmax(0,1fr));min-height:0}
+.wire-paper.has-wire-template .wire-edition-body .wire-story{border:0;padding:.15rem .2rem;display:flex;flex-direction:column;justify-content:safe center;overflow:auto;min-height:0;scrollbar-width:thin}
+.wire-paper.has-wire-template .wire-edition-body .wire-story h4{font-size:clamp(.85rem,2.7cqw,1.5rem);margin:0 0 .35rem}
+.wire-paper.has-wire-template .wire-edition-body .wire-story p:not(.wire-byline){font-size:clamp(.72rem,1.95cqw,1.05rem);line-height:1.32}
+.wire-paper.has-wire-template .wire-notice{margin:0;padding:.55rem .75rem;border-top:1px solid #9d8965;text-align:center}
+@container (max-width:420px){.wire-paper.has-wire-template .wire-lead-block h3{font-size:clamp(1.22rem,5.2cqw,1.65rem)}.wire-paper.has-wire-template .wire-edition-body .wire-story h4{font-size:.84rem}.wire-paper.has-wire-template .wire-edition-body .wire-story .wire-byline{font-size:.58rem}.wire-paper.has-wire-template .wire-edition-line{left:11%;right:11%;font-size:.5rem}}
+@media(max-width:560px){.wire-paper.has-wire-template .wire-frontpage{min-height:740px}.wire-edition-body .wire-headlines{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(forced-colors:active){.wire-paper.has-wire-template{padding:.6rem;border:1px solid CanvasText}.wire-paper.has-wire-template .wire-frontpage{aspect-ratio:auto;min-height:0;background:none}.wire-paper.has-wire-template .wire-masthead{position:static;clip-path:none;width:100%;height:auto;margin:0 0 .55rem}.wire-paper.has-wire-template .wire-edition-line,.wire-paper.has-wire-template .wire-lead-block,.wire-paper.has-wire-template .wire-edition-body .wire-headlines{position:static;height:auto}.wire-paper.has-wire-template .wire-lead-block,.wire-paper.has-wire-template .wire-edition-body .wire-story{display:block;border:1px solid CanvasText;padding:.6rem;overflow:visible}.wire-paper.has-wire-template .wire-edition-body .wire-headlines{margin-top:.6rem;gap:.6rem}}
+
+/* v2.9.7d — keep issue metadata clear of the decorative crest; provide
+   visible focus and a readable fallback for very narrow/zoomed layouts. */
+.wire-paper.has-wire-template .wire-edition-line{left:10%;right:10%;top:12.9%;height:1.6%;font-size:clamp(.5rem,1.45cqw,.75rem)}
+.wire-paper.has-wire-template .wire-edition-line>span:last-child{text-align:right}
+.wire-paper.has-wire-template .wire-lead-block,.wire-paper.has-wire-template .wire-story{overflow-wrap:anywhere}
+.wire-paper.has-wire-template .wire-story:focus-within,.wire-paper.has-wire-template .wire-lead-block:focus-within{outline:2px solid #74512d;outline-offset:2px}
+@container (max-width:300px){.wire-paper.has-wire-template .wire-edition-line{left:5%;right:5%;gap:.15rem;font-size:.45rem;letter-spacing:0}}
+@media(forced-colors:active){.wire-paper.has-wire-template .wire-edition-line{height:auto;font-size:.75rem;white-space:normal}}
+
+/* v2.9.7d r3 — extra vertical room for wrapped article copy at 320px.
+   Keep the width constrained and all four panel positions unchanged. */
+@media(max-width:360px){.wire-paper.has-wire-template .wire-frontpage{min-height:850px}.wire-paper.has-wire-template .wire-edition-body .wire-story{padding-top:.1rem;padding-bottom:.1rem}}
+
+/* v2.9.8 — activity dossier, existing illustrations only. */
+.activity-intro{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:1rem;padding:1rem;background:#152e3c;border:1px solid #456174;align-items:center;margin-bottom:1rem}
+.activity-intro img,.activity-art{width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;border:1px solid #587181}
+.activity-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin:1rem 0}
+.activity-card{min-width:0;background:#142a37;border:1px solid #456174;padding:1rem;overflow-wrap:anywhere}
+.activity-card h3{margin:.25rem 0 .6rem}.activity-card p{margin:.4rem 0;color:#bfd0d6;line-height:1.5}
+.activity-line{display:flex;align-items:center;justify-content:space-between;gap:.6rem;border-bottom:1px solid #48616d;padding:.65rem 0}
+.activity-line>div{min-width:0}.activity-line button{flex-shrink:0}
+.activity-actions{display:flex;flex-wrap:wrap;gap:.55rem;margin:.6rem 0}
+.activity-card .button{white-space:normal;text-align:center;min-height:44px}
+@media(max-width:780px){.activity-grid{grid-template-columns:minmax(0,1fr)}.activity-intro{grid-template-columns:minmax(0,1fr)}.activity-line{align-items:flex-start;flex-wrap:wrap}}
+
+/* v2.9.8a — arcade lobby and accessible, responsive game controls. */
+.arcade-intro{display:flex;align-items:center;gap:1rem;justify-content:space-between;padding:1rem;border:1px solid #456174;background:#152e3c;margin-bottom:1rem}
+.arcade-lobby{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin:1rem 0}
+.arcade-card,.arcade-run{background:#142a37;border:1px solid #456174;min-width:0;overflow-wrap:anywhere}
+.arcade-card>img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
+.arcade-card>div,.arcade-run-copy{padding:1rem}
+.arcade-card h3,.arcade-run h3{margin:.3rem 0 .65rem}
+.arcade-card p,.arcade-run p{margin:.5rem 0;color:#c8d7dc}
+.arcade-run{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);margin:1rem 0}
+.arcade-run-art{width:100%;height:100%;min-height:180px;object-fit:cover}
+.arcade-meter{height:9px;background:#0b1922;border-radius:5px;overflow:hidden}
+.arcade-meter span{display:block;height:100%;background:#e7bd77}
+.arcade-prompt{font-size:1.05rem;line-height:1.5;font-weight:600}
+.arcade-feedback{padding:.65rem;background:#233d4a;border-left:3px solid #d5ad6d}
+.arcade-choices,.arcade-filters{display:flex;flex-wrap:wrap;gap:.6rem;align-items:end}
+.arcade-choices button{flex:1 1 120px}
+.arcade-card .button,.arcade-run .button,.arcade-filters .button{min-height:44px;white-space:normal}
+.arcade-passport,.arcade-rankings{margin:1rem 0}
+.arcade-stamps,.arcade-boards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.6rem}
+.arcade-stamp{border:1px solid #456174;padding:.6rem;color:#a3b5bf}.arcade-stamp.earned{color:#f0d299;border-color:#a88954;background:#2b3c43}
+.arcade-filters label{flex:1 1 120px;min-width:0}.arcade-filters select{width:100%}
+.arcade-boards .activity-line{flex-wrap:wrap}
+@media(max-width:780px){.arcade-lobby,.arcade-run,.arcade-boards{grid-template-columns:minmax(0,1fr)}.arcade-run-art{height:auto;min-height:0;aspect-ratio:16/9}.arcade-intro{align-items:flex-start;flex-direction:column}}
+@media(max-width:420px){.arcade-stamps{grid-template-columns:minmax(0,1fr)}.arcade-choices button{flex-basis:100%}}
+
+/* v2.9.8b — the streets, milestones and six noticeboards. */
+.community-toolbar{display:flex;gap:.75rem;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.community-totals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.6rem;margin:1rem 0}
+.community-totals strong{display:block;color:#efcf93;font-size:1.35rem}
+.community-columns{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:1rem;margin-bottom:1rem}
+.community-city-head{display:flex;gap:.75rem;align-items:center}
+.community-city-head img{width:60px;height:60px;object-fit:contain;flex-shrink:0}
+.community-city-head>div{min-width:0}
+@media(max-width:780px){.community-columns{grid-template-columns:minmax(0,1fr)}.community-totals{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* v2.9.8b1 — embedded two-way Discord chat, consent-first. */
+.streets-chat-shell{margin:1.1rem 0;padding:1rem;background:#102532;border:1px solid #608091;border-radius:10px;min-width:0}
+.streets-chat-heading{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.6rem}
+.streets-chat-heading h3{margin:.25rem 0}
+.streets-chat-embed{margin-top:.8rem;width:100%;overflow:hidden;border:1px solid #536e7a;border-radius:8px;background:#111b24}
+.streets-chat-embed iframe{width:100%;height:min(68vh,720px);min-height:460px;display:block;border:0}
+@media(max-width:780px){.streets-chat-embed iframe{height:65vh;min-height:440px}}
+
+/* v2.9.8b3 — single persistent WidgetBot chat on the right of every page.
+   The iframe is outside .panel so navigation never disconnects it. */
+@media(min-width:981px){
+ .page-grid{grid-template-columns:minmax(0,1fr) minmax(340px,410px);gap:clamp(.75rem,1.4vw,1.4rem)}
+}
+.sidebar{min-width:0;align-self:stretch}
+.side-chat-shell{position:sticky;top:12px;z-index:6;margin:0;padding:.8rem;background:#102431;
+ border:1px solid #668497;border-radius:9px;height:clamp(480px,78dvh,790px);
+ display:flex;flex-direction:column;min-width:0;max-width:100%}
+.side-chat-shell .streets-chat-heading{flex:0 0 auto;align-items:start}
+.side-chat-shell .streets-chat-heading .eyebrow{margin-bottom:.2rem}
+.side-chat-shell .streets-chat-heading h3{font-size:1.13rem}
+.side-chat-shell .streets-chat-embed{flex:1 1 auto;min-height:0;margin-top:.5rem}
+.side-chat-shell .streets-chat-embed iframe{width:100%;height:100%;min-height:0}
+.side-chat-shell #streetsChatStatus{margin:.35rem 0;font-size:.74rem}
+.side-chat-shell #streetsChatEnable{flex:none;white-space:normal;min-height:44px}
+.side-chat-shell .streets-chat-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.3rem;margin-top:.55rem}
+.side-chat-shell .streets-chat-footer .subtle{margin:0;font-size:.68rem}
+.side-chat-shell .streets-chat-notice{margin:.45rem 0 0;font-size:.66rem}
+#streetsChatClose,#streetsChatLauncher{display:none}
+.streets-chat-backdrop{display:none}
+@media(min-width:981px) and (max-width:1150px){
+ .page-grid{grid-template-columns:minmax(0,1fr) 340px;gap:.75rem}
+}
+@media(max-width:980px){
+ .page-grid{display:block}
+ .sidebar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin-top:1.3rem}
+ .sidebar>.side-chat-shell{position:fixed;z-index:48;top:0;right:0;width:min(100%,470px);
+  height:100dvh;max-height:100dvh;margin:0;padding:clamp(.55rem,1vw,.85rem);
+  border-radius:0;border-left:2px solid #7694a0;transform:translateX(105%);
+  visibility:hidden;pointer-events:none;transition:transform .19s ease;box-shadow:-10px 0 35px #0008}
+ .sidebar>.side-chat-shell.drawer-open{visibility:visible;pointer-events:auto;transform:translateX(0)}
+ .side-chat-shell #streetsChatClose{display:inline-flex;flex:none;min-height:40px}
+ .streets-chat-backdrop:not(.hidden){display:block;position:fixed;inset:0;z-index:47;background:#030c16bb}
+ #streetsChatLauncher{display:inline-flex;position:fixed;bottom:calc(12px + env(safe-area-inset-bottom));right:12px;z-index:20;
+  border:1px solid #f7dba7;box-shadow:0 4px 18px #0009;padding:.65rem .85rem;min-height:46px}
+ body.streets-drawer-open{overflow:hidden}
+ .side-chat-shell .streets-chat-embed iframe{height:100%;min-height:0}
+}
+@media(max-width:780px){
+ #streetsChatLauncher{bottom:calc(67px + env(safe-area-inset-bottom));right:12px}
+}
+@media(max-width:520px){
+ #streetsChatLauncher{display:inline-flex!important}
+ .sidebar{grid-template-columns:minmax(0,1fr)}
+ .side-chat-shell .streets-chat-notice{font-size:.63rem}
+}
+@media(prefers-reduced-motion:reduce){.sidebar>.side-chat-shell{transition:none}}
+
+/* v2.9.8b3 desktop visual QA: never let the global sticky resource bar cover chat header. */
+@media(min-width:981px){
+ .sidebar>.side-chat-shell{
+  top:72px;
+  height:clamp(440px,calc(100dvh - 92px),760px);
+ }
+}
+
+/* v2.9.8c — staff-only monitoring; no prize or lifecycle action buttons. */
+.staff-heading{display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap;padding:1rem;background:#173240;border:1px solid #5c7c8b;margin-bottom:1rem}
+.staff-heading h3{margin:0 0 .25rem}.staff-heading p{margin:0;color:#bfd0d6;font-size:.82rem;max-width:630px}
+.staff-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.65rem;margin:1rem 0}
+.staff-metrics small{display:block;color:#b1c6ce;font-size:.72rem}
+.staff-metrics strong{display:block;color:#edd19a;font-size:1.35rem;margin-top:.25rem}
+.staff-dashboard-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.85rem;margin:1rem 0}
+.staff-section{margin:1rem 0}.staff-table-wrap{overflow-x:auto;max-height:510px;overflow-y:auto}
+.staff-table-wrap table{border-collapse:collapse;width:100%;min-width:430px;text-align:left;font-size:.81rem}
+.staff-table-wrap th,.staff-table-wrap td{padding:.6rem .55rem;border-bottom:1px solid #4c6572;overflow-wrap:anywhere}
+.staff-table-wrap th{position:sticky;top:0;background:#223b48;color:#e7d4a7}
+.staff-audit-line{padding:.65rem 0;border-bottom:1px solid #405b67}
+.staff-audit-line>span{font-size:.68rem;color:#b0c1cb;margin-left:.5rem}
+.staff-audit-line p{font-size:.76rem;margin:.25rem 0;overflow-wrap:anywhere}
+.staff-footer{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.staff-footer p{font-size:.75rem;color:#b8cbd5;margin:0}
+@media(max-width:780px){.staff-dashboard-columns{grid-template-columns:minmax(0,1fr)}.staff-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:360px){.staff-metrics{gap:.35rem}.staff-metrics .activity-card{padding:.65rem}}
+
+/* v2.9.8c1 — staff controls remain visible to verified staff, but not public. */
+#staffShortcut{white-space:nowrap}
+.staff-oauth-help{font-size:.73rem;line-height:1.55;margin:.5rem 0 1rem}
+@media(max-width:780px){#staffShortcut{display:none!important}}
+
+/* v2.9.8d — isolated interactive QA drill controls. */
+.staff-lab{border:1px solid #b79a67;background:linear-gradient(160deg,#173241,#0d2531)}
+.staff-lab-title{display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap}
+.staff-lab-title h3{margin:.2rem 0}
+.staff-lab-config{display:grid;grid-template-columns:minmax(125px,.6fr) minmax(170px,1.4fr) minmax(160px,1fr);gap:.75rem;margin:1rem 0}
+.staff-lab-config label{min-width:0;font-size:.78rem;color:#c2d7df;display:flex;flex-direction:column;gap:.38rem}
+.staff-lab-config input,.staff-lab-config select{min-height:45px;width:100%;min-width:0;background:#0d202c;border:1px solid #6a8896;border-radius:3px;color:#eef4f5;padding:.55rem}
+.staff-lab-actions,.staff-lab-encounters{display:flex;flex-wrap:wrap;gap:.6rem;margin:.85rem 0}
+.staff-lab-actions button,.staff-lab-encounters button{flex:1 1 155px;white-space:normal;min-height:44px}
+.staff-lab-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.65rem;margin:.9rem 0}
+.staff-lab-stats small{color:#c5d5dc;display:block;font-size:.72rem}
+.staff-lab-stats strong{display:block;font-size:1.2rem;color:#efcf93;margin-top:.2rem}
+.staff-lab-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.staff-lab-two h4{font-family:Georgia,serif;font-size:1.05rem;margin:.65rem 0}
+.staff-lab p.subtle{font-size:.75rem;line-height:1.55}
+@media(max-width:900px){.staff-lab-config{grid-template-columns:repeat(2,minmax(0,1fr))}.staff-lab-config label:last-child{grid-column:1/-1}}
+@media(max-width:600px){.staff-lab-config,.staff-lab-two{grid-template-columns:minmax(0,1fr)}.staff-lab-config label:last-child{grid-column:auto}.staff-lab-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* v2.9.8e — test scenarios, scoring comparisons, seven-day report. */
+.staff-lab-advanced,.staff-lab-week,.staff-lab-checks{border:1px solid #536c77;border-radius:5px;margin:1rem 0;padding:1rem;min-width:0}
+.staff-lab-advanced summary{font-family:Georgia,serif;font-size:1.07rem;font-weight:700;cursor:pointer}
+.staff-lab-scenarios{grid-template-columns:repeat(3,minmax(0,1fr))}
+.staff-lab-week h4,.staff-lab-checks h4{font-size:1.05rem;font-family:Georgia,serif;margin:.2rem 0 .65rem}
+#staffLabWeekSummary{margin:.7rem 0}
+#staffLabComparisons td{white-space:normal}
+#staffLabComparisons td:last-child{font-weight:700}
+@media(max-width:820px){.staff-lab-scenarios{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:540px){.staff-lab-scenarios{grid-template-columns:minmax(0,1fr)}}
+
+/* v2.9.8f: responsive organiser / host review desk. */
+.staff-case-desk{border-color:#73919a;background:linear-gradient(155deg,#182f3b,#10232f)}
+.staff-search-controls{display:grid;grid-template-columns:minmax(155px,1.5fr) repeat(2,minmax(120px,1fr)) auto;gap:.7rem;align-items:end;margin:1rem 0}
+.staff-search-controls label{min-width:0}
+.staff-search-controls input,.staff-search-controls select{min-height:44px;margin-bottom:0;min-width:0}
+.staff-search-controls .button{margin:0;white-space:normal}
+.staff-case-desk #staffPlayerPage{display:flex;align-items:center;font-size:.76rem;color:var(--muted)}
+.staff-case-desk .staff-player-pager{align-items:center}
+.staff-case-desk .staff-player-pager button{flex:0 1 170px}
+.staff-dossier{border:1px solid #627d88;border-radius:5px;margin:1rem 0;padding:1rem;min-width:0;background:#122935;overflow-wrap:anywhere}
+.staff-dossier-header{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;border-bottom:1px solid #56717c;padding-bottom:.75rem}
+.staff-dossier-header h4{font-size:1.42rem;margin:.2rem 0;font-family:Georgia,serif}
+.staff-dossier-header p{margin:0;color:#b9cdd4;font-size:.78rem}
+.staff-dossier-header>strong{font-family:Georgia,serif;font-size:1.25rem;color:var(--gold)}
+.staff-dossier-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:1.25rem;margin:.8rem 0}
+.staff-dossier-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.staff-dossier h4,.staff-review-form h4{font-size:1.05rem;margin:1rem 0 .55rem}
+.staff-dossier .staff-audit-line{font-size:.78rem;line-height:1.5}
+.staff-alerts{margin:.2rem 0 .8rem;padding-left:1.4rem;color:#f2c4b9}
+.staff-alerts li{margin:.3rem 0}
+.staff-review-history{margin-top:.9rem;border-top:1px solid #516f7c;padding-top:.65rem}
+.staff-review-history summary{cursor:pointer;font-weight:750;color:var(--gold)}
+.staff-review-form{border:1px solid #ad9065;border-left:4px solid var(--gold);padding:1rem;margin:1rem 0;background:#1d323d}
+.staff-review-form .staff-lab-config{grid-template-columns:repeat(3,minmax(0,1fr))}
+.staff-review-form .staff-lab-config label:last-child{grid-column:auto}
+.staff-case-desk .staff-table-wrap table{min-width:535px}
+@media(max-width:980px){.staff-search-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.staff-search-controls label:first-child{grid-column:1/-1}}
+@media(max-width:680px){.staff-dossier-facts,.staff-dossier-columns,.staff-review-form .staff-lab-config{grid-template-columns:minmax(0,1fr)}.staff-review-form .staff-lab-config label:last-child{grid-column:auto}.staff-search-controls{grid-template-columns:minmax(0,1fr)}.staff-search-controls label:first-child{grid-column:auto}.staff-case-desk .staff-player-pager button{min-width:0;flex:1 1 90px}}
+@media(max-width:360px){.staff-dossier,.staff-review-form{padding:.7rem}.staff-case-desk .staff-player-pager{gap:.25rem}.staff-case-desk #staffPlayerPage{font-size:.65rem}}
+
+/* v2.9.8g — navigation grouped by task. No artwork or gameplay changes.
+   A single-row desktop header switches to a stacked, accessible menu before
+   the brand, navigation and staff actions can collide. */
+.topbar,.topbar.has-city-header{
+ display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr) auto;
+ align-items:center;column-gap:clamp(.5rem,1.4vw,1.2rem);row-gap:.5rem;
+ min-height:86px;padding:.65rem max(2.5%,calc((100vw - 1440px)/2));
+}
+.topbar .brand{min-width:0;justify-self:start}
+.topbar.has-city-title .brand .header-banner{width:clamp(190px,18vw,286px);max-width:100%}
+.topbar .topnav{display:flex;min-width:0;flex:1 1 auto;flex-basis:auto;align-items:center;justify-content:center;flex-wrap:nowrap;gap:clamp(.1rem,.6vw,.5rem);width:100%;border:0;padding:0;order:initial}
+.topbar-actions{display:flex;flex-wrap:nowrap;min-width:0;gap:.4rem;justify-self:end;margin-left:0}
+.topbar-actions .button{white-space:nowrap}
+.topbar .nav-home,.topbar .nav-group-trigger{
+ min-height:44px;padding:.76rem clamp(.55rem,.8vw,.9rem);
+ border-radius:4px;font-size:.7rem;font-weight:850;letter-spacing:.07em;
+ text-transform:uppercase;white-space:nowrap;color:#edf3f4;
+ text-shadow:0 1px 3px #000;background:rgba(12,28,39,.48);
+ border:1px solid transparent
+}
+.topbar .nav-home{width:auto}
+.topbar .nav-group-trigger{display:flex;align-items:center;justify-content:center;gap:.5rem}
+.topbar .nav-group-trigger:hover,.topbar .nav-group-trigger.active,.topbar .nav-group.open .nav-group-trigger,.topbar .nav-home:hover,.topbar .nav-home.active{
+ color:#f6d99d;background:#203d4eea;border-color:#8d744a;
+ box-shadow:inset 0 -2px #e3bb73
+}
+.nav-chevron{display:inline-block;font-size:1.1rem;font-weight:650;line-height:1;transition:transform .16s ease;transform:translateY(-2px)}
+.nav-group.open .nav-chevron{transform:rotate(180deg) translateY(2px)}
+.nav-group{position:relative;min-width:0}
+.nav-popover{
+ display:none;position:absolute;top:calc(100% + 7px);left:50%;
+ transform:translateX(-50%);width:270px;max-width:calc(100vw - 30px);
+ padding:.35rem;background:#102735;border:1px solid #8a785a;border-radius:6px;
+ box-shadow:0 18px 40px rgba(0,0,0,.55);z-index:50;gap:.15rem
+}
+.nav-group.open .nav-popover{display:grid}
+.topbar .nav-popover .nav-item{
+ display:block;min-height:54px;text-align:left;width:100%;padding:.7rem .85rem;
+ border-radius:3px;white-space:normal;font-size:.8rem;letter-spacing:0;
+ text-transform:none;line-height:1.25;color:#ecf4f4
+}
+.nav-popover .nav-item strong{display:block;font:800 .85rem system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+.nav-popover .nav-item small{display:block;font-size:.71rem;font-weight:450;letter-spacing:0;color:#b4c9d0;margin-top:.3rem}
+.topbar .nav-popover .nav-item.active,.topbar .nav-popover .nav-item:hover,.topbar .nav-popover .nav-item:focus-visible{
+ background:#29495a;color:#f6daab;box-shadow:inset 3px 0 #dfb471
+}
+.nav-popover .nav-chat-action{border-top:1px solid #46606c;border-radius:0;margin-top:.2rem}
+@media(max-width:1480px){#streetsTopLink{display:none!important}}
+@media(max-width:1200px){
+ .topbar,.topbar.has-city-header{
+  grid-template-columns:minmax(0,1fr) auto;column-gap:.5rem;
+  min-height:76px;padding:.6rem 3%;position:relative
+ }
+ .topbar.has-city-title .brand .header-banner{width:clamp(172px,23vw,260px)}
+ .topbar-actions{grid-column:2;grid-row:1;margin:0}
+ .topbar .menu-toggle{display:inline-flex}
+ .topbar .topnav{display:none!important;order:initial;grid-column:1 / -1;grid-row:2}
+ .topbar .topnav.open{
+  display:flex!important;position:absolute;left:0;right:0;top:100%;
+  width:100%;max-height:min(76vh,680px);overflow-y:auto;overflow-x:hidden;
+  flex-direction:column;align-items:stretch;justify-content:flex-start;gap:.2rem;
+  padding:.7rem max(3%,14px) 1rem;background:#0d222fee;
+  border:1px solid #677b84;border-top:2px solid #cda263;
+  box-shadow:0 22px 36px #010910bd;z-index:60
+ }
+ .topbar .topnav.open .nav-home{width:100%;text-align:left;min-height:48px}
+ .topbar .topnav.open .nav-group{position:static;width:100%}
+ .topbar .topnav.open .nav-group-trigger{
+  width:100%;min-height:48px;text-align:left;justify-content:space-between;
+  padding:.75rem 1rem
+ }
+ .topbar .topnav.open .nav-popover{
+  position:static;left:auto;top:auto;transform:none;
+  width:100%;max-width:none;box-shadow:none;border:0;
+  border-left:2px solid #9b814f;background:#162e3d;
+  border-radius:2px;padding:.3rem .35rem .35rem .6rem;margin:.15rem 0 .35rem;
+  grid-template-columns:repeat(2,minmax(0,1fr));gap:.35rem
+ }
+ .topbar .topnav.open .nav-popover .nav-item{min-height:52px}
+}
+@media(max-width:780px){
+ .topbar,.topbar.has-city-header{padding:.45rem 3%;min-height:70px}
+ .topbar.has-city-title .brand .header-banner{width:clamp(135px,31vw,215px)}
+ .topbar-actions{gap:.32rem}
+ .topbar .topnav.open .nav-popover{grid-template-columns:1fr}
+}
+@media(max-width:680px){#staffShortcut{display:none!important}}
+@media(max-width:560px){
+ .topbar .brand-icon{width:36px;height:36px}
+ .topbar.has-city-title .brand .header-banner{width:clamp(115px,30vw,175px)}
+ .topbar-actions .button{min-height:40px;font-size:.64rem;padding:.55rem .65rem;letter-spacing:.02em}
+ .topbar .topnav.open{max-height:calc(100dvh - 95px)}
+}
+@media(max-width:380px){
+ .topbar,.topbar.has-city-header{column-gap:.24rem}
+ .topbar .brand{gap:.24rem}
+ .topbar .brand-icon{width:30px;height:30px}
+ .topbar.has-city-title .brand .header-banner{width:108px}
+ .topbar-actions{gap:.22rem}
+ .topbar-actions .button{padding:.48rem .48rem;font-size:.6rem}
+}
+@media(prefers-reduced-motion:reduce){.nav-chevron{transition:none}}
+
+/* v2.9.8h — real equipped portrait layers, correct scale and banner position. */
+#hqCollector .collector-layout,#fitCollector .fitting-layout{align-items:start}
+#hqCollector .collector-profile,#fitCollector .collector-profile{
+ position:relative;gap:.5rem;min-width:0;align-self:start
+}
+/* v2.9.8i: The selected Market banner is the entire nameplate.
+   No secondary rectangle, border, ornaments or stretched painted backdrop. */
+.collector-profile .collector-banner-well,.rival-appearance .collector-banner-well{
+ position:relative;isolation:isolate;display:grid;place-items:center;
+ width:100%;min-width:0;aspect-ratio:5/1;margin:0 auto .05rem;
+ padding:0;background:transparent;border:0;border-radius:0;
+ box-shadow:none;overflow:visible
+}
+.collector-banner-well::before,.collector-banner-well::after{content:none}
+.collector-banner-well .collector-banner{
+ position:absolute;inset:0;width:100%;height:100%;object-fit:contain;
+ display:block;opacity:1;z-index:0;filter:none;pointer-events:none
+}
+.collector-banner-well .collector-banner.hidden{display:none!important}
+.collector-banner-name{
+ position:relative;z-index:3;display:block;width:85%;max-width:85%;
+ min-width:0;padding:0;overflow:hidden;text-overflow:clip;
+ font-family:"Palatino Linotype","Book Antiqua","URW Palladio L",Georgia,serif;
+ font-style:italic;font-variant:small-caps;
+ font-size:clamp(.77rem,1.95vw,1.33rem);font-weight:750;
+ letter-spacing:.01em;line-height:1.12;text-align:center;color:#ffe4ad;
+ text-shadow:1px 2px 3px #000,0 0 8px #0c1b29,0 0 4px #000;
+ white-space:nowrap;overflow-wrap:normal;word-break:normal
+}
+.collector-banner-well:not(.has-banner) .collector-banner-name{
+ width:100%;max-width:100%;text-shadow:0 2px 5px #000
+}
+#hqPortraitWell,#fitPortraitWell,#rivalPortraitWell{aspect-ratio:1;isolation:isolate}
+#hqPortraitWell .portrait-layer,#fitPortraitWell .portrait-layer,#rivalPortraitWell .portrait-layer{
+ left:4%;top:4%;width:92%;height:92%;
+ object-fit:cover;object-position:center 45%;
+ border-radius:2px;z-index:1
+}
+#hqPortraitWell.has-frame .portrait-layer,#fitPortraitWell.has-frame .portrait-layer,#rivalPortraitWell.has-frame .portrait-layer{
+ left:10%;top:10%;width:80%;height:80%;
+ object-fit:cover;object-position:center 46%
+}
+#hqPortraitWell .frame-layer,#fitPortraitWell .frame-layer,#rivalPortraitWell .frame-layer{
+ z-index:4;inset:0;width:100%;height:100%;
+ transform:none;object-fit:contain;pointer-events:none
+}
+#hqPortraitWell .trail-layer,#fitPortraitWell .trail-layer,#rivalPortraitWell .trail-layer{
+ z-index:6;opacity:1;filter:drop-shadow(0 2px 4px #061c29);pointer-events:none
+}
+#hqPortraitWell .gear-layer,#fitPortraitWell .gear-layer,#rivalPortraitWell .gear-layer{z-index:3;pointer-events:none}
+/* Snowballs are decorative, never interactable. The highlighted ball is
+   intentionally above the weapon etched in the frame artwork. */
+.snowball-foreground{
+ position:absolute;z-index:7;left:73%;top:66%;width:18%;aspect-ratio:1;
+ display:block;pointer-events:none;border-radius:50%;
+ background:radial-gradient(circle at 29% 23%,#fff 0%,#e4f4fc 20%,#b9d6e7 57%,#567e9f 82%,#152c43 100%);
+ border:1px solid #e3faffbb;
+ box-shadow:inset -5px -7px 9px #22516c88,0 2px 8px #0009,0 0 10px #a9d8ed80
+}
+.portrait-well[data-trail="snow_trail"] .snowball-foreground,
+.alley-loadout-icon[data-trail="snow_trail"] .snowball-foreground{
+ background:radial-gradient(circle at 28% 25%,#fff 0%,#b8faff 28%,#67cbe7 67%,#176184 100%);
+ box-shadow:inset -5px -7px 8px #1f6589,0 2px 8px #0009,0 0 16px #64d8fb
+}
+.portrait-well[data-trail="candy_trail"] .snowball-foreground,
+.alley-loadout-icon[data-trail="candy_trail"] .snowball-foreground{
+ background:repeating-conic-gradient(from 15deg,#fff1eb 0deg 34deg,#d0434e 34deg 65deg,#fff1eb 65deg 95deg);
+ border:2px solid #f8d7c2;
+ box-shadow:inset -6px -8px 8px #8f28337a,0 2px 8px #0009,0 0 14px #e28c9a
+}
+.alley-loadout-icon[data-style="golden"] .snowball-foreground{
+ background:radial-gradient(circle at 27% 22%,#fff7d3,#f1d472 32%,#c18b23 70%,#68430e);
+ border:1px solid #ffeb9b;
+ box-shadow:inset -4px -5px 8px #8d620f,0 0 14px #edc260ad
+}
+.alley-action-card{display:grid;grid-template-columns:minmax(145px,205px) minmax(0,1fr);align-items:start;gap:1.25rem}
+.rival-stage{min-width:0;width:100%;align-self:start;background:linear-gradient(145deg,#0d2532,#142c3b);border:1px solid #476477;padding:.5rem;overflow:hidden}
+.rival-appearance{min-width:0}
+.rival-appearance .collector-banner-well{margin-bottom:.4rem}
+.rival-appearance .collector-banner-name{font-size:clamp(.7rem,1.5vw,1.06rem)}
+.rival-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.75rem;min-height:180px;text-align:center;padding:.75rem}
+.rival-empty img{width:100%;max-width:130px;height:115px;object-fit:contain}
+.rival-empty span,.rival-appearance-note{font-size:.69rem;color:#bed3dc;line-height:1.45;text-align:center}
+.rival-appearance-note{margin:.55rem 0 .1rem}
+.rival-stage .snowball-foreground{width:19%;top:66%;left:71%}
+.alley-action-card .action-main{min-width:0}
+.alley-action-card .controls-grid{gap:clamp(.5rem,1.4vw,1rem);min-width:0}
+.alley-action-card .controls-grid label{min-width:0}
+.alley-action-card select{width:100%;min-width:0;max-width:100%;text-overflow:ellipsis}
+.alley-action-card .actions-inline .button{white-space:normal}
+.alley-loadout{
+ display:flex;align-items:center;gap:.72rem;min-width:0;
+ border:1px solid #456678;background:#0e2533bd;
+ padding:.58rem .68rem;margin:.1rem 0 .65rem;border-radius:4px
+}
+.alley-loadout>div:last-child{min-width:0;overflow-wrap:anywhere}
+.alley-loadout strong{display:block;color:#efd3a1;font-size:.8rem;margin-bottom:.18rem}
+.alley-loadout small{display:block;color:#b6cdd5;font-size:.7rem;line-height:1.5}
+.alley-loadout-icon{width:44px;height:44px;position:relative;flex:none;border-radius:50%;background:#223f52;border:1px solid #567381}
+.alley-loadout-icon .alley-loadout-trail{position:absolute;inset:-7px;width:calc(100% + 14px);height:calc(100% + 14px);object-fit:contain;z-index:2;pointer-events:none;filter:drop-shadow(0 1px 3px #001)}
+.alley-loadout-icon .snowball-foreground{width:30px;height:30px;left:6px;top:6px;box-shadow:0 0 12px #0007}
+@media(max-width:1100px){
+ .alley-action-card{grid-template-columns:minmax(125px,170px) minmax(0,1fr);gap:.75rem;padding:1rem}
+ .alley-action-card .controls-grid{grid-template-columns:minmax(0,1fr)}
+ .alley-action-card .controls-grid label{margin:0}
+}
+@media(max-width:700px){
+ .alley-action-card{grid-template-columns:minmax(0,1fr);gap:.85rem}
+ .rival-stage{max-width:230px;justify-self:center}
+ .rival-empty{min-height:110px}
+ .alley-action-card .controls-grid{grid-template-columns:minmax(0,1fr)}
+ #hqCollector .collector-profile,#fitCollector .collector-profile{max-width:min(100%,340px)}
+ .collector-banner-name{font-size:clamp(.85rem,4vw,1.4rem)}
+}
+@media(max-width:400px){
+ .alley-action-card{padding:.68rem}
+ .alley-loadout{padding:.48rem}
+ .rival-stage{max-width:200px}
+ /* Original banner art stays unboxed on narrow screens too. */
+}
+
+/* v2.9.8j: fit the actual central ribbon, never a clipped 85%-width text box.
+   The banner art itself, frames, and portrait size remain untouched. */
+.collector-profile .collector-banner-name,
+.rival-appearance .collector-banner-name{
+ position:absolute;left:50%;top:50%;translate:-50% -50%;
+ width:max-content;max-width:none;min-width:0;
+ padding:0;margin:0;overflow:visible;text-overflow:initial;
+ white-space:nowrap;overflow-wrap:normal;word-break:normal;
+ transform-origin:50% 50%;will-change:auto;
+ letter-spacing:0;line-height:1.06;
+}
+.collector-banner-well:not(.has-banner) .collector-banner-name{
+ width:max-content;max-width:none;overflow:visible;
+}
+.collector-profile .collector-banner-well,
+.rival-appearance .collector-banner-well{overflow:visible}
+
+/* Calibrated scarf: narrower and closer to the neck. The existing original
+   artwork fades into the coat rather than creating a hard, pasted-on edge.
+   A dedicated neck-wrapped source PNG would be needed for real occlusion
+   behind the coat's lapels; this is a non-destructive alignment improvement. */
+#hqPortraitWell .gear-layer[data-cosmetic="scarf"],
+#fitPortraitWell .gear-layer[data-cosmetic="scarf"],
+#rivalPortraitWell .gear-layer[data-cosmetic="scarf"]{
+ z-index:3;opacity:.98;object-fit:contain;pointer-events:none;
+ filter:drop-shadow(0 2px 2px rgba(4,15,24,.48));
+ -webkit-mask-image:linear-gradient(to bottom,black 0%,black 57%,rgba(0,0,0,.88) 73%,transparent 100%);
+ mask-image:linear-gradient(to bottom,black 0%,black 57%,rgba(0,0,0,.88) 73%,transparent 100%);
+}
+@media(max-width:400px){
+ .collector-profile .collector-banner-name,
+ .rival-appearance .collector-banner-name{line-height:1}
+}
+
+/* v2.9.8k — render the newly supplied worn scarf cleanly. Its transparent
+   fringe belongs to the new PNG; do not cut it with v2.9.8j's old fade mask.
+   The Market product artwork remains the untouched original scarf.png. */
+#hqPortraitWell .gear-layer[data-cosmetic="scarf"],
+#fitPortraitWell .gear-layer[data-cosmetic="scarf"],
+#rivalPortraitWell .gear-layer[data-cosmetic="scarf"]{
+ -webkit-mask-image:none;
+ mask-image:none;
+ opacity:1;
+ filter:drop-shadow(0 2px 2px rgba(5,17,26,.45));
+ object-fit:contain;
+}
+
+/* v2.9.8l — transparent four-stage Snowfall resources; gameplay numbers stay live. */
+.resource-stat{display:flex;flex-direction:column;align-items:flex-start;gap:.25rem;min-width:0}
+.resource-stat>span{min-height:2.2em}
+.resource-stat .resource-art{display:block;max-width:100%;width:100%;height:clamp(57px,7vw,88px);object-fit:contain;object-position:left center;flex-shrink:0}
+.resource-stat .resource-art[data-empty="true"],.alley-resource-strip img[data-empty="true"],.status-inline-icon[data-empty="true"]{opacity:.35;filter:grayscale(.6)}
+.resource-stat strong{line-height:1.15;margin:.1rem 0;font-variant-numeric:tabular-nums}
+.resource-stat>small{line-height:1.4}
+.resource-warmth-stat .warmth-artwork{display:flex;align-items:center;gap:.2rem;width:100%;min-height:76px}
+.resource-warmth-stat .resource-cold-art{width:45%;height:76px;object-fit:contain;object-position:left center}
+.resource-warmth-stat .resource-warmth-bar{width:55%;height:54px;object-fit:contain;object-position:center}
+.resource-warmth-stat #hqColdLabel{font-weight:750;color:#e5d2ac;display:block}
+.resource-warmth-stat #hqWarmthSub{display:block}
+.status-art-bar>span{display:inline-flex;align-items:center;gap:.24rem;white-space:nowrap}
+.status-art-bar .status-inline-icon{display:inline-block;vertical-align:middle;max-height:24px;height:24px;width:31px;object-fit:contain;flex:none}
+.status-art-bar #playWarmthArt{width:38px}
+.status-art-bar .tiny-link{white-space:nowrap}
+.alley-winter-scene{position:relative;display:flex;align-items:flex-end;min-height:clamp(130px,15vw,210px);overflow:hidden;
+ background-image:linear-gradient(90deg,rgba(5,19,27,.8) 0%,rgba(6,23,35,.36) 60%,rgba(6,21,32,.12)),url("/art/v290/status/v298l/winter_street.webp");
+ background-size:cover;background-position:center 54%;border:1px solid #597686;margin:0 0 1.15rem;isolation:isolate}
+.alley-scene-caption{padding:1rem clamp(.8rem,2vw,1.5rem);max-width:70%;text-shadow:0 2px 7px #00131e}
+.alley-scene-caption .eyebrow{font-size:.62rem;margin:0 0 .25rem}
+.alley-scene-caption strong{font:700 clamp(.92rem,2vw,1.32rem) Georgia,serif;color:#f5e3c3;line-height:1.22}
+.alley-resource-strip{display:flex;gap:.65rem;flex-wrap:wrap;margin:.5rem 0 .65rem}
+.alley-resource-strip>div{display:flex;align-items:center;gap:.48rem;flex:1 1 165px;min-width:0;padding:.38rem .55rem;background:#0b2230ad;border:1px solid #3c5b6d}
+.alley-resource-strip img{width:54px;height:52px;flex:none;object-fit:contain}
+.alley-resource-strip span{display:flex;flex-direction:column;gap:.1rem;min-width:0;font-size:.72rem;color:#b7d0d7;line-height:1.3}
+.alley-resource-strip strong{color:#f1d7a8;font-weight:750;font-size:.8rem}
+.alley-resource-strip small{font-size:.66rem;color:#adc6d1}
+.market-wallet .market-wallet-art{width:78px;height:72px;object-fit:contain;flex:none}
+.market-wallet>div{flex:1 1 180px;min-width:0}
+.market-wallet>.button{margin-left:auto}
+.score-row .score-total{display:inline-flex;align-items:center;justify-content:flex-end;gap:.4rem;white-space:nowrap}
+.score-row .score-total img{height:40px;width:43px;object-fit:contain;flex:none}
+.score-row .score-total strong{font-variant-numeric:tabular-nums}
+@media(max-width:1120px){.resource-stat .resource-art{height:75px}.resource-warmth-stat .warmth-artwork{min-height:73px}}
+@media(max-width:640px){
+ .resource-stat{padding:.8rem .65rem}
+ .resource-stat .resource-art{height:66px}
+ .resource-warmth-stat .warmth-artwork{min-height:67px}
+ .resource-warmth-stat .resource-cold-art{height:65px}
+ .resource-warmth-stat .resource-warmth-bar{height:47px}
+ .status-art-bar .status-inline-icon{height:20px;width:25px}
+ .status-art-bar #playWarmthArt{width:31px}
+ .market-wallet .market-wallet-art{width:58px;height:58px}
+ .alley-scene-caption{max-width:93%}
+}
+@media(max-width:380px){
+ .resource-stat .resource-art{height:57px}
+ .alley-winter-scene{min-height:118px}
+ .alley-resource-strip>div{flex-basis:100%}
+ .score-row .score-total img{height:31px;width:32px}
+ .score-row{gap:.45rem;padding:.6rem}
+}
+
+/* Resource-card layout hotfix (v2.9.8l2, snowball spacing refined in v2.9.8l3).
+   Display-only corrections; official numbers, bars elsewhere and resource
+   calculations are unchanged. Avoid clipping large snowball artwork. */
+#playerDashboard .resource-ammo-stat .resource-art-ammo{
+ margin-top:clamp(18px,2vw,26px);
+ object-fit:contain;
+ object-position:center bottom;
+}
+/* The cold portrait stays above the live reading; the ornate horizontal
+   thermometer now replaces the small progress line at the foot of the card. */
+#playerDashboard .resource-warmth-stat .warmth-artwork{
+ width:100%;height:clamp(76px,7vw,95px);min-height:0;
+ display:flex;align-items:center;justify-content:flex-start;
+}
+#playerDashboard .resource-warmth-stat .warmth-artwork .resource-cold-art{
+ width:100%;height:100%;max-width:100%;
+ object-fit:contain;object-position:left center;
+}
+#playerDashboard .resource-warmth-stat .warmth-meter{
+ width:100%;height:clamp(32px,4.6vw,48px);
+ min-height:32px;margin:.55rem 0 0;padding:0;
+ border:0;border-radius:0;box-shadow:none;
+ background:transparent;overflow:visible;
+ display:block;flex:none;margin-top:auto;
+}
+#playerDashboard .resource-warmth-stat .warmth-meter .resource-warmth-bar{
+ display:block;width:100%;max-width:100%;height:100%;
+ object-fit:contain;object-position:left center;
+}
+/* Preserve the existing #hqWarmthMeter node for the normal JS meter update;
+   the picture is now the visual meter, so don't draw a second progress bar. */
+#playerDashboard .resource-warmth-stat .warmth-meter>span{display:none}
+@media(max-width:640px){
+ #playerDashboard .resource-ammo-stat .resource-art-ammo{margin-top:16px}
+ #playerDashboard .resource-warmth-stat .warmth-artwork{height:74px}
+ #playerDashboard .resource-warmth-stat .warmth-meter{height:36px;min-height:32px}
+}
+@media(max-width:380px){
+ #playerDashboard .resource-ammo-stat .resource-art-ammo{margin-top:14px}
+ #playerDashboard .resource-warmth-stat .warmth-artwork{height:65px}
+ #playerDashboard .resource-warmth-stat .warmth-meter{height:32px}
+}

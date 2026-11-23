@@ -102,9 +102,38 @@ class SharedGame:
                 CombatEngine(self.store).leaderboard(self.season, limit=limit)]
 
     def targets(self, player_id: int, *, now=None) -> list[dict]:
+        """Eligible rivals, including their actual equipped public cosmetic outfit.
+
+        Only the server-validated, unlocked cosmetic slots are exposed; no
+        inventory, private profile or linked account identifiers are leaked.
+        The existing combat eligibility and attack calculations remain intact.
+        """
+        from snowfall.services.winter_fun import COSMETICS, SLOTS
+
         views = CombatEngine(self.store).targets(self.season, player_id, now or _time())
+        appearance = {v.discord_user_id: {} for v in views}
+        if views:
+            placeholders = ",".join("?" for _ in views)
+            with self.store.connect() as con:
+                rows = con.execute(
+                    """SELECT e.discord_user_id,e.category,e.cosmetic_key
+                       FROM cosmetic_equipped e
+                       JOIN cosmetic_unlocks u
+                         ON u.season_key=e.season_key
+                        AND u.discord_user_id=e.discord_user_id
+                        AND u.cosmetic_key=e.cosmetic_key
+                       WHERE e.season_key=?
+                         AND e.discord_user_id IN (""" + placeholders + ")",
+                    (self.season, *(v.discord_user_id for v in views)),
+                ).fetchall()
+            for user, slot, key in rows:
+                cosmetic = COSMETICS.get(key)
+                if slot in SLOTS and cosmetic is not None and cosmetic.category == slot:
+                    appearance[user][slot] = key
         return [{"player_id": str(v.discord_user_id), "mr_username": v.mr_username,
-                 "city": v.city, "warmth": v.warmth, "hits_remaining": v.hits_remaining}
+                 "city": v.city, "warmth": v.warmth,
+                 "hits_remaining": v.hits_remaining,
+                 "appearance": appearance[v.discord_user_id]}
                 for v in views]
 
     def ready(self, player_id: int, *, now=None) -> dict:
@@ -174,3 +203,50 @@ class SharedGame:
         return {"message": WinterFunEngine(self.store).equip(
             self.season, player_id, item, now or _time(),
         )}
+
+    def activities(self, player_id: int, *, now=None) -> dict:
+        from snowfall.platform.player_activities import activities_view
+        return activities_view(self.store, self.season, player_id, now or _time())
+
+    def activity_action(self, player_id: int, action: str, item: str, day: int | None,
+                        interaction_id: str, *, now=None) -> dict:
+        from snowfall.platform.player_activities import perform_activity
+        return perform_activity(self.store, self.season, player_id, action, item,
+                                day, interaction_id, now or _time())
+
+    def arcade_lobby(self, player_id: int, *, now=None) -> dict:
+        from snowfall.services.social_arcade import SocialArcadeEngine, GAMES, STAMPS, DAILY_GAME_CAP
+        lobby = SocialArcadeEngine(self.store).lobby(self.season, player_id, now or _time())
+        return {**asdict(lobby), "player_id": str(player_id),
+                "games": [asdict(spec) for spec in GAMES.values()],
+                "stamp_labels": STAMPS, "daily_cap": DAILY_GAME_CAP}
+
+    def arcade_session(self, player_id: int, session_id: str, *, now=None) -> dict:
+        from snowfall.services.social_arcade import SocialArcadeEngine
+        return asdict(SocialArcadeEngine(self.store).session(
+            self.season, player_id, session_id, now or _time()))
+
+    def arcade_start(self, player_id: int, mode: str, day: int, attempts_today: int,
+                     *, now=None) -> dict:
+        from snowfall.services.social_arcade import SocialArcadeEngine
+        return asdict(SocialArcadeEngine(self.store).begin(
+            self.season, player_id, mode, now or _time(),
+            expected_day=day, expected_used=attempts_today))
+
+    def arcade_move(self, player_id: int, session_id: str, step: int, choice: str,
+                    interaction_id: str, *, now=None) -> dict:
+        from snowfall.services.social_arcade import SocialArcadeEngine
+        return asdict(SocialArcadeEngine(self.store).move(
+            self.season, player_id, session_id, step, choice, interaction_id,
+            now or _time()))
+
+    def arcade_board(self, player_id: int, mode: str, *, daily=False, now=None) -> dict:
+        from snowfall.services.social_arcade import SocialArcadeEngine
+        engine = SocialArcadeEngine(self.store)
+        now = now or _time()
+        return {"mode": mode, "daily": daily,
+                "players": [{"name": row.name, "city": row.city, "best": row.best,
+                             "games": row.games} for row in engine.leaderboard(
+                                 self.season, player_id, mode, now, daily=daily)],
+                "cities": [asdict(row) for row in engine.city_table(
+                    self.season, player_id, now, daily=daily)]}

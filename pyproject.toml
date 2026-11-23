@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "operation-snowfall"
-version = "2.9.6.post9"
+version = "2.9.7"
 description = "Operation Snowfall event with in-app test days, launch controls and prizes"
 requires-python = ">=3.12"
 dependencies = ["discord.py>=2.6,<3", "Pillow>=11,<13", "python-dotenv>=1,<2"]
@@ -18,7 +18,7 @@ web = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1", "httpx>=0.27,<1"]
 snowfall = "snowfall.app:main"
 
 [tool.setuptools.package-data]
-"snowfall.platform" = ["static/*.html", "static/*.css", "static/*.js", "static/*.svg", "static/*.webp"]
+"snowfall.platform" = ["static/*.html", "static/*.css", "static/*.js", "static/*.svg", "static/*.webp", "static/*.png"]
 "snowfall.graphics" = [
     "art/boss/*.png",
     "art/cities/*.webp",
@@ -39,6 +39,7 @@ snowfall = "snowfall.app:main"
     "art/v290/items/*.png",
     "art/v290/mysteries/*.webp",
     "art/v290/portraits/*.webp",
+    "art/v290/status/v298l/*.webp",
     "art/v290/trophies/awards/*.png",
     "art/v290/trophies/backgrounds/*.png",
     "art/v290/trophies/effects/*.png",
