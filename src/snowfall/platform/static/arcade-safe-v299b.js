@@ -324,9 +324,16 @@ function mount({root,session,start,control,move,refresh,fetchRecord,onExit,
   hudFields:[{key:"time",initial:"90s"},{key:"stage",initial:"Tumbler 1/3"},
    {key:"dial",initial:"Dial 00"},{key:"signal",initial:"TURN"},
    {key:"mistakes",initial:"0 slips"},{key:"score",initial:"0/100"}],
-  extraActions:[{key:"set",label:"SET TUMBLER"},
+  extraActions:[{key:"cw",label:"↻ Clockwise +4"},
+   {key:"ccw",label:"↺ Anticlockwise −4"},
+   {key:"set",label:"SET TUMBLER"},
    {key:"retry",label:"Retry last action"}],
-  onExtraAction:async name=>name==="set"?action("set",0):retry(),
+  onExtraAction:async name=>{
+   if(name==="set")return action("set",0);
+   if(name==="cw")return action("turn",4);
+   if(name==="ccw")return action("turn",-4);
+   return retry();
+  },
   welcome:"Click Start, then drag the outer dial clockwise. Listen for the lock.",
  });
  return {dispose:host.dispose,pause:host.pause,getSnapshot:()=>current,
