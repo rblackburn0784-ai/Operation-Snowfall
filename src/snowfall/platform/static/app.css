@@ -869,34 +869,32 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
 #hqCollector .collector-profile,#fitCollector .collector-profile{
  position:relative;gap:.5rem;min-width:0;align-self:start
 }
+/* v2.9.8i: The selected Market banner is the entire nameplate.
+   No secondary rectangle, border, ornaments or stretched painted backdrop. */
 .collector-profile .collector-banner-well,.rival-appearance .collector-banner-well{
  position:relative;isolation:isolate;display:grid;place-items:center;
  width:100%;min-width:0;aspect-ratio:5/1;margin:0 auto .05rem;
- padding:.24rem .5rem;background:linear-gradient(125deg,#102634,#254053 47%,#102532);
- border:1px solid #bf9b61;border-radius:5px 5px 2px 2px;
- box-shadow:inset 0 0 0 2px #111d28a8,0 4px 12px #0009;
- overflow:hidden
+ padding:0;background:transparent;border:0;border-radius:0;
+ box-shadow:none;overflow:visible
 }
-.collector-banner-well::before,.collector-banner-well::after{
- content:"❧";position:absolute;top:50%;transform:translateY(-50%);
- color:#ddb57a;font-size:clamp(.7rem,2vw,1.4rem);z-index:2;
- pointer-events:none;text-shadow:0 1px 4px #000
-}
-.collector-banner-well::before{left:.45rem}
-.collector-banner-well::after{right:.45rem;transform:translateY(-50%) scaleX(-1)}
+.collector-banner-well::before,.collector-banner-well::after{content:none}
 .collector-banner-well .collector-banner{
  position:absolute;inset:0;width:100%;height:100%;object-fit:contain;
- display:block;opacity:.96;z-index:0;filter:brightness(.8)
+ display:block;opacity:1;z-index:0;filter:none;pointer-events:none
 }
 .collector-banner-well .collector-banner.hidden{display:none!important}
 .collector-banner-name{
- position:relative;z-index:3;display:block;max-width:calc(100% - 2.4rem);
+ position:relative;z-index:3;display:block;width:85%;max-width:85%;
+ min-width:0;padding:0;overflow:hidden;text-overflow:clip;
  font-family:"Palatino Linotype","Book Antiqua","URW Palladio L",Georgia,serif;
  font-style:italic;font-variant:small-caps;
- font-size:clamp(.82rem,2.2vw,1.47rem);font-weight:750;
- letter-spacing:.035em;line-height:1.12;text-align:center;color:#ffe4ad;
+ font-size:clamp(.77rem,1.95vw,1.33rem);font-weight:750;
+ letter-spacing:.01em;line-height:1.12;text-align:center;color:#ffe4ad;
  text-shadow:1px 2px 3px #000,0 0 8px #0c1b29,0 0 4px #000;
- white-space:normal;overflow-wrap:anywhere;text-wrap:balance
+ white-space:nowrap;overflow-wrap:normal;word-break:normal
+}
+.collector-banner-well:not(.has-banner) .collector-banner-name{
+ width:100%;max-width:100%;text-shadow:0 2px 5px #000
 }
 #hqPortraitWell,#fitPortraitWell,#rivalPortraitWell{aspect-ratio:1;isolation:isolate}
 #hqPortraitWell .portrait-layer,#fitPortraitWell .portrait-layer,#rivalPortraitWell .portrait-layer{
@@ -984,5 +982,5 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
  .alley-action-card{padding:.68rem}
  .alley-loadout{padding:.48rem}
  .rival-stage{max-width:200px}
- .collector-banner-well::before,.collector-banner-well::after{font-size:.75rem}
+ /* Original banner art stays unboxed on narrow screens too. */
 }
