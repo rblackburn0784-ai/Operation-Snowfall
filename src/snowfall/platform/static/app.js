@@ -1768,7 +1768,7 @@ function showArcade(){
   const r=records.find(x=>x.mode===g.key)||{},used=Number(r.attempts_today||0),cap=Number(a.daily_cap||3);
   const canResume=!!r.active_id;
   return "<article class='arcade-card'><img src='"+ARCADE_ART[g.key]+"' alt='' loading='lazy'><div><p class='eyebrow'>"+fmt(g.rounds)+" rounds · "+esc(g.award_name)+"</p><h3>"+esc(g.title)+"</h3><p>"+esc(g.description)+"</p><p>Personal best: <strong>"+fmt(r.personal_best)+" / 100</strong> · "+fmt(r.games_played)+" finished</p><p>"+fmt(used)+" / "+fmt(cap)+" starts used today</p>"+arcadeButton("start",g.key,canResume?"Resume game":used>=cap?"Daily limit reached":"Play game",locked||(!canResume&&used>=cap))+
-  arcadeButton("practice",g.key,"Interactive practice · free",S.busy||S.privatePending||!S.privateFresh||!hasPlayIdentity(S.session,S.config))+"</div></article>";
+  arcadeButton("practice",g.key,S.config?.interactive_arcade_enabled?"Interactive practice · free":"Interactive practice · coming soon",!S.config?.interactive_arcade_enabled||S.busy||S.privatePending||!S.privateFresh||!hasPlayIdentity(S.session,S.config))+"</div></article>";
  }).join("");
  const collected=new Set(a.stamps||[]);
  stamps.innerHTML=Object.entries(a.stamp_labels||{}).map(([key,name])=>"<div class='arcade-stamp"+(collected.has(key)?" earned":"")+"'><span>"+(collected.has(key)?"✓":"◇")+"</span> "+esc(name)+"</div>").join("");
