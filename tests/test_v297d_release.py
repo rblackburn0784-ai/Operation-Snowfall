@@ -8,10 +8,10 @@ def test_release_contract_and_artwork():
     root = Path(__file__).resolve().parents[1]
     static = root / "src/snowfall/platform/static"
     assert VERSION == "2.9.7"
-    assert WEB_RELEASE == "2.9.8j"
+    assert WEB_RELEASE == "2.9.8k"
     html = (static / "index.html").read_text(encoding="utf-8")
     assert WEB_RELEASE in html
-    assert "app.css?v=298j" in html and "app.js?v=298j" in html
+    assert "app.css?v=298k" in html and "app.js?v=298k" in html
     for name in ("snowfall-title.png", "snowfall-header-city.webp",
                  "snowfall-city-wallpaper.webp", "snowfall-wire-frontpage.webp"):
         assert (static / name).stat().st_size > 0
