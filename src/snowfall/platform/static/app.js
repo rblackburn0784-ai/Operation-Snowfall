@@ -82,7 +82,7 @@ function cosmeticPlacement(portrait,gear,framed){
  // The worn scarf is tightly cropped transparent art with an opening for the
  // neck. Its top edge starts just below the chin; the hanging tails follow the
  // coat naturally. Catalogue images never use this transform.
- if(gear==="scarf")return {left:point(nx),top:point(ny-2.5),width:size(nw*.9),transform:"translateX(-50%)"};
+ if(gear==="scarf")return {left:point(nx),top:point(ny+3.5),width:size(nw*.9),transform:"translateX(-50%)"};
  if(gear==="boots")return {left:point(7),top:point(67),width:size(26),transform:"none"};
  if(gear==="snow_trail"||gear==="candy_trail")return {left:point(66),top:point(61),width:size(30),transform:"none"};
  return null;
