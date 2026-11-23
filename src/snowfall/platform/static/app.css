@@ -1366,3 +1366,86 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
 @media(prefers-reduced-motion:reduce){
  .arcade-hub-card{transition:none}
 }
+
+
+/* v2.9.9g — shared Arcade atmosphere, accessible controls and readable guidance.
+   These are view-only styles, with an explicit reduced-motion path. */
+.arcade-training{position:relative;isolation:isolate;overflow:hidden}
+.arcade-training::before{
+ content:"";position:absolute;inset:0 0 auto;height:4px;pointer-events:none;z-index:0;
+ background:linear-gradient(90deg,transparent,#b9e5e2 18%,#edcea0 53%,#b9e5e2 82%,transparent);
+ opacity:.65;
+}
+.arcade-training-head,.arcade-training-status,.arcade-training-canvas,
+.arcade-training-controls,.arcade-training-feedback,.arcade-scene-phase{
+ position:relative;z-index:1;
+}
+.arcade-scene-guide{border:1px solid #658b95;background:#0e2938;
+ padding:.1rem .68rem;border-radius:8px;margin-top:.7rem;max-width:75ch;
+ color:#d8eaf1}
+.arcade-scene-guide summary{padding:.55rem .25rem;min-height:40px;
+ font-size:.85rem;font-weight:700;cursor:pointer;color:#f2dba9;
+ list-style-position:inside}
+.arcade-scene-guide summary:focus-visible{outline:3px solid #f6daa5;outline-offset:3px}
+.arcade-scene-guide ol{padding:.25rem .6rem .5rem 1.65rem;margin:.1rem 0;
+ font-size:.83rem;line-height:1.58}
+.arcade-scene-guide li+li{margin-top:.25rem}
+.arcade-scene-phase{border:1px solid #557c81;border-radius:8px;
+ margin:.4rem 0 .6rem;padding:.5rem .7rem;min-height:39px;
+ background:linear-gradient(110deg,#103947,#1f4548);color:#d5f3e9;
+ font-weight:650;font-size:.83rem;letter-spacing:.005em}
+.arcade-scene-phase.arcade-urgent{
+ border-color:#d1a65b;background:linear-gradient(100deg,#5c3b2c,#473b35);
+ color:#ffe0a2;
+}
+.arcade-scene-phase.arcade-critical{
+ border-color:#e9a4a0;background:#5d2c38;color:#ffe1d8;
+}
+.arcade-training-controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+ gap:.5rem;margin-top:.7rem}
+.arcade-training-controls .button{min-height:49px;min-width:0;
+ margin:0;white-space:normal;overflow-wrap:anywhere;
+ font-size:.8rem;line-height:1.35;padding:.55rem .43rem;
+ touch-action:manipulation}
+.arcade-training-controls button[data-scene="start"]{grid-column:span 2}
+.arcade-training-controls button[data-scene="finish"]{border-color:#a88680}
+.arcade-training-controls button[data-scene="finish"]:focus-visible,
+.arcade-training-controls button[data-scene="effects"]:focus-visible,
+.arcade-training-controls button[data-scene="contrast"]:focus-visible{
+ outline:3px solid #f7d9a4;outline-offset:3px;
+}
+.arcade-training-controls button[aria-pressed="true"]{
+ border-color:#96d7c4;background:#19483f;color:#ebf7ee;font-weight:800
+}
+.arcade-high-contrast .arcade-training-canvas{
+ filter:brightness(1.12) contrast(1.22) saturate(1.1);
+ outline:2px solid #fbefa7;outline-offset:2px
+}
+.arcade-high-contrast .arcade-gallery-hud span{
+ background:#061824;border:1px solid #f1d8a0;color:#fff3d7;font-weight:750
+}
+.arcade-high-contrast .arcade-scene-guide,.arcade-high-contrast .arcade-scene-phase{
+ background:#071c2b;border-color:#f1d8a0;color:#ffffff
+}
+@media(max-width:800px){
+ .arcade-training-controls{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .arcade-training-controls button[data-scene="start"]{grid-column:span 2}
+}
+@media(max-width:520px){
+ .arcade-training-controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .arcade-training-controls .button{min-height:50px;font-size:.78rem}
+ .arcade-training-head{gap:.55rem}
+ .arcade-scene-guide{width:100%}
+ .arcade-scene-phase{font-size:.77rem}
+}
+@media(max-width:380px){
+ .arcade-training-controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .arcade-training-controls button[data-scene="start"]{grid-column:span 2}
+ .arcade-training-controls button[data-scene="finish"]{grid-column:span 2}
+}
+@media(prefers-reduced-motion:reduce){
+ .arcade-training::before{opacity:.35}
+ .arcade-training *, .arcade-training *::before, .arcade-training *::after{
+  animation:none!important;transition:none!important
+ }
+}
