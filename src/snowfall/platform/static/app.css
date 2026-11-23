@@ -1165,3 +1165,23 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
  .arcade-full-gallery .arcade-training-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
  .arcade-full-gallery .arcade-training-controls button{font-size:.8rem;min-height:48px;padding:.5rem .25rem}
 }
+
+
+/* v2.9.9b — tactile safe dial in the shared 16:9 Winter Arcade stage. */
+.arcade-full-safe{border:2px solid #b59668;background:linear-gradient(155deg,#1b3549,#0d2030)}
+.arcade-full-safe .arcade-training-canvas{max-width:960px;border:3px solid #c7a471;cursor:grab;touch-action:none;overscroll-behavior:contain}
+.arcade-full-safe .arcade-training-canvas:active{cursor:grabbing}
+.arcade-full-safe .arcade-gallery-hud{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.45rem}
+.arcade-full-safe .arcade-gallery-hud span{display:block;text-align:center;padding:.55rem .35rem;overflow-wrap:anywhere}
+.arcade-full-safe [data-scene='set']{background:linear-gradient(140deg,#e6c68b,#aa7d43);color:#1a2c37;border:2px solid #f0d7a3;font-weight:700}
+.arcade-full-safe [data-scene='set']:focus-visible{outline:3px solid #fff2c6;outline-offset:4px}
+.arcade-full-safe .arcade-training-controls button{min-height:48px}
+@media(max-width:700px){
+ .arcade-full-safe .arcade-gallery-hud{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .arcade-full-safe .arcade-training-canvas{border-width:2px}
+}
+@media(max-width:420px){
+ .arcade-full-safe .arcade-gallery-hud span{font-size:.74rem;padding:.4rem .2rem}
+ .arcade-full-safe .arcade-training-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .arcade-full-safe .arcade-training-controls button{font-size:.8rem;min-height:48px;padding:.5rem .25rem}
+}
