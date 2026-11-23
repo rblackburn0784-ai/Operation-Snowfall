@@ -16,6 +16,7 @@ from snowfall.platform.gallery_arcade import install_gallery_schema
 from snowfall.platform.safecracker_arcade import install_safe_schema
 from snowfall.platform.snowman_arcade import install_snowman_schema
 from snowfall.platform.catch_arcade import install_catch_schema
+from snowfall.platform.trivia_arcade import install_trivia_schema
 
 
 def main() -> None:
@@ -49,7 +50,8 @@ def main() -> None:
         install_safe_schema(con)
         install_snowman_schema(con)
         install_catch_schema(con)
-    print("Installed v2.9.9–v2.9.9d web-only arcade tables in web-qa-2026.")
+        install_trivia_schema(con)
+    print("Installed v2.9.9–v2.9.9e web-only arcade tables in web-qa-2026.")
 
 
 if __name__ == "__main__":
