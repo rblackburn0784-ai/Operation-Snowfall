@@ -7,7 +7,7 @@ import {fileURLToPath} from "node:url";
 import vm from "node:vm";
 
 const root=fileURLToPath(new URL("../src/snowfall/platform/static/",import.meta.url));
-const app=readFileSync(path.join(root,"app.js"),"utf8");
+const app=readFileSync(path.join(root,"app.js"),"utf8").replace(/\r\n/g,"\n");
 const html=readFileSync(path.join(root,"index.html"),"utf8");
 const hub=readFileSync(path.join(root,"arcade-hub-v299f.js"),"utf8");
 const scripts=[
