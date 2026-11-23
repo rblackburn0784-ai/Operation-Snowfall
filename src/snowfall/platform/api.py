@@ -174,6 +174,19 @@ class SafecrackerControlBody(BaseModel):
     action: Literal["pause", "resume", "finish"]
 
 
+class SnowmanPlaceBody(BaseModel):
+    session_id: str = Field(pattern=r"^[a-f0-9]{32}$")
+    action_seq: int = Field(ge=0, le=119)
+    piece_id: str = Field(pattern=r"^[a-z_]{3,24}$")
+    x: int = Field(ge=0, le=640)
+    y: int = Field(ge=0, le=360)
+
+
+class SnowmanControlBody(BaseModel):
+    session_id: str = Field(pattern=r"^[a-f0-9]{32}$")
+    action: Literal["pause", "resume", "finish"]
+
+
 class OAuthStart(BaseModel):
     mode: Literal["login", "link"] = "login"
 
@@ -768,6 +781,46 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         safecracker_enabled()
         response.headers["Cache-Control"] = "no-store"
         return jsonable_encoder(shared.safe_record(principal))
+
+    def snowman_enabled():
+        if os.environ.get("SNOWFALL_ARCADE_V299C_ENABLED", "") != "1":
+            raise HTTPException(503, "Snowman Builder is not enabled on this server")
+
+    @app.post("/v1/game/arcade/snowman/start")
+    def arcade_snowman_start(principal: int = Depends(game_writer)):
+        snowman_enabled()
+        return jsonable_encoder(shared.snowman_start(principal))
+
+    @app.get("/v1/game/arcade/snowman/session/{session_id}")
+    def arcade_snowman_session(session_id: str, response: Response,
+                               principal: int = Depends(player)):
+        snowman_enabled()
+        response.headers["Cache-Control"] = "no-store"
+        if not re.fullmatch(r"[a-f0-9]{32}", session_id):
+            raise HTTPException(400, "Invalid Snowman Builder session")
+        return jsonable_encoder(shared.snowman_session(principal, session_id))
+
+    @app.post("/v1/game/arcade/snowman/control")
+    def arcade_snowman_control(body: SnowmanControlBody,
+                               principal: int = Depends(game_writer)):
+        snowman_enabled()
+        return jsonable_encoder(shared.snowman_control(
+            principal, body.session_id, body.action))
+
+    @app.post("/v1/game/arcade/snowman/place")
+    def arcade_snowman_place(body: SnowmanPlaceBody,
+                             idempotency_key: str | None = Header(default=None),
+                             principal: int = Depends(game_writer)):
+        snowman_enabled()
+        return jsonable_encoder(shared.snowman_place(
+            principal, body.session_id, body.action_seq, body.piece_id, body.x, body.y,
+            _idempotency(principal, "snowman:place", idempotency_key)))
+
+    @app.get("/v1/game/arcade/snowman/record")
+    def arcade_snowman_record(response: Response, principal: int = Depends(player)):
+        snowman_enabled()
+        response.headers["Cache-Control"] = "no-store"
+        return jsonable_encoder(shared.snowman_record(principal))
 
     @app.get("/v1/game/arcade/board")
     def arcade_board(response: Response,
