@@ -25,7 +25,7 @@ test("all seven arcade scripts are bundled, loaded once, and fresh for v2.9.9h",
  assert.ok(html.indexOf("arcade-v299.js")<html.indexOf("arcade-gallery-v299a.js"));
  assert.ok(html.indexOf("arcade-v299.js")<html.indexOf("arcade-hub-v299f.js"));
  assert.match(hub,/Classic Arcade/);
- assert.match(app,//v1/game/arcade/move/); // Discord Classic preserved
+ assert.ok(app.includes("/v1/game/arcade/move")); // Discord Classic preserved
 });
 test("every full game rejects late AJAX updates and onExit from old owner epoch",()=>{
  for(const mode of ["Gallery","Safe","Snowman","Catch","Trivia"]){
