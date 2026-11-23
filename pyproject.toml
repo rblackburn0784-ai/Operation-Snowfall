@@ -39,6 +39,7 @@ snowfall = "snowfall.app:main"
     "art/v290/items/*.png",
     "art/v290/mysteries/*.webp",
     "art/v290/portraits/*.webp",
+    "art/v290/status/v298l/*.webp",
     "art/v290/trophies/awards/*.png",
     "art/v290/trophies/backgrounds/*.png",
     "art/v290/trophies/effects/*.png",
