@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[1] / "src/snowfall/platform/static"
 def test_live_chat_uses_guarded_third_party_frame():
     html = (ROOT/"index.html").read_text(encoding="utf-8")
     js = (ROOT/"app.js").read_text(encoding="utf-8")
-    assert WEB_RELEASE == "2.9.9d"
+    assert WEB_RELEASE == "2.9.9e"
     assert 'id="streetsChatFrame"' in html
     assert 'referrerpolicy="no-referrer"' in html
     assert 'id="streetsChatEnable"' in html
