@@ -11,7 +11,7 @@ const js=readFileSync(path.join(root,"app.js"),"utf8");
 const html=readFileSync(path.join(root,"index.html"),"utf8");
 
 test("nameplate uses only the chosen banner artwork without a second box",()=>{
- const start=css.indexOf("/* v2.9.8i:");
+ const start=css.indexOf("/* v2.9.8j:");
  assert.ok(start>0);
  const portion=css.slice(start,css.indexOf("#hqPortraitWell",start));
  assert.match(portion,/background:transparent;border:0;border-radius:0;/);
@@ -27,7 +27,7 @@ test("nameplate uses only the chosen banner artwork without a second box",()=>{
 });
 
 test("names never wrap and resize is handled across all three previews",()=>{
- const start=css.indexOf("/* v2.9.8i:");
+ const start=css.indexOf("/* v2.9.8j:");
  const portion=css.slice(start,css.indexOf("#hqPortraitWell",start));
  assert.match(portion,/white-space:nowrap;overflow-wrap:normal;word-break:normal/);
  assert.match(js,/function fitVisibleBannerNames\(\)/);
@@ -69,6 +69,6 @@ test("the snapshot label renders text, never player-supplied HTML",()=>{
  assert.match(js,/txt\(prefix\+"BannerText",displayName\)/);
  assert.doesNotMatch(js,/innerHTML\s*=\s*displayName/);
  assert.match(html,/snowfall-web-release" content="2\.9\.8i"/);
- assert.match(html,/app\.css\?v=298i/);
- assert.match(html,/app\.js\?v=298i/);
+ assert.match(html,/app\.css\?v=298j/);
+ assert.match(html,/app\.js\?v=298j/);
 });
