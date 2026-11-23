@@ -1,4 +1,4 @@
-"""Web-only visual layout checks for the requested Resource Card Layout Fixes."""
+// Web-only visual layout checks for the requested Resource Card Layout Fixes.
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {test} from "node:test";
