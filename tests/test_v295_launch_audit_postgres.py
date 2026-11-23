@@ -18,6 +18,12 @@ from snowfall.platform.api import APISettings, create_app
 from snowfall.platform.game import SharedGame
 from snowfall.platform.identity import IdentityRepository
 from snowfall.platform.launch_audit import ReadinessError, audit_qa_database
+from snowfall.platform.arcade_readiness import audit_arcade_qa, require_arcade_schema
+from snowfall.platform.gallery_arcade import install_gallery_schema
+from snowfall.platform.safecracker_arcade import install_safe_schema
+from snowfall.platform.snowman_arcade import install_snowman_schema
+from snowfall.platform.catch_arcade import install_catch_schema
+from snowfall.platform.trivia_arcade import install_trivia_schema
 from snowfall.platform.release import VERSION
 from snowfall.platform.staging import STAGING_PROJECT, StagingGame, _source_snapshot
 from snowfall.platform.unified_discord import QA_SEASON
@@ -80,6 +86,39 @@ def test_staging_qa_readiness_and_audit_gate(tmp_path, monkeypatch):
         assert audit["orphan_resources"] == 0
         assert audit["status"] in ("ready", "ready_with_warnings")
 
+        # v2.9.9h — real PostgreSQL QA activation must fail closed until
+        # all explicitly enabled independent arcade schemas are installed.
+        flags = {
+            "SNOWFALL_API_SEASON_KEY": QA_SEASON,
+            "SNOWFALL_ARCADE_V299A_ENABLED": "1",
+            "SNOWFALL_ARCADE_V299B_ENABLED": "1",
+            "SNOWFALL_ARCADE_V299C_ENABLED": "1",
+            "SNOWFALL_ARCADE_V299D_ENABLED": "1",
+            "SNOWFALL_ARCADE_V299E_ENABLED": "1",
+            "SNOWFALL_ARCADE_V299F_ENABLED": "1",
+        }
+        missing = audit_arcade_qa(dsn, env=flags)
+        assert missing["status"] == "blocked"
+        assert missing["enabled_modes"] == [
+            "gallery", "safe", "snowman", "catch", "trivia"]
+        with pytest.raises(ValueError, match="activation refused"):
+            require_arcade_schema(dsn, env=flags)
+        with store.connect() as con:
+            for installer in (
+                install_gallery_schema, install_safe_schema,
+                install_snowman_schema, install_catch_schema,
+                install_trivia_schema,
+            ):
+                installer(con)
+        verified = audit_arcade_qa(dsn, env=flags)
+        assert verified["status"] in ("ready", "ready_with_warnings")
+        assert all(m["schema_ready"] for m in verified["modes"])
+        assert all(m["sessions"] == 0 for m in verified["modes"])
+        require_arcade_schema(dsn, env=flags)
+        with store.connect() as con:
+            assert con.execute("SELECT COUNT(*) FROM score_ledger").fetchone()[0] == 0
+            assert con.execute("SELECT COUNT(*) FROM social_arcade_runs").fetchone()[0] == 0
+
         cfg = APISettings(database_url=dsn, season_key=QA_SEASON,
                           public_base_url="https://qa.local", underworld_secret="qa-fake-secret")
         with TestClient(create_app(cfg, identity=identity, game=game),
@@ -111,6 +150,9 @@ def test_staging_qa_readiness_and_audit_gate(tmp_path, monkeypatch):
                 season_key,place,discord_user_id,mr_username,city,points,reward,status)
                 VALUES (%s,1,%s,%s,'Chicago',5,'QA_TEST_SHOULD_NOT_PAY','pending')""",
                 (QA_SEASON, principal, "AuditSnowDude"))
+        arcade_blocked = audit_arcade_qa(dsn, env=flags)
+        assert arcade_blocked["status"] == "blocked"
+        assert "Base QA launch audit reports blockers" in arcade_blocked["blockers"]
         blocked = audit_qa_database(dsn)
         assert blocked["status"] == "blocked"
         assert blocked["prize_awards"] == 1
