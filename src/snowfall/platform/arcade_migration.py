@@ -1,4 +1,4 @@
-"""Install the independent v2.9.9 practice table into isolated QA PostgreSQL.
+"""Install independent v2.9.9/v2.9.9a arcade tables into isolated QA PostgreSQL.
 
 Never runs at app startup. Run only against a verified STAGING database:
     python -m snowfall.platform.arcade_migration --confirm WEB_QA_ONLY
@@ -9,6 +9,7 @@ import argparse
 import os
 
 from snowfall.platform.interactive_arcade import install_practice_schema
+from snowfall.platform.gallery_arcade import install_gallery_schema
 
 
 def main() -> None:
@@ -31,7 +32,8 @@ def main() -> None:
         if not season:
             parser.error("No web-qa-2026 season found; refusing to install")
         install_practice_schema(con)
-    print("Installed v2.9.9 web practice schema in web-qa-2026 (no gameplay migration).")
+        install_gallery_schema(con)
+    print("Installed v2.9.9 + v2.9.9a web-only arcade tables in web-qa-2026.")
 
 
 if __name__ == "__main__":
