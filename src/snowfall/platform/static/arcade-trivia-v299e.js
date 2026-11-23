@@ -380,6 +380,13 @@ function mount({root,session,start,control,answer,refresh,fetchRecord,
  }
  host=global.SnowfallArcadeV299.mountScene({
   root,title:"Christmas Trivia",
+  guide:[
+   "Five questions per round across Snowy Warmup, Workshop Rush and North Pole Finale; each new round is faster.",
+   "Wrapped presents: tap a gift or press 1–4. True/False: tap a card or press 1 for True, 2 for False.",
+   "Letter Lock: tap numbered letter tiles in order, or use keyboard 1–9. Backspace undoes a tile; Escape clears; Enter checks.",
+   "Speed and consecutive correct answers earn extra practice points. Wrong answers and timeouts reset the streak.",
+   "The server owns the countdown, answer key and score. Pause to save your place; you can review solutions after answering.",
+  ],
   canvasLabel:"Christmas Trivia interactive quiz. Tap an answer card, or use keys 1 to 4 and Enter. For scrambled words, choose numbered letter tiles, use Backspace to undo, and Enter to submit.",
   help:"Unwrap mystery presents, decide True or False, and arrange scrambled letters. Fifteen timed questions over three rising difficulty levels. Correct streaks and quick thinking earn practice points.",
   getStatus:()=>state.status,getHud:hud,draw,
