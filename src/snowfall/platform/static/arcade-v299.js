@@ -271,5 +271,179 @@ function mount({root,session,save,onExit}){
  raf=global.requestAnimationFrame(tick);
  return {dispose,pause:()=>{running=false;void checkpoint(false)},save:checkpoint};
 }
-global.SnowfallArcadeV299=Object.freeze({mount,modes:Object.freeze(Object.keys(MODES))});
+
+/* Shared scene host: reusable for the full Gallery and later Safecracker,
+   Snowman, Catch and Trivia. Gameplay/validation remain in mode controllers. */
+function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
+                     onFinish,onShot,onExit,onTick}){
+ if(!root||typeof draw!=="function"||typeof onShot!=="function")
+  throw Error("Invalid arcade scene");
+ let disposed=false,busy=false,shotBusy=false,muted=true,audio=null,frame=0;
+ let lastHud=0,lastTick=0,aim={x:320,y:182},particles=[];
+ const safe=s=>String(s).replace(/[&<>"']/g,ch=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+ root.classList.remove("hidden");
+ root.innerHTML="<div class='arcade-training-head'><div>"+
+  "<p class='eyebrow'>WINTER ARCADE 2.0 · SKILL GAME · UNRANKED QA</p>"+
+  "<h3>"+safe(title)+"</h3><p>"+safe(help)+"</p></div>"+
+  "<button type='button' class='button button-outline' data-scene='exit'>Save & close</button></div>"+
+  "<div class='arcade-training-status arcade-gallery-hud' aria-live='off'>"+
+  "<span data-scene-label='time'>45s</span><span data-scene-label='wave'>Wave 1/3</span>"+
+  "<span data-scene-label='score'>0/100</span><span data-scene-label='ammo'>32 balls</span>"+
+  "<span data-scene-label='combo'>0 streak</span><span data-scene-label='accuracy'>0% accurate</span></div>"+
+  "<canvas class='arcade-training-canvas' width='640' height='360' tabindex='0' "+
+  "aria-label='"+safe(title)+"; move the crosshair with pointer or arrows and throw with touch, click, Space or Enter'></canvas>"+
+  "<p class='arcade-training-feedback' role='status' aria-live='polite'></p>"+
+  "<div class='arcade-training-controls'>"+
+  "<button type='button' class='button button-gold' data-scene='start'>Start / resume</button>"+
+  "<button type='button' class='button button-outline' data-scene='pause'>Pause</button>"+
+  "<button type='button' class='button button-outline' data-scene='sound' aria-pressed='false'>Sound off</button>"+
+  "<button type='button' class='button button-outline' data-scene='finish'>End run</button></div>";
+ const canvas=root.querySelector("canvas"),ctx=canvas.getContext("2d");
+ if(!ctx)throw Error("Canvas 2D support required.");
+ const message=root.querySelector(".arcade-training-feedback");
+ const button=name=>root.querySelector("[data-scene='"+name+"']");
+ const label=name=>root.querySelector("[data-scene-label='"+name+"']");
+ const playable=()=>getStatus()==="active";
+ function feedback(text){if(message.textContent!==text)message.textContent=text}
+ function sound(ok=true){
+  if(muted)return;
+  try{
+   const C=global.AudioContext||global.webkitAudioContext;
+   if(!C)return;
+   audio=audio||new C();
+   const oscillator=audio.createOscillator(),gain=audio.createGain();
+   const time=audio.currentTime;
+   oscillator.type=ok?"triangle":"square";
+   oscillator.frequency.setValueAtTime(ok?740:210,time);
+   oscillator.frequency.exponentialRampToValueAtTime(ok?1060:110,time+.1);
+   gain.gain.setValueAtTime(.025,time);
+   gain.gain.exponentialRampToValueAtTime(.001,time+.14);
+   oscillator.connect(gain);gain.connect(audio.destination);
+   oscillator.start(time);oscillator.stop(time+.15);
+  }catch{}
+ }
+ function mouse(event){
+  const b=canvas.getBoundingClientRect();
+  const x=Math.min(640,Math.max(0,(event.clientX-b.left)*640/b.width));
+  const y=Math.min(360,Math.max(0,(event.clientY-b.top)*360/b.height));
+  return {x:Math.round(x),y:Math.round(y)};
+ }
+ async function act(fn,action){
+  if(busy||disposed)return;
+  busy=true;
+  try{await fn();feedback(getHud().feedback||"Ready.")}
+  catch(e){feedback((action||"Action")+" failed: "+(e.message||"Refresh and retry."))}
+  finally{busy=false;updateHud()}
+ }
+ async function shoot(){
+  if(!playable()||shotBusy||busy||disposed)return;
+  shotBusy=true;
+  const x=Math.round(aim.x),y=Math.round(aim.y);
+  try{
+   const outcome=await onShot({x,y});
+   const ok=outcome?.outcome==="hit"||outcome?.outcome==="gold";
+   particles.push({x,y,until:performance.now()+330,ok});
+   sound(ok);
+   feedback(outcome?.feedback||"Snowball thrown.");
+  }catch(e){feedback("Shot not confirmed: "+(e.message||"check your connection"))}
+  finally{shotBusy=false;updateHud()}
+ }
+ function pointer(event){
+  aim=mouse(event);
+  if(event.type==="pointerdown"){
+   canvas.focus();
+   if(playable())void shoot();
+   event.preventDefault();
+  }
+ }
+ function keyboard(event){
+  const step=event.shiftKey?22:12;
+  if(event.key==="ArrowLeft")aim.x=Math.max(0,aim.x-step);
+  else if(event.key==="ArrowRight")aim.x=Math.min(640,aim.x+step);
+  else if(event.key==="ArrowUp")aim.y=Math.max(0,aim.y-step);
+  else if(event.key==="ArrowDown")aim.y=Math.min(360,aim.y+step);
+  else if(event.key===" "||event.key==="Enter")void shoot();
+  else return;
+  event.preventDefault();
+ }
+ function updateHud(){
+  if(disposed)return;
+  const values=getHud()||{};
+  for(const key of ["time","wave","score","ammo","combo","accuracy"]){
+   const node=label(key);
+   if(node&&values[key]!==undefined)node.textContent=String(values[key]);
+  }
+  button("start").disabled=busy||shotBusy;
+  button("start").textContent=getStatus()==="finished"?"Play again":playable()?"Playing":"Start / resume";
+  button("pause").disabled=busy||shotBusy||!playable();
+  button("finish").disabled=busy||shotBusy||getStatus()==="finished";
+ }
+ function tick(time){
+  if(disposed)return;
+  try{
+   draw(ctx,{time,aim,reduced:reduced(),width:640,height:360});
+   particles=particles.filter(p=>p.until>time);
+   for(const p of particles){
+    ctx.save();
+    const r=7+(.33-(p.until-time)/1000)*55;
+    ctx.globalAlpha=Math.max(0,(p.until-time)/330);
+    ctx.strokeStyle=p.ok?"#ffdd83":"#f2f7ff";
+    ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(p.x,p.y,Math.max(4,r),0,Math.PI*2);ctx.stroke();
+    ctx.restore();
+   }
+   // The crosshair never intercepts the pointer/touch targets.
+   ctx.strokeStyle="#f8e8cc";ctx.lineWidth=2;
+   ctx.beginPath();ctx.arc(aim.x,aim.y,17,0,Math.PI*2);
+   ctx.moveTo(aim.x-25,aim.y);ctx.lineTo(aim.x-9,aim.y);
+   ctx.moveTo(aim.x+9,aim.y);ctx.lineTo(aim.x+25,aim.y);
+   ctx.moveTo(aim.x,aim.y-25);ctx.lineTo(aim.x,aim.y-9);
+   ctx.moveTo(aim.x,aim.y+9);ctx.lineTo(aim.x,aim.y+25);ctx.stroke();
+   if(time-lastHud>=250){lastHud=time;updateHud()}
+   if(time-lastTick>=900){lastTick=time;onTick?.()}
+  }catch(e){feedback("Drawing error: "+(e.message||"try reloading."))}
+  frame=global.requestAnimationFrame(tick);
+ }
+ function controls(event){
+  const node=event.target.closest("button[data-scene]");
+  if(!node||disposed)return;
+  const cmd=node.dataset.scene;
+  if(cmd==="start")void act(onStart,"Start");
+  if(cmd==="pause")void act(onPause,"Pause");
+  if(cmd==="finish")void act(onFinish,"Finish");
+  if(cmd==="sound"){
+   muted=!muted;node.textContent="Sound "+(muted?"off":"on");
+   node.setAttribute("aria-pressed",String(!muted));
+   if(!muted)sound();
+  }
+  if(cmd==="exit")void act(async()=>{
+   await onExit();dispose();
+  },"Close");
+ }
+ function visibility(){
+  if(global.document.hidden&&playable())void act(onPause,"Pause");
+ }
+ function dispose(){
+  if(disposed)return;disposed=true;
+  global.cancelAnimationFrame(frame);
+  canvas.removeEventListener("pointerdown",pointer);
+  canvas.removeEventListener("pointermove",pointer);
+  canvas.removeEventListener("keydown",keyboard);
+  root.removeEventListener("click",controls);
+  global.document.removeEventListener("visibilitychange",visibility);
+  try{audio?.close()}catch{}
+ }
+ canvas.addEventListener("pointerdown",pointer);
+ canvas.addEventListener("pointermove",pointer);
+ canvas.addEventListener("keydown",keyboard);
+ root.addEventListener("click",controls);
+ global.document.addEventListener("visibilitychange",visibility);
+ feedback("Ready to enter the gallery. Aim with mouse, touch or arrow keys.");
+ updateHud();
+ frame=global.requestAnimationFrame(tick);
+ return {dispose,pause:()=>act(onPause,"Pause"),update:updateHud,setFeedback:feedback};
+}
+
+global.SnowfallArcadeV299=Object.freeze({mount,mountScene,modes:Object.freeze(Object.keys(MODES))});
 })(window);
