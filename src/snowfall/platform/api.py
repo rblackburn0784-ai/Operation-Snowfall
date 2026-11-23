@@ -139,6 +139,17 @@ class ArcadeTurn(BaseModel):
     choice: str = Field(min_length=1, max_length=96)
 
 
+class ArcadePracticeStart(BaseModel):
+    mode: Literal["gallery", "safe", "snowman", "catch", "trivia"]
+
+
+class ArcadePracticeCheckpoint(BaseModel):
+    session_id: str = Field(pattern=r"^[a-f0-9]{32}$")
+    revision: int = Field(ge=0, le=10000)
+    state: dict[str, int | float]
+    finish: bool = False
+
+
 class OAuthStart(BaseModel):
     mode: Literal["login", "link"] = "login"
 
@@ -623,6 +634,27 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         return jsonable_encoder(shared.arcade_move(
             principal, body.session_id, body.step, body.choice,
             _idempotency(principal, "arcade:move", idempotency_key)))
+
+    # v2.9.9: isolated web-only training sessions. No leaderboard, award,
+    # paid resource, or Discord social_arcade table is modified by these.
+    @app.post("/v1/game/arcade/practice/start")
+    def arcade_practice_start(body: ArcadePracticeStart,
+                              principal: int = Depends(game_writer)):
+        return jsonable_encoder(shared.arcade_practice_start(principal, body.mode))
+
+    @app.get("/v1/game/arcade/practice/session/{session_id}")
+    def arcade_practice_session(session_id: str, response: Response,
+                                principal: int = Depends(player)):
+        response.headers["Cache-Control"] = "no-store"
+        if not re.fullmatch(r"[a-f0-9]{32}", session_id):
+            raise HTTPException(400, "Invalid practice session")
+        return jsonable_encoder(shared.arcade_practice_session(principal, session_id))
+
+    @app.post("/v1/game/arcade/practice/save")
+    def arcade_practice_save(body: ArcadePracticeCheckpoint,
+                             principal: int = Depends(game_writer)):
+        return jsonable_encoder(shared.arcade_practice_save(
+            principal, body.session_id, body.revision, body.state, finish=body.finish))
 
     @app.get("/v1/game/arcade/board")
     def arcade_board(response: Response,
