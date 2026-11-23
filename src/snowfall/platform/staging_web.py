@@ -386,6 +386,10 @@ def create_staging_app(env=None) -> FastAPI:
     identities = IdentityRepository(qa_url)
     store = PostgresStore(qa_url, practice_root=Path.cwd())
     shared = StagingGame(SharedGame(store, cfg.season_key))
+    # v2.9.9h: enabled QA-only modes must not serve a half-migrated database.
+    # Explicit migration remains manual; this check never installs tables.
+    from snowfall.platform.arcade_readiness import require_arcade_schema
+    require_arcade_schema(qa_url, env=env)
     # An aggregate, isolated-QA-only check. Never expose DSNs, player names,
     # IDs or exceptions. Keep readiness independent from audit reporting.
     from snowfall.platform.launch_audit import audit_qa_database
