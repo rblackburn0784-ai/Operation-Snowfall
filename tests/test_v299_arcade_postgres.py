@@ -13,6 +13,7 @@ from snowfall.platform.gallery_arcade import GalleryEngine, install_gallery_sche
 from snowfall.platform.safecracker_arcade import SafecrackerEngine, install_safe_schema
 from snowfall.platform.snowman_arcade import SnowmanBuilderEngine, install_snowman_schema
 from snowfall.platform.catch_arcade import SnowflakeCatchEngine, install_catch_schema
+from snowfall.platform.trivia_arcade import ChristmasTriviaEngine, install_trivia_schema
 
 SEASON = "web-qa-2026"
 START = datetime(2026, 12, 20, 18, tzinfo=timezone.utc)
@@ -50,6 +51,7 @@ def test_additive_practice_table_runs_on_real_postgres_without_game_schema_chang
             install_safe_schema(con)
             install_snowman_schema(con)
             install_catch_schema(con)
+            install_trivia_schema(con)
         pg.initialize()  # Existing canonical version stays unchanged.
         arcade = InteractiveArcadePractice(pg, SEASON)
         run = arcade.start(101, "gallery", now=START)
@@ -152,6 +154,32 @@ def test_additive_practice_table_runs_on_real_postgres_without_game_schema_chang
                 "SELECT COUNT(*) FROM web_arcade_catch_actions").fetchone()[0] == 1
             assert con.execute("SELECT COUNT(*) FROM social_arcade_runs").fetchone()[0] == 0
             assert con.execute("SELECT COUNT(*) FROM score_ledger").fetchone()[0] == 0
+        trivia = ChristmasTriviaEngine(pg, SEASON)
+        quiz = trivia.start(101, now=START)
+        assert quiz["status"] == "paused" and quiz["total_questions"] == 15
+        assert "correct" not in quiz["question"]
+        assert trivia.control(101, quiz["session_id"], "resume",
+                              now=START+timedelta(milliseconds=100))["status"] == "active"
+        good = next(p for p in quiz["question"]["options"]
+                    if p == "Reindeer") if "Reindeer" in quiz["question"]["options"] else quiz["question"]["options"][0]
+        answered = trivia.answer(101, quiz["session_id"], 0, good,
+                                 "trivia-pg-answer-00001",
+                                 now=START+timedelta(milliseconds=700))
+        assert answered["step"] == 1 and answered["last_answer"]["verdict"] in (
+            "correct", "wrong")
+        assert trivia.answer(101, quiz["session_id"], 0, good,
+                             "trivia-pg-answer-00001",
+                             now=START+timedelta(milliseconds=1000))["repeated"]
+        assert trivia.control(101, quiz["session_id"], "pause",
+                              now=START+timedelta(seconds=2))["status"] == "paused"
+        assert trivia.session(101, quiz["session_id"],
+                              now=START+timedelta(seconds=8))["step"] == 1
+        with pg.connect() as con:
+            assert con.execute("SELECT COUNT(*) FROM web_arcade_trivia_sessions").fetchone()[0] == 1
+            assert con.execute("SELECT COUNT(*) FROM web_arcade_trivia_answers").fetchone()[0] == 1
+            assert con.execute("SELECT COUNT(*) FROM social_arcade_runs").fetchone()[0] == 0
+            assert con.execute("SELECT COUNT(*) FROM score_ledger").fetchone()[0] == 0
+
 
 
 
