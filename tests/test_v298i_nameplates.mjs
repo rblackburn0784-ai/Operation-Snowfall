@@ -70,7 +70,7 @@ test("long usernames shrink to their measured width and refit on resize",()=>{
 test("the snapshot label renders text, never player-supplied HTML",()=>{
  assert.match(js,/txt\(prefix\+"BannerText",displayName\)/);
  assert.doesNotMatch(js,/innerHTML\s*=\s*displayName/);
- assert.match(html,/snowfall-web-release" content="2\.9\.8k"/);
- assert.match(html,/app\.css\?v=298k/);
- assert.match(html,/app\.js\?v=298k/);
+ assert.match(html,/snowfall-web-release" content="2\.9\.8l"/);
+ assert.match(html,/app\.css\?v=298l/);
+ assert.match(html,/app\.js\?v=298l/);
 });

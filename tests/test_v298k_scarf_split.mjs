@@ -76,13 +76,13 @@ test("worn scarf geometry stays aligned to the eight source portraits",()=>{
   }
  }
  assert.ok(css.includes("mask-image:none;"),"new tassels must remain visible");
- assert.match(css,/scarf_worn\.png|v2\.9\.8k/);
+ assert.match(css,/scarf_worn\.png|v2\.9\.8l/);
 });
 
 test("web release and prior IDs remain unchanged",()=>{
- assert.match(html,/snowfall-web-release" content="2\.9\.8k"/);
- assert.match(html,/app\.css\?v=298k/);
- assert.match(html,/app\.js\?v=298k/);
+ assert.match(html,/snowfall-web-release" content="2\.9\.8l"/);
+ assert.match(html,/app\.css\?v=298l/);
+ assert.match(html,/app\.js\?v=298l/);
  for(const prefix of ["hq","fit","rival"]){
   assert.ok(html.includes('id="'+prefix+'Gear"'));
   assert.ok(html.includes('id="'+prefix+'PortraitWell"'));

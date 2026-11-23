@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#101b25">
-  <meta name="snowfall-web-release" content="2.9.8k">
+  <meta name="snowfall-web-release" content="2.9.8l">
   <meta name="description" content="Operation Snowfall — the seven-day winter city showdown. Isolated staging preview.">
   <title>Operation Snowfall | The Winter Underworld</title>
   <link rel="icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/static/app.css?v=298k-r1">
-  <script defer src="/static/app.js?v=298k-r1"></script>
+  <link rel="stylesheet" href="/static/app.css?v=298l-r1">
+  <script defer src="/static/app.js?v=298l-r1"></script>
 </head>
 <body>
   <a class="skip-link" href="#mainContent">Skip to game content</a>
@@ -86,7 +86,7 @@
       <img id="finaleArt" alt="" loading="lazy">
       <div class="event-finale-copy"><p class="eyebrow" id="finaleKicker">THE WINTER UNDERWORLD</p><h2 id="eventFinaleTitle"></h2><p id="finaleText"></p><div class="finale-actions"><button class="button button-gold" data-nav="wire">Read the Wire</button><button class="button button-outline" data-nav="cities">View standings</button></div></div>
     </section>
-    <div class="play-status hidden" id="playStatus" aria-label="Your current resources"><strong id="playPlayer">Your character</strong><span>❄ <b id="playAmmo">—</b> snowballs</span><span>◈ <b id="playWarmth">—</b> warmth</span><span>✦ <b id="playFlakes">—</b> flakes</span><span>★ <b id="playPoints">—</b> pts</span><button id="playRefresh" class="tiny-link">↻ Refresh</button></div>
+    <div class="play-status hidden status-art-bar" id="playStatus" aria-label="Your current resources"><strong id="playPlayer">Your character</strong><span><img id="playAmmoArt" class="status-inline-icon" src="/art/v290/status/v298l/snowballs_1.webp" alt=""> <b id="playAmmo">—</b> snowballs</span><span><img id="playWarmthArt" class="status-inline-icon" src="/art/v290/status/v298l/warmth_1.webp" alt=""> <b id="playWarmth">—</b> warmth</span><span><img id="playFlakesArt" class="status-inline-icon" src="/art/v290/status/v298l/currency_1.webp" alt=""> <b id="playFlakes">—</b> flakes</span><span><img id="playPointsArt" class="status-inline-icon" src="/art/v290/status/v298l/points_1.webp" alt=""> <b id="playPoints">—</b> pts</span><button id="playRefresh" class="tiny-link">↻ Refresh</button></div>
     <div id="playFeedback" class="play-feedback hidden" role="status"><span id="playFeedbackText"></span><button id="playFeedbackClose" class="tiny-link" aria-label="Dismiss message">✕</button></div>
     <div class="page-grid">
       <div class="main-column">
@@ -113,10 +113,10 @@
           <div id="playerDashboard" class="hidden">
             <div class="quick-play-heading"><div><p class="eyebrow">READY FOR THE STREETS</p><h3 id="playGreeting">Your next move</h3><p id="playCoach">Choose an activity to get started.</p></div><button class="button button-gold" id="playPrimary">Play now</button></div>
             <div class="stat-cards">
-              <div class="stat"><span>❄ SNOWBALLS</span><strong id="ammoValue">—</strong><div class="hq-meter"><span id="hqAmmoMeter"></span></div><small id="ammoSub">Regenerates over time</small></div>
-              <div class="stat"><span>◈ WARMTH</span><strong id="warmthValue">—</strong><div class="hq-meter warmth-meter"><span id="hqWarmthMeter"></span></div><small id="hqWarmthSub">Stay out of the cold</small></div>
-              <div class="stat"><span>✦ SNOWFLAKES</span><strong id="flakeValue">—</strong><small>Spend in the winter market</small></div>
-              <div class="stat"><span>★ TOTAL POINTS</span><strong id="scoreValue">—</strong><small>Official shared score</small></div>
+              <div class="stat resource-stat"><span>❄ SNOWBALLS</span><img id="hqAmmoArt" class="resource-art resource-art-ammo" src="/art/v290/status/v298l/snowballs_1.webp" alt="" loading="lazy"><strong id="ammoValue">—</strong><div class="hq-meter"><span id="hqAmmoMeter"></span></div><small id="ammoSub">Regenerates over time</small></div>
+              <div class="stat resource-stat resource-warmth-stat"><span>◈ WARMTH</span><div class="warmth-artwork"><img id="hqColdArt" class="resource-art resource-cold-art" src="/art/v290/status/v298l/cold_1.webp" alt="" loading="lazy"><img id="hqWarmthArt" class="resource-art resource-warmth-bar" src="/art/v290/status/v298l/warmth_1.webp" alt="" loading="lazy"></div><strong id="warmthValue">—</strong><div class="hq-meter warmth-meter"><span id="hqWarmthMeter"></span></div><small id="hqColdLabel">Cold status: —</small><small id="hqWarmthSub">Stay out of the cold</small></div>
+              <div class="stat resource-stat"><span>✦ SNOWFLAKES</span><img id="hqCurrencyArt" class="resource-art" src="/art/v290/status/v298l/currency_1.webp" alt="" loading="lazy"><strong id="flakeValue">—</strong><small>Spend in the winter market</small></div>
+              <div class="stat resource-stat"><span>★ TOTAL POINTS</span><img id="hqPointsArt" class="resource-art" src="/art/v290/status/v298l/points_1.webp" alt="" loading="lazy"><strong id="scoreValue">—</strong><small>Official shared score</small></div>
             </div>
             <div class="hq-next">
               <div><p class="eyebrow">YOUR NEXT MOVE</p><p id="hqNextMove">Choose your next action.</p></div>
@@ -266,6 +266,7 @@
 
         <section id="page-combat" class="panel" aria-labelledby="combatTitle">
           <div class="section-heading"><div><p class="eyebrow">THE STREETS ARE GETTING SLIPPERY</p><h2 id="combatTitle">Snowball Alley</h2></div><span class="pill">PvP / REAL GAME RULES</span></div>
+          <div class="alley-winter-scene" role="img" aria-label="Snow-covered cobbled winter street, glowing lamps and distant snowy city"><div class="alley-scene-caption"><p class="eyebrow">THE WINTER UNDERWORLD</p><strong>The streets are yours. Make every throw count.</strong></div></div>
           <p class="section-desc">Choose a rival and throw. Standard is a balanced shot; the game handles the rules.</p><div class="play-action-status" id="combatStatus" role="status">Sign in to find rivals.</div>
           <div class="action-card alley-action-card">
             <div class="rival-stage" aria-label="Selected rival's actual equipped appearance">
@@ -287,6 +288,7 @@
                 <label>Rival<select id="targetSelect"><option value="">Sign in to discover rivals</option></select></label>
                 <label>Throwing style<select id="throwStyle"><option value="quick">Quick Shot</option><option value="standard" selected>Standard Throw</option><option value="power">Power Shot</option><option value="golden">Golden Snowball</option></select></label>
               </div>
+              <div class="alley-resource-strip" aria-label="Current ammunition and warmth"><div><img id="alleyAmmoArt" src="/art/v290/status/v298l/snowballs_1.webp" alt=""><span>Snowballs ready <strong id="alleyAmmoCount">—</strong></span></div><div><img id="alleyColdArt" src="/art/v290/status/v298l/cold_1.webp" alt=""><span><strong id="alleyColdStatus">Cold status: —</strong><small id="alleyWarmthCount">Warmth — / 100</small></span></div></div>
               <div id="alleyLoadout" class="alley-loadout">
                 <div id="alleyLoadoutIcon" class="alley-loadout-icon" data-style="standard" aria-hidden="true"><img id="alleyLoadoutTrail" class="alley-loadout-trail hidden" alt=""><span class="snowball-foreground"></span></div>
                 <div><strong id="alleyLoadoutName">Your snowball: Standard Throw</strong><small id="alleyLoadoutDetail">Equip a Snowstorm or Candy Cane Trail in Winter Market to customise its appearance.</small></div>
@@ -321,7 +323,7 @@
           <div class="section-heading"><div><p class="eyebrow">FINE GOODS FOR QUESTIONABLE PEOPLE</p><h2 id="shopTitle">Winter Market</h2></div><span class="pill">COSMETICS & CRAFTING</span></div>
           <p class="section-desc">Browse cosmetics, try on outfits for free, or craft items using Snowflakes.</p>
           <div class="market-hero"><img src="/art/v290/cosmetics/backgrounds/shop.webp" alt="The illustrated winter market from the Snowfall Discord event" loading="lazy"><div><p class="eyebrow">FROSTED FINERY</p><h3>Dress like you own the winter streets.</h3><p>Your purchased cosmetics are shared with the Discord game.</p></div></div>
-          <div class="market-toolbar market-wallet"><div><p class="eyebrow">YOUR WINTER WALLET</p><span>✦ <strong id="shopBalance">—</strong> Snowflakes</span><p id="marketOwned" class="subtle">Sign in to load your wardrobe</p></div><button class="button button-outline button-small" id="refreshShop">↻ Refresh market</button></div>
+          <div class="market-toolbar market-wallet"><img id="marketCurrencyArt" class="market-wallet-art" src="/art/v290/status/v298l/currency_1.webp" alt=""><div><p class="eyebrow">YOUR WINTER WALLET</p><span>✦ <strong id="shopBalance">—</strong> Snowflakes</span><p id="marketOwned" class="subtle">Sign in to load your wardrobe</p></div><button class="button button-outline button-small" id="refreshShop">↻ Refresh market</button></div>
           <div class="market-jumps"><button class="button button-gold" data-jump="marketCatalogue">Browse items</button><button class="button button-outline" data-jump="marketFitting">Try on</button><button class="button button-outline" data-jump="marketWorkshop">Workshop</button></div>
           <section class="market-feature" aria-labelledby="featuredTitle">
             <div class="market-feature-art"><img id="featuredArt" alt="" class="hidden"><span id="featuredRarity" class="market-rarity">Featured selection</span></div>

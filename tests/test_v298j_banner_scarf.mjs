@@ -81,7 +81,7 @@ test("scarf is smaller and nearer throat for all original portrait poses",()=>{
    const fit=h.run("cosmeticPlacement("+JSON.stringify(k)+",'scarf',"+framed+")");
    const inset=framed?10:4,scale=(100-2*inset)/100;
    const oldTop=inset+raw[1]*scale,oldWidth=raw[2]*scale;
-   // v2.9.8k's newly cropped, neck-wrapped image is lowered below the chin.
+   // v2.9.8l's newly cropped, neck-wrapped image is lowered below the chin.
    assert.ok(fit.top>oldTop,k);
    assert.ok(fit.width<oldWidth*.95,k);
    assert.ok(fit.width>oldWidth*.85,k);
@@ -106,7 +106,7 @@ test("banner never clips a name and old wardrobe/portrait layer IDs remain",()=>
  }
  assert.match(js,/BANNER_NAME_SAFE_WIDTH/);
  assert.match(js,/requestAnimationFrame\(\(\)=>fitBannerName\(prefix\)\)/);
- assert.match(html,/snowfall-web-release" content="2\.9\.8k"/);
- assert.match(html,/app\.css\?v=298k/);
- assert.match(html,/app\.js\?v=298k/);
+ assert.match(html,/snowfall-web-release" content="2\.9\.8l"/);
+ assert.match(html,/app\.css\?v=298l/);
+ assert.match(html,/app\.js\?v=298l/);
 });
