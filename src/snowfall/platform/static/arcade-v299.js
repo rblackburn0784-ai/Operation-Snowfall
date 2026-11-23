@@ -419,12 +419,13 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
   const urgency=playable()&&Number.isFinite(seconds)&&seconds<=10?
    (seconds<=5?"critical":"warning"):"";
   if(phase){
-   phase.textContent=getStatus()==="finished"?"Run finished · See your result below":
+   const nextMessage=getStatus()==="finished"?"Run finished · See your result below":
     getStatus()==="paused"?"Paused safely · Resume when you are ready":
     urgency==="critical"?"Last five seconds — finish your move!":
     urgency==="warning"?"Ten seconds or less — hurry!":
     playable()?"Playing · Practice score saved on the server":
     "Ready · Press Start / resume";
+   if(phase.textContent!==nextMessage)phase.textContent=nextMessage;
    phase.classList?.toggle?.("arcade-urgent",!!urgency);
    phase.classList?.toggle?.("arcade-critical",urgency==="critical");
   }
@@ -526,6 +527,7 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
   canvas.removeEventListener("keydown",keyboard);
   root.removeEventListener("click",controls);
   global.document.removeEventListener("visibilitychange",visibility);
+  root.classList.remove("arcade-high-contrast");
   try{audio?.close()}catch{}
  }
  canvas.addEventListener("pointerdown",pointer);
