@@ -924,6 +924,13 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         response.headers["Cache-Control"] = "no-store"
         return jsonable_encoder(shared.trivia_record(principal))
 
+    @app.get("/v1/game/arcade/hub")
+    def arcade_hub(response: Response, principal: int = Depends(player)):
+        if os.environ.get("SNOWFALL_ARCADE_V299F_ENABLED", "") != "1":
+            raise HTTPException(503, "Arcade Hub 2.0 is not enabled on this server")
+        response.headers["Cache-Control"] = "no-store"
+        return jsonable_encoder(shared.arcade_hub(principal))
+
     @app.get("/v1/game/arcade/board")
     def arcade_board(response: Response,
                      mode: Literal["gallery", "safe", "snowman", "catch", "trivia"] = "gallery",
