@@ -87,5 +87,5 @@ def test_mobile_header_bypasses_old_overlapping_wrap_layout():
     assert "reflectNavigationGroup(name)" in js
     assert "Snowball Wars" in html and "Winter Fun" in html
     assert "Open Streets Chat" in html
-    assert "2.9.8k" in html
-    assert "app.css?v=298k" in html and "app.js?v=298k" in html
+    assert "2.9.8l" in html
+    assert "app.css?v=298l" in html and "app.js?v=298l" in html
