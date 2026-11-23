@@ -128,16 +128,14 @@ function mount({root,session,start,control,answer,refresh,fetchRecord,
    if(sid===state.session_id&&v.step>=step)apply(v);
   }finally{refreshing=false}
  }
- async function submit(choice){
+ async function submit(choice,forceRetry=false){
   if(!active()||busy)return;
   const q=state.question;
-  let value=choice;
-  if(q.kind==="scramble"){
-   value=currentAnswer();
-   if(value.length!==q.tiles.length){
-    host?.setFeedback("Use every letter, then press Check word.");
-    return;
-   }
+  const value=forceRetry&&pending?pending.answer:
+   q.kind==="scramble"?currentAnswer():choice;
+  if(q.kind==="scramble"&&!forceRetry&&value.length!==q.tiles.length){
+   host?.setFeedback("Use every letter, then press Check word.");
+   return;
   }
   if(typeof value!=="string"||!value)return;
   if(pending&&(pending.step!==state.step||pending.answer!==value)){
@@ -177,7 +175,7 @@ function mount({root,session,start,control,answer,refresh,fetchRecord,
  function undoTile(){letters.pop()}
  function clearTiles(){letters=[]}
  async function retry(){
-  if(pending)return submit(pending.answer);
+  if(pending)return submit(pending.answer,true);
   host?.setFeedback("No interrupted answer to retry.");
  }
  function pointer(p){
