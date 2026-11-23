@@ -300,6 +300,14 @@ function mount({root,session,start,control,update,refresh,fetchRecord,onExit,
  }
  host=global.SnowfallArcadeV299.mountScene({
   root,title:"Snowflake Catch",
+  canvasLabel:"Snowflake Catch. Move the basket with drag or touch, Left/Right arrows or A/D, Home/End for edges. Catch snowflakes, crystals and golden flakes; avoid jagged ice.",
+  guide:[
+   "Mouse or touch: drag the basket horizontally along the floor. It glides rather than teleporting.",
+   "Keyboard: Left/Right arrows or A/D move the basket. Shift moves further; Home/End reach the edges.",
+   "Catch white snowflakes, blue crystals and golden flakes for points; dodge jagged ice shards to avoid penalties.",
+   "Wind and fall speed increase over three waves. Later waves now fall a little slower for more readable reactions.",
+   "The server checks basket movement and each crossing, not claimed catches. Three on-screen movement buttons help on mobile.",
+  ],
   help:"Steer the basket to catch falling snowflakes, blue crystals and golden bonuses. Avoid jagged ice! Wind changes across three waves. Unlimited QA practice only.",
   getStatus:()=>current.status,getHud:hud,draw,
   onStart:begin,onPause:pause,onFinish:finish,onExit:close,onTick:tick,
