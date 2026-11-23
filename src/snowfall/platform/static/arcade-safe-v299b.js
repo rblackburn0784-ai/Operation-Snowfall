@@ -103,6 +103,14 @@ function mount({root,session,start,control,move,refresh,fetchRecord,onExit,
     host?.tone(true);
    host?.setFeedback(current.stage>before?current.feedback:cue());
   }catch(e){
+   if([400,409,422].includes(e?.status)){
+    // A definite server rejection is NOT an uncertain write. Let players
+    // retry a corrected gesture with a new sequence-safe request.
+    pending=null;
+    try{apply(await refresh(body.session_id))}catch{}
+    host?.setFeedback(e.message||"The dial rejected that turn.");
+    throw e;
+   }
    if(!pending)pending=body;
    // Recovery never invents a move, score, or new idempotency key.
    try{
