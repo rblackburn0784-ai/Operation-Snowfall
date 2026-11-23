@@ -1185,3 +1185,24 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
  .arcade-full-safe .arcade-training-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
  .arcade-full-safe .arcade-training-controls button{font-size:.8rem;min-height:48px;padding:.5rem .25rem}
 }
+
+
+/* v2.9.9c — Snowman Builder uses the shared Arcade 2.0 screen, not a new UI.
+   Make both the drop zone and 11-item parts tray usable on narrow phones. */
+.arcade-full-snowman{border:2px solid #a3cdd3;background:linear-gradient(145deg,#173344,#1b4557)}
+.arcade-full-snowman .arcade-training-canvas{max-width:960px;border:3px solid #b8d9df;touch-action:none;overscroll-behavior:contain;cursor:grab;user-select:none}
+.arcade-full-snowman .arcade-training-canvas:active{cursor:grabbing}
+.arcade-full-snowman .arcade-gallery-hud{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.45rem}
+.arcade-full-snowman .arcade-gallery-hud span{display:block;text-align:center;padding:.55rem .35rem;overflow-wrap:anywhere}
+.arcade-full-snowman [data-scene='drop']{background:linear-gradient(140deg,#e3c98b,#ad8555);color:#1a2c37;border:2px solid #f0d7a3;font-weight:700}
+.arcade-full-snowman .arcade-training-controls button{min-height:48px;white-space:normal}
+.arcade-full-snowman .arcade-training-feedback{min-height:1.7rem;font-weight:600}
+@media(max-width:700px){
+ .arcade-full-snowman .arcade-gallery-hud{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .arcade-full-snowman .arcade-training-canvas{border-width:2px}
+}
+@media(max-width:420px){
+ .arcade-full-snowman .arcade-gallery-hud span{font-size:.74rem;padding:.4rem .2rem}
+ .arcade-full-snowman .arcade-training-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .arcade-full-snowman .arcade-training-controls button{font-size:.8rem;min-height:48px;padding:.5rem .25rem}
+}
