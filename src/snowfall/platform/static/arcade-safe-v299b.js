@@ -15,6 +15,14 @@ const HINTS={
  "click":"CLEAR CLICK! Press SET TUMBLER to lock this number.",
  "open":"The lock has released!"
 };
+function tickPositions(dial,ring=85){
+ const positions=[];
+ for(let n=0;n<NOTCHES;n++){
+  const theta=(dial-n)*STEP-Math.PI/2;
+  positions.push({n,x:CX+Math.cos(theta)*ring,y:CY+Math.sin(theta)*ring,theta});
+ }
+ return positions;
+}
 function mount({root,session,start,control,move,refresh,fetchRecord,onExit,
                recoveredAction}){
  if(!global.SnowfallArcadeV299?.mountScene)
@@ -134,14 +142,6 @@ function mount({root,session,start,control,move,refresh,fetchRecord,onExit,
   // Explicit retry is allowed without changing the original action ID/body.
   operationBusy=false;
   return action(body.action,body.ticks);
- }
- function tickPositions(dial,ring=85){
-  const positions=[];
-  for(let n=0;n<NOTCHES;n++){
-   const theta=(dial-n)*STEP-Math.PI/2;
-   positions.push({n,x:CX+Math.cos(theta)*ring,y:CY+Math.sin(theta)*ring,theta});
-  }
-  return positions;
  }
  function draw(ctx,{time,reduced}){
   let sky=ctx.createLinearGradient(0,0,0,H);
