@@ -7,6 +7,9 @@ from __future__ import annotations
 
 import argparse
 import os
+from urllib.parse import urlsplit
+
+from snowfall.platform.staging import QA_DB, STAGING_PROJECT
 
 from snowfall.platform.interactive_arcade import install_practice_schema
 from snowfall.platform.gallery_arcade import install_gallery_schema
@@ -22,6 +25,8 @@ def main() -> None:
     dsn = os.environ.get("SNOWFALL_DATABASE_URL", "")
     if not dsn.startswith(("postgres://", "postgresql://")):
         parser.error("SNOWFALL_DATABASE_URL must be a staging PostgreSQL URL")
+    if urlsplit(dsn).path != "/" + QA_DB:
+        parser.error("Refusing any database except the isolated /snowfall_web_qa database")
     from snowfall.db.postgres import PostgresStore
 
     store = PostgresStore(dsn, practice_root=__import__("pathlib").Path.cwd())
@@ -31,6 +36,11 @@ def main() -> None:
                              ("web-qa-2026",)).fetchone()
         if not season:
             parser.error("No web-qa-2026 season found; refusing to install")
+        marker = con.execute(
+            "SELECT project_id,season_key FROM snowfall_web_qa_marker "
+            "WHERE singleton=1").fetchone()
+        if marker is None or tuple(marker) != (STAGING_PROJECT, "web-qa-2026"):
+            parser.error("Refusing database without the verified Snowfall QA marker")
         install_practice_schema(con)
         install_gallery_schema(con)
     print("Installed v2.9.9 + v2.9.9a web-only arcade tables in web-qa-2026.")
