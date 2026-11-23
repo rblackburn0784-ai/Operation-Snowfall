@@ -276,7 +276,7 @@ function mount({root,session,save,onExit}){
    Snowman, Catch and Trivia. Gameplay/validation remain in mode controllers. */
 function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
                      onFinish,onShot,onExit,onTick,hudFields,extraActions,onExtraAction,
-                     onPointer,onKey,showAim=true,welcome}){
+                     onPointer,onKey,showAim=true,welcome,canvasLabel}){
  if(!root||typeof draw!=="function"||(typeof onShot!=="function"&&typeof onPointer!=="function"))
   throw Error("Invalid arcade scene");
  let disposed=false,busy=false,shotBusy=false,muted=true,audio=null,frame=0;
@@ -296,7 +296,8 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
   "<div class='arcade-training-status arcade-gallery-hud' aria-live='off'>"+
   fields.map(f=>"<span data-scene-label='"+safe(f.key)+"'>"+safe(f.initial||"—")+"</span>").join("")+"</div>"+
   "<canvas class='arcade-training-canvas' width='640' height='360' tabindex='0' "+
-  "aria-label='"+safe(title)+"; move the crosshair with pointer or arrows and throw with touch, click, Space or Enter'></canvas>"+
+  "aria-label='"+safe(canvasLabel||title+"; use pointer or keyboard to play")+
+  "'></canvas>"+
   "<p class='arcade-training-feedback' role='status' aria-live='polite'></p>"+
   "<div class='arcade-training-controls'>"+
   "<button type='button' class='button button-gold' data-scene='start'>Start / resume</button>"+
