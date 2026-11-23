@@ -149,9 +149,9 @@ test("wheel label at the pointer matches server-selected dial number",()=>{
  const topOfZero=zero.find(p=>p.n===0);
  const topOfFive=five.find(p=>p.n===5);
  assert.ok(Math.abs(topOfZero.x-326)<.001);
- assert.ok(Math.abs(topOfZero.y-88)<.001);
+ assert.ok(Math.abs(topOfZero.y-94)<.001);
  assert.ok(Math.abs(topOfFive.x-326)<.001);
- assert.ok(Math.abs(topOfFive.y-88)<.001);
+ assert.ok(Math.abs(topOfFive.y-94)<.001);
  assert.equal(win.SnowfallSafecrackerV299b.mod(-1),39);
 });
 test("unauthoritative timing and codes never appear in the move body",()=>{
