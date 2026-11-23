@@ -61,7 +61,7 @@ test("same player relogin, different player and logout all invalidate old reques
  assert.equal(ctx.valid(newer),false);
 });
 test("all arcade and private-data async paths verify character after awaits",()=>{
- assert.match(app,/if\(!isArcadeOwner\(owner\)\)return; \/\/ never paint/);
+ assert.ok(app.includes('const playerView=await get("/v1/game/me");\n  if(!isArcadeOwner(owner))return;'));
  assert.match(app,/if\(!isArcadeOwner\(owner\)\)return;\n  if\(results.some/);
  assert.match(app,/ensureArcadeOwner\(owner\);\n if\(view.mode!==key/);
  assert.match(app,/S\.arcadeEpoch\+\+/);
