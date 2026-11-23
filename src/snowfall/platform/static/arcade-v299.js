@@ -16,11 +16,11 @@ const reduced=()=>!!global.matchMedia&&global.matchMedia("(prefers-reduced-motio
 function mount({root,session,save,onExit}){
  if(!root||!session||!MODES[session.mode]||typeof save!=="function")throw Error("Invalid arcade practice stage");
  const mode=session.mode,config=MODES[mode],limit=session.duration_ms;
- let progress={...session.state},revision=session.revision,running=false,disposed=false;
+ let progress={...session.state},revision=session.revision,running=false,disposed=false,finished=session.status==="finished";
  let raf=0,last=0,lastSave=0,dirty=false,saving=false,pointer=false,sound=false,audio=null;
  let target={x:200,y:160,r:32},basketX=320,flakeX=280,flakeY=0;
  let selected=false,arcAngle=Number(progress.angle)||0,arcDir=0,lastDial=null;
- let localChanged=0,feedback="Practice mode · results are not ranked.";
+ let localChanged=0,feedback="Practice mode · results are not ranked.",pendingSave=null;
  root.classList.remove("hidden");
  root.innerHTML="<div class='arcade-training-head'><div><p class='eyebrow'>WINTER ARCADE 2.0 · PRACTICE PREVIEW</p><h3>"+config.name+"</h3><p>"+config.help+"</p></div><button type='button' class='button button-outline' data-training='exit'>Save & close</button></div>"+
  "<div class='arcade-training-status'><span data-training-label='time' aria-live='off'>Time</span><span data-training-label='score'>Training points</span><span data-training-label='hits'>Hits</span></div>"+
@@ -51,7 +51,7 @@ function mount({root,session,save,onExit}){
   label("time").textContent="Time "+Math.ceil((limit-progress.elapsed_ms)/1000)+"s";
   label("score").textContent="Practice "+score()+" / 100";
   label("hits").textContent="Success "+progress.hits+" · Misses "+progress.misses;
-  play.disabled=progress.elapsed_ms>=limit||session.status==="finished";
+  play.disabled=progress.elapsed_ms>=limit||finished;
   pause.disabled=!running;
  }
  function mark(ok,message){
@@ -199,22 +199,29 @@ function mount({root,session,save,onExit}){
   }
  }
  async function checkpoint(finish=false){
-  if(saving||!dirty&&!finish)return;
-  saving=true;
+  if(pendingSave){
+   await pendingSave;
+   return finish||dirty?checkpoint(finish):true;
+  }
+  if(!dirty&&!finish)return true;
   const snapshot={...progress},expected=revision,changeCount=JSON.stringify(snapshot);
-  try{
-   const updated=await save({session_id:session.session_id,revision:expected,state:snapshot,finish});
-   revision=updated.revision;
-   if(JSON.stringify(progress)===changeCount)dirty=false;
-   if(updated.status==="finished")running=false;
-   report("Practice checkpoint saved on the server.");
-  }catch(e){report("Save failed: "+(e.message||"retry after reconnect"));dirty=true}
-  finally{saving=false}
+  pendingSave=(async()=>{
+   try{
+    const updated=await save({session_id:session.session_id,revision:expected,state:snapshot,finish});
+    revision=updated.revision;
+    if(JSON.stringify(progress)===changeCount)dirty=false;
+    if(updated.status==="finished"){running=false;finished=true;}
+    report("Practice checkpoint saved on the server.");
+    return true;
+   }catch(e){report("Save failed: "+(e.message||"retry after reconnect"));dirty=true;return false}
+  })();
+  try{return await pendingSave}
+  finally{pendingSave=null}
  }
  function tick(t){
   if(disposed)return;
   if(running){
-   if(last)progress.elapsed_ms=clamp(progress.elapsed_ms+Math.min(80,Math.max(0,t-last)),0,limit);
+   if(last)progress.elapsed_ms=clamp(Math.round(progress.elapsed_ms+Math.min(80,Math.max(0,t-last))),0,limit);
    dirty=true;
    if(mode==="catch"){
     const phase=progress.elapsed_ms%1500;
@@ -237,14 +244,14 @@ function mount({root,session,save,onExit}){
  function onControl(event){
   const button=event.target.closest("button[data-training]");if(!button)return;
   const action=button.dataset.training;
-  if(action==="play"&&progress.elapsed_ms<limit&&session.status!=="finished"){
+  if(action==="play"&&progress.elapsed_ms<limit&&!finished){
    running=true;last=0;report("Practice running. Good luck!");canvas.focus();
   }
   if(action==="pause"){running=false;void checkpoint(false);report("Paused — progress saved when connected.");}
   if(action==="sound"){sound=!sound;button.textContent="Sound "+(sound?"on":"off");button.setAttribute("aria-pressed",String(sound))}
   if(action==="finish"){running=false;void checkpoint(true)}
   if(action==="exit"){
-   running=false;void checkpoint(false).then(()=>{dispose();onExit?.()});
+   running=false;void checkpoint(false).then(ok=>{if(ok){dispose();onExit?.()}});
   }
  }
  function visibility(){if(global.document.hidden&&running){running=false;void checkpoint(false);report("Paused automatically while away.")}}
