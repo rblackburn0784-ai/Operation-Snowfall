@@ -1746,6 +1746,12 @@ function bindActivities(){
 
 /* v2.9.8a — five shared arcade games, with server-owned puzzle sessions. */
 const ARCADE_ART=Object.freeze(Object.fromEntries(["gallery","safe","snowman","catch","trivia"].map(k=>[k,"/art/v290/arcade/"+k+".webp"])));
+function returnToArcadeHub(){
+ if(hubAllowed()){
+  void loadArcadeHub();
+  el("arcadeHub")?.scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"});
+ }
+}
 function arcadeAllowed(){
  return !!(S.session&&S.me?.registered&&S.arcade&&String(S.arcade.player_id)===String(S.session.player_id));
 }
@@ -1758,7 +1764,7 @@ function showArcade(){
  const a=arcadeAllowed()?S.arcade:null;
  if(a)mountArcadeHub();
  const locked=!!(S.busy||S.privatePending||!S.privateFresh||a?.phase!=="live"||!hasPlayIdentity(S.session,S.config));
- txt("arcadeStatus",!S.session?"Sign in to play.":!S.me?.registered?"Register at Headquarters to play.":!a?"Refresh to load your arcade.":("Day "+(a.day??"—")+" / 7 · "+String(a.phase).toUpperCase()+" · "+fmt(a.completed)+" completed runs · "+fmt(a.bests_total)+" combined best"));
+ txt("arcadeStatus",!S.session?"Sign in to play.":!S.me?.registered?"Register at Headquarters to play.":!a?"Refresh to load your arcade.":((S.config?.hub_v299f_enabled?"Classic (Discord-shared) · ":"")+"Day "+(a.day??"—")+" / 7 · "+String(a.phase).toUpperCase()+" · "+fmt(a.completed)+" completed runs · "+fmt(a.bests_total)+" combined best"));
  el("arcadeRefresh").disabled=!!(S.busy||S.privatePending);
  el("arcadeBoardRefresh").disabled=!a||S.busy||S.privatePending;
  if(!a){if(S.arcadePracticeRuntime)S.arcadePracticeRuntime.dispose();S.arcadePracticeRuntime=null;S.arcadePractice=null;el("arcadePractice")?.classList.add("hidden");if(S.arcadeGalleryRuntime)S.arcadeGalleryRuntime.dispose();S.arcadeGalleryRuntime=null;S.arcadeGallery=null;el("arcadeGallery")?.classList.add("hidden");if(S.arcadeSafeRuntime)S.arcadeSafeRuntime.dispose();S.arcadeSafeRuntime=null;S.arcadeSafe=null;el("arcadeSafe")?.classList.add("hidden");if(S.arcadeSnowmanRuntime)S.arcadeSnowmanRuntime.dispose();S.arcadeSnowmanRuntime=null;S.arcadeSnowman=null;el("arcadeSnowman")?.classList.add("hidden");if(S.arcadeCatchRuntime)S.arcadeCatchRuntime.dispose();S.arcadeCatchRuntime=null;S.arcadeCatch=null;el("arcadeCatch")?.classList.add("hidden");if(S.arcadeTriviaRuntime)S.arcadeTriviaRuntime.dispose();S.arcadeTriviaRuntime=null;S.arcadeTrivia=null;el("arcadeTrivia")?.classList.add("hidden");if(S.arcadeHubRuntime)S.arcadeHubRuntime.dispose();S.arcadeHubRuntime=null;S.arcadeHub=null;S.arcadeHubSeq++;S.arcadeHubPending=false;el("arcadeHub")?.classList.add("hidden");lobby.innerHTML="";stamps.innerHTML="";board.innerHTML="";runNode.classList.add("hidden");runNode.innerHTML="";return}
@@ -1911,7 +1917,7 @@ function mountArcadePractice(){
   },
   onExit:()=>{
    S.arcadePracticeRuntime=null;root.classList.add("hidden");root.innerHTML="";
-   S.arcadePractice=null;
+   S.arcadePractice=null;returnToArcadeHub();
   }
  });
  root.scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"});
@@ -1949,7 +1955,7 @@ function mountArcadeGallery(){
   shot:async body=>accepted(await post("/v1/game/arcade/gallery/shot",body,true,true)),
   refresh:async session_id=>accepted(await get("/v1/game/arcade/gallery/session/"+encodeURIComponent(session_id))),
   fetchRecord:async()=>get("/v1/game/arcade/gallery/record"),
-  onExit:()=>{S.arcadeGalleryRuntime=null;S.arcadeGallery=null;root.classList.add("hidden");root.innerHTML=""}
+  onExit:()=>{S.arcadeGalleryRuntime=null;S.arcadeGallery=null;root.classList.add("hidden");root.innerHTML="";returnToArcadeHub()}
  });
  root.scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"});
 }
@@ -1993,7 +1999,7 @@ function mountArcadeSafe(){
    "/v1/game/arcade/safecracker/session/"+encodeURIComponent(session_id))),
   fetchRecord:async()=>get("/v1/game/arcade/safecracker/record"),
   onExit:()=>{S.arcadeSafeRuntime=null;S.arcadeSafe=null;
-   root.classList.add("hidden");root.innerHTML=""}
+   root.classList.add("hidden");root.innerHTML="";returnToArcadeHub()}
  });
  root.scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"});
 }
@@ -2040,7 +2046,7 @@ function mountArcadeSnowman(){
    "/v1/game/arcade/snowman/session/"+encodeURIComponent(session_id))),
   fetchRecord:async()=>get("/v1/game/arcade/snowman/record"),
   onExit:()=>{S.arcadeSnowmanRuntime=null;S.arcadeSnowman=null;
-   root.classList.add("hidden");root.innerHTML=""}
+   root.classList.add("hidden");root.innerHTML="";returnToArcadeHub()}
  });
  root.scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"});
 }
@@ -2084,7 +2090,7 @@ function mountArcadeCatch(){
    "/v1/game/arcade/catch/session/"+encodeURIComponent(session_id))),
   fetchRecord:async()=>get("/v1/game/arcade/catch/record"),
   onExit:()=>{S.arcadeCatchRuntime=null;S.arcadeCatch=null;
-   root.classList.add("hidden");root.innerHTML=""}
+   root.classList.add("hidden");root.innerHTML="";returnToArcadeHub()}
  });
  root.scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"});
 }
@@ -2128,7 +2134,7 @@ function mountArcadeTrivia(){
    "/v1/game/arcade/trivia/session/"+encodeURIComponent(session_id))),
   fetchRecord:async()=>get("/v1/game/arcade/trivia/record"),
   onExit:()=>{S.arcadeTriviaRuntime=null;S.arcadeTrivia=null;
-   root.classList.add("hidden");root.innerHTML=""}
+   root.classList.add("hidden");root.innerHTML="";returnToArcadeHub()}
  });
  root.scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"});
 }
