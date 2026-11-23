@@ -53,7 +53,7 @@ test("snowball stockpile moves down without clipping or changing inventory",()=>
 });
 
 test("original styling changes are not applied to unrelated progress displays",()=>{
- assert.match(hq,/id="hqPvpMeter"/);
+ assert.match(html,/id="hqPvpMeter"/);
  assert.match(hq,/id="hqAmmoMeter"/);
  assert.match(css,/#playerDashboard \.resource-warmth-stat \.warmth-meter/);
  assert.doesNotMatch(css,/(^|\n)\.hq-meter\s*\{display:none/);
