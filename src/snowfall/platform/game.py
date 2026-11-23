@@ -364,6 +364,32 @@ class SharedGame:
         from snowfall.platform.catch_arcade import SnowflakeCatchEngine
         return SnowflakeCatchEngine(self.store, self.season).record(player_id, now=now)
 
+    # v2.9.9e: independent server-graded Christmas Trivia.
+    def trivia_start(self, player_id: int, *, now=None) -> dict:
+        from snowfall.platform.trivia_arcade import ChristmasTriviaEngine
+        return ChristmasTriviaEngine(self.store, self.season).start(player_id, now=now)
+
+    def trivia_session(self, player_id: int, session_id: str, *, now=None) -> dict:
+        from snowfall.platform.trivia_arcade import ChristmasTriviaEngine
+        return ChristmasTriviaEngine(self.store, self.season).session(
+            player_id, session_id, now=now)
+
+    def trivia_control(self, player_id: int, session_id: str, action: str,
+                       *, now=None) -> dict:
+        from snowfall.platform.trivia_arcade import ChristmasTriviaEngine
+        return ChristmasTriviaEngine(self.store, self.season).control(
+            player_id, session_id, action, now=now)
+
+    def trivia_answer(self, player_id: int, session_id: str, step: int,
+                      answer: str, interaction_id: str, *, now=None) -> dict:
+        from snowfall.platform.trivia_arcade import ChristmasTriviaEngine
+        return ChristmasTriviaEngine(self.store, self.season).answer(
+            player_id, session_id, step, answer, interaction_id, now=now)
+
+    def trivia_record(self, player_id: int, *, now=None) -> dict:
+        from snowfall.platform.trivia_arcade import ChristmasTriviaEngine
+        return ChristmasTriviaEngine(self.store, self.season).record(player_id, now=now)
+
     def arcade_board(self, player_id: int, mode: str, *, daily=False, now=None) -> dict:
         from snowfall.services.social_arcade import SocialArcadeEngine
         engine = SocialArcadeEngine(self.store)
