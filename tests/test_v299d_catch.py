@@ -44,7 +44,7 @@ def test_three_waves_wind_and_every_falling_object_is_server_owned(storm):
         "snowflake", "crystal", "gold", "hazard"}
     assert all(0 <= item["start"] < item["impact"] <= DURATION_MS
                for item in schedule)
-    assert all(item["flight"] in (2550, 2110, 1730)
+    assert all(item["flight"] in (2550, 2220, 1880)
                for item in schedule)
     for item in schedule:
         beginning = flake_position(item, item["start"])
