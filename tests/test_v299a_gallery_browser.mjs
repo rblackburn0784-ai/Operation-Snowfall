@@ -67,8 +67,8 @@ test("scene system is reusable, Gallery asset is cached and classic Discord stay
  assert.equal(typeof win.SnowfallArcadeV299.mount,"function");
  assert.equal(typeof win.SnowfallArcadeV299.mountScene,"function");
  assert.equal(typeof win.SnowfallGalleryV299a.mount,"function");
- assert.match(html,/arcade-v299\.js\?v=299f/);
- assert.match(html,/arcade-gallery-v299a\.js\?v=299a/);
+ assert.match(html,/arcade-v299\.js\?v=299g/);
+ assert.match(html,/arcade-gallery-v299a\.js\?v=299g/);
  assert.match(html,/id="arcadeGallery"/);
  assert.match(css,/arcade-full-gallery/);
  assert.match(css,/touch-action:none/);
