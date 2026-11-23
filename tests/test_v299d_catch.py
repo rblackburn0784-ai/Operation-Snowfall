@@ -84,10 +84,8 @@ def test_first_flake_caught_and_replay_does_not_double_award(storm):
     assert again["repeated"] and again["score"] == 3
     assert again["events"] == caught["events"]
     with pytest.raises(ValueError, match="belongs"):
-        engine.update(101, sid, 0, round(x), "first-catch-001",
-                      now=when(when_hit + 1000)) if False else engine.update(
-                          202, sid, 0, round(x), "first-catch-001",
-                          now=when(when_hit + 1000))
+        engine.update(202, sid, 0, round(x), "first-catch-001",
+                      now=when(when_hit + 1000))
     with pytest.raises(ValueError, match="belongs"):
         engine.update(101, sid, 0, round(x)+1, "first-catch-001",
                       now=when(when_hit + 1000))
