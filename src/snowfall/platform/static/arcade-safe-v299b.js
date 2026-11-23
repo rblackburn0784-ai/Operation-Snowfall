@@ -309,6 +309,14 @@ function mount({root,session,start,control,move,refresh,fetchRecord,onExit,
  }
  host=global.SnowfallArcadeV299.mountScene({
   root,title:"Frozen Safecracker",
+  canvasLabel:"Frozen Safecracker dial. Drag around the outside ring, or use Left and Right arrows to rotate. Shift plus arrows turns four notches. Press Enter to set a tumbler.",
+  guide:[
+   "Turn the dial clockwise for tumbler one, anticlockwise for two, then clockwise for three.",
+   "Mouse or touch: drag along the outside ring to spin the dial. Each tumbler requires at least one complete turn in its direction.",
+   "Keyboard: Left/Right arrows turn one notch (Shift for four). Press Enter or Space to set the tumbler when aligned.",
+   "Signals progress from quiet to faint, near and CLICK. The practice hint window is slightly wider, but only the exact CLICK sets a tumbler.",
+   "Wrong-direction turns and failed sets cost practice points. Use Retry after an interrupted move; your original turn is preserved.",
+  ],
   help:"Rotate the dial clockwise, reverse anticlockwise, then clockwise again. Hear/see subtle resistance near each hidden number; press Set Tumbler on the clear click. Unlimited, unranked QA practice.",
   getStatus:()=>current.status,getHud:hud,draw,onStart:begin,
   onPause:pause,onFinish:finish,onExit:close,onTick:tick,
