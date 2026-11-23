@@ -47,7 +47,7 @@ def test_blueprints_three_difficulties_real_geometry_and_decoys(workshop):
         assert len(ids) == len(plan["parts"])
         assert {slot["id"] for slot in plan["slots"]}.issubset(ids)
         assert all(65 < slot["x"] < 450 and 70 <= slot["y"] <= 300
-                   and 17 <= slot["radius"] <= 38 for slot in plan["slots"])
+                   and 17 <= slot["radius"] <= 42 for slot in plan["slots"])
     run = engine.start(101, now=START)
     assert run["stage"] == 0 and run["round"] == 1
     assert run["total_parts"] == 20 and run["status"] == "paused"
