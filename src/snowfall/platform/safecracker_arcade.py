@@ -100,9 +100,9 @@ def _signal(row) -> str:
     distance = proximity(int(row["dial"]), code)
     if distance == 0:
         return "click"
-    if distance <= 2:
+    if distance <= 3:
         return "near"
-    if distance <= 5:
+    if distance <= 7:
         return "faint"
     return "quiet"
 
