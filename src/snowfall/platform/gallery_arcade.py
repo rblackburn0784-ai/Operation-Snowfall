@@ -124,7 +124,7 @@ def find_target(schedule: list[dict], claimed: set[int], elapsed_ms: int,
                 continue
             tx, ty = target_position(t, moment)
             distance = math.hypot(x - tx, y - ty)
-            if distance <= t["radius"] + 6:
+            if distance <= t["radius"] + 9:
                 candidates.append((distance / t["radius"], t["id"], t))
     return min(candidates, key=lambda item: (item[0], item[1]))[2] if candidates else None
 
