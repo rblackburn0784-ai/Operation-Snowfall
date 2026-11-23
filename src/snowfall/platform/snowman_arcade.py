@@ -110,7 +110,7 @@ def make_blueprints(rng=None) -> list[dict]:
             "id": type_name,
             "x": GEOMETRY[type_name][0] + shift_x,
             "y": GEOMETRY[type_name][1] + shift_y,
-            "radius": GEOMETRY[type_name][2],
+            "radius": GEOMETRY[type_name][2] + (2 if i == 1 else 4 if i == 2 else 0),
         } for type_name in types]
         parts = [
             {"id": key, "label": LABELS[key], "decoy": key in decoys}
