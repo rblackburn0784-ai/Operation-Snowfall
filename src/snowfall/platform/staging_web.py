@@ -253,6 +253,7 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None, game=
             "snowman_v299c_enabled": env.get("SNOWFALL_ARCADE_V299C_ENABLED", "") == "1",
             "catch_v299d_enabled": env.get("SNOWFALL_ARCADE_V299D_ENABLED", "") == "1",
             "trivia_v299e_enabled": env.get("SNOWFALL_ARCADE_V299E_ENABLED", "") == "1",
+            "hub_v299f_enabled": env.get("SNOWFALL_ARCADE_V299F_ENABLED", "") == "1",
             "season": cfg.season_key,
             "demo_enabled": True,
             "underworld_url": cfg.underworld_origin,
