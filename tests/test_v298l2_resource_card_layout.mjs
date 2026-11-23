@@ -42,8 +42,11 @@ test("thermometer is at the bottom of warmth card, replacing the old visible bar
 
 test("snowball stockpile moves down without clipping or changing inventory",()=>{
  assert.match(hq,/class="stat resource-stat resource-ammo-stat"/);
- assert.match(css,/\.resource-ammo-stat \.resource-art-ammo\{[^}]*margin-top:clamp\(10px,1\.2vw,16px\)/);
- assert.match(css,/\.resource-ammo-stat \.resource-art-ammo\{[^}]*object-position:left bottom/);
+ assert.match(css,/\.resource-ammo-stat \.resource-art-ammo\{[^}]*margin-top:clamp\(18px,2vw,26px\)/);
+ assert.match(css,/\.resource-ammo-stat \.resource-art-ammo\{[^}]*object-position:center bottom/);
+ assert.match(css,/\.resource-ammo-stat \.resource-art-ammo\{[^}]*object-fit:contain/);
+ assert.match(css,/\.resource-ammo-stat \.resource-art-ammo\{margin-top:16px/);
+ assert.match(css,/\.resource-ammo-stat \.resource-art-ammo\{margin-top:14px/);
  assert.match(css,/@media\(max-width:640px\)/);
  assert.match(css,/@media\(max-width:380px\)/);
  assert.match(hq,/id="hqAmmoArt"/);
@@ -57,6 +60,6 @@ test("original styling changes are not applied to unrelated progress displays",(
  assert.match(hq,/id="hqAmmoMeter"/);
  assert.match(css,/#playerDashboard \.resource-warmth-stat \.warmth-meter/);
  assert.doesNotMatch(css,/(^|\n)\.hq-meter\s*\{display:none/);
- assert.match(html,/app\.css\?v=298l-r2/);
+ assert.match(html,/app\.css\?v=298l-r3/);
  assert.match(html,/app\.js\?v=298l-r2/);
 });
