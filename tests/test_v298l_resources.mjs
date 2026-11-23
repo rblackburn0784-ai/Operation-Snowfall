@@ -64,6 +64,13 @@ test("resource data drives real images; unknown readings hide rather than invent
  assert.match(node("hqColdLabel").textContent,/Freezing/);
  assert.equal(node("alleyAmmoCount").textContent,"12");
  assert.match(node("alleyWarmthCount").textContent,/15 \/ 100/);
+ run("showResourceArtwork({snowballs:12,warmth:65,snowflakes:34},321)");
+ assert.match(node("hqCurrencyArt").getAttribute("src"),/points_2\.webp$/);
+ assert.match(node("hqPointsArt").getAttribute("src"),/currency_3\.webp$/);
+ assert.equal(node("hqCurrencyArt").dataset.stage,"2");
+ assert.equal(node("hqPointsArt").dataset.stage,"3");
+ assert.match(node("marketCurrencyArt").getAttribute("src"),/currency_2\.webp$/);
+ assert.match(node("playPointsArt").getAttribute("src"),/points_3\.webp$/);
  run("showResourceArtwork({snowballs:0,warmth:98,snowflakes:0},0)");
  assert.equal(node("hqAmmoArt").dataset.empty,"true");
  assert.match(node("hqColdLabel").textContent,/Comfortable/);
