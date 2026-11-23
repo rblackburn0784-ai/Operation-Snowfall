@@ -92,7 +92,7 @@ def generate_schedule(rng=None) -> list[dict]:
         kind = ("hazard" if i > 3 and i % 9 == 6 else
                 "gold" if i % 8 == 5 else
                 "crystal" if i % 7 == 3 else "snowflake")
-        flight = (2550, 2110, 1730)[wave - 1]
+        flight = (2550, 2220, 1880)[wave - 1]
         drift = rng.choice((-1, 1)) * rng.randrange(30 + wave * 9, 65 + wave * 14)
         x0 = rng.randrange(125, 516)
         schedule.append({
