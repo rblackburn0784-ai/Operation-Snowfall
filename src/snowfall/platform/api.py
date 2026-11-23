@@ -162,6 +162,18 @@ class GalleryControlBody(BaseModel):
     action: Literal["pause", "resume", "finish"]
 
 
+class SafecrackerActionBody(BaseModel):
+    session_id: str = Field(pattern=r"^[a-f0-9]{32}$")
+    action_seq: int = Field(ge=0, le=299)
+    action: Literal["turn", "set"]
+    ticks: int = Field(ge=-80, le=80)
+
+
+class SafecrackerControlBody(BaseModel):
+    session_id: str = Field(pattern=r"^[a-f0-9]{32}$")
+    action: Literal["pause", "resume", "finish"]
+
+
 class OAuthStart(BaseModel):
     mode: Literal["login", "link"] = "login"
 
@@ -716,6 +728,46 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         gallery_enabled()
         response.headers["Cache-Control"] = "no-store"
         return jsonable_encoder(shared.gallery_record(principal))
+
+    def safecracker_enabled():
+        if os.environ.get("SNOWFALL_ARCADE_V299B_ENABLED", "") != "1":
+            raise HTTPException(503, "Full Frozen Safecracker is not enabled on this server")
+
+    @app.post("/v1/game/arcade/safecracker/start")
+    def arcade_safe_start(principal: int = Depends(game_writer)):
+        safecracker_enabled()
+        return jsonable_encoder(shared.safe_start(principal))
+
+    @app.get("/v1/game/arcade/safecracker/session/{session_id}")
+    def arcade_safe_session(session_id: str, response: Response,
+                            principal: int = Depends(player)):
+        safecracker_enabled()
+        response.headers["Cache-Control"] = "no-store"
+        if not re.fullmatch(r"[a-f0-9]{32}", session_id):
+            raise HTTPException(400, "Invalid safecracker session")
+        return jsonable_encoder(shared.safe_session(principal, session_id))
+
+    @app.post("/v1/game/arcade/safecracker/control")
+    def arcade_safe_control(body: SafecrackerControlBody,
+                            principal: int = Depends(game_writer)):
+        safecracker_enabled()
+        return jsonable_encoder(shared.safe_control(
+            principal, body.session_id, body.action))
+
+    @app.post("/v1/game/arcade/safecracker/move")
+    def arcade_safe_move(body: SafecrackerActionBody,
+                         idempotency_key: str | None = Header(default=None),
+                         principal: int = Depends(game_writer)):
+        safecracker_enabled()
+        return jsonable_encoder(shared.safe_move(
+            principal, body.session_id, body.action_seq, body.action, body.ticks,
+            _idempotency(principal, "safecracker:move", idempotency_key)))
+
+    @app.get("/v1/game/arcade/safecracker/record")
+    def arcade_safe_record(response: Response, principal: int = Depends(player)):
+        safecracker_enabled()
+        response.headers["Cache-Control"] = "no-store"
+        return jsonable_encoder(shared.safe_record(principal))
 
     @app.get("/v1/game/arcade/board")
     def arcade_board(response: Response,
