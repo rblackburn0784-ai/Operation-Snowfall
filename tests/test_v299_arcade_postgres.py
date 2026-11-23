@@ -11,6 +11,7 @@ from snowfall.db.store import Store
 from snowfall.platform.interactive_arcade import InteractiveArcadePractice, install_practice_schema
 from snowfall.platform.gallery_arcade import GalleryEngine, install_gallery_schema, target_position
 from snowfall.platform.safecracker_arcade import SafecrackerEngine, install_safe_schema
+from snowfall.platform.snowman_arcade import SnowmanBuilderEngine, install_snowman_schema
 
 SEASON = "web-qa-2026"
 START = datetime(2026, 12, 20, 18, tzinfo=timezone.utc)
@@ -46,6 +47,7 @@ def test_additive_practice_table_runs_on_real_postgres_without_game_schema_chang
             install_practice_schema(con)
             install_gallery_schema(con)
             install_safe_schema(con)
+            install_snowman_schema(con)
         pg.initialize()  # Existing canonical version stays unchanged.
         arcade = InteractiveArcadePractice(pg, SEASON)
         run = arcade.start(101, "gallery", now=START)
@@ -99,6 +101,32 @@ def test_additive_practice_table_runs_on_real_postgres_without_game_schema_chang
             assert con.execute("SELECT COUNT(*) FROM web_arcade_safe_actions").fetchone()[0] == 1
             assert con.execute("SELECT COUNT(*) FROM social_arcade_runs").fetchone()[0] == 0
             assert con.execute("SELECT COUNT(*) FROM score_ledger").fetchone()[0] == 0
+        builder = SnowmanBuilderEngine(pg, SEASON)
+        build = builder.start(101, now=START)
+        assert build["status"] == "paused" and build["total_parts"] == 20
+        assert build["blueprint"]["required"] == 4
+        building = builder.control(101, build["session_id"], "resume",
+                                   now=START+timedelta(milliseconds=300))
+        slot = building["blueprint"]["slots"][0]
+        dropped = builder.place(101, build["session_id"], 0, slot["id"],
+                                slot["x"], slot["y"], "snowman-pg-drop-00001",
+                                now=START+timedelta(milliseconds=1400))
+        assert dropped["placed_total"] == 1 and dropped["score"] == 4
+        assert builder.place(101, build["session_id"], 0, slot["id"],
+                             slot["x"], slot["y"], "snowman-pg-drop-00001",
+                             now=START+timedelta(milliseconds=1800))["repeated"]
+        assert builder.control(101, build["session_id"], "pause",
+                               now=START+timedelta(seconds=2))["status"] == "paused"
+        assert builder.session(101, build["session_id"],
+                               now=START+timedelta(seconds=8))["placed_total"] == 1
+        with pg.connect() as con:
+            assert con.execute(
+                "SELECT COUNT(*) FROM web_arcade_snowman_sessions").fetchone()[0] == 1
+            assert con.execute(
+                "SELECT COUNT(*) FROM web_arcade_snowman_actions").fetchone()[0] == 1
+            assert con.execute("SELECT COUNT(*) FROM social_arcade_runs").fetchone()[0] == 0
+            assert con.execute("SELECT COUNT(*) FROM score_ledger").fetchone()[0] == 0
+
 
 
     finally:
