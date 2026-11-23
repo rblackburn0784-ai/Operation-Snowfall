@@ -283,6 +283,33 @@ class SharedGame:
         from snowfall.platform.gallery_arcade import GalleryEngine
         return GalleryEngine(self.store, self.season).record(player_id, now=now)
 
+    # v2.9.9b: separate server-audited QA-only Frozen Safecracker.
+    def safe_start(self, player_id: int, *, now=None) -> dict:
+        from snowfall.platform.safecracker_arcade import SafecrackerEngine
+        return SafecrackerEngine(self.store, self.season).start(player_id, now=now)
+
+    def safe_session(self, player_id: int, session_id: str, *, now=None) -> dict:
+        from snowfall.platform.safecracker_arcade import SafecrackerEngine
+        return SafecrackerEngine(self.store, self.season).session(
+            player_id, session_id, now=now)
+
+    def safe_control(self, player_id: int, session_id: str, action: str,
+                     *, now=None) -> dict:
+        from snowfall.platform.safecracker_arcade import SafecrackerEngine
+        return SafecrackerEngine(self.store, self.season).control(
+            player_id, session_id, action, now=now)
+
+    def safe_move(self, player_id: int, session_id: str, action_seq: int, action: str,
+                  ticks: int, interaction_id: str, *, now=None) -> dict:
+        from snowfall.platform.safecracker_arcade import SafecrackerEngine
+        return SafecrackerEngine(self.store, self.season).move(
+            player_id, session_id, action_seq, action, ticks, interaction_id,
+            now=now)
+
+    def safe_record(self, player_id: int, *, now=None) -> dict:
+        from snowfall.platform.safecracker_arcade import SafecrackerEngine
+        return SafecrackerEngine(self.store, self.season).record(player_id, now=now)
+
     def arcade_board(self, player_id: int, mode: str, *, daily=False, now=None) -> dict:
         from snowfall.services.social_arcade import SocialArcadeEngine
         engine = SocialArcadeEngine(self.store)
