@@ -200,7 +200,16 @@ function mount({root,session,start,control,shot,refresh,fetchRecord,onExit}){
   }
  }
  let host=global.SnowfallArcadeV299.mountScene({
-  root,title:"Snowball Target Gallery",help:
+  root,title:"Snowball Target Gallery",
+  canvasLabel:"Moving snowball target gallery. Aim with pointer or arrow keys, throw with a tap, click, Space or Enter.",
+  guide:[
+   "Mouse or touch: aim at a moving bullseye, then click or tap to throw.",
+   "Keyboard: focus the game canvas, move with arrow keys; press Space or Enter to throw. Hold Shift for a larger aim step.",
+   "Hit ordinary targets for points and golden targets for bonuses. Avoid decoys — they cost points.",
+   "You have 32 throws across three waves in 45 seconds. Later targets linger slightly longer in this practice build.",
+   "Pause or Save & close to protect your progress; Sound, Calm effects and High contrast are optional.",
+  ],
+  help:
    "Shoot moving bullseyes, catch golden bonuses and avoid decoys. Three increasingly fast waves; no snowball resources used. Scores are QA practice-only.",
   getStatus:()=>current.status,getHud:hud,draw:render,
   onStart:begin,onPause:pause,onFinish:finish,
