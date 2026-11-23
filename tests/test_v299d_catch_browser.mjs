@@ -180,7 +180,8 @@ test("server catch and hazard outcomes are reflected, client never chooses them"
    feedback:"Icy shard! −12",score_after:0}],
  }));
  view.button("start");await drain();
- view.frame(400);await drain();
+ // Stationary baskets checkpoint every ~650ms, not every frame.
+ view.frame(1000);await drain();
  assert.equal(game.runtime.getSnapshot().hazards,1);
  assert.equal(game.runtime.getSnapshot().score,0);
  assert.match(view.nodes.feedback.textContent,/Icy shard/);
