@@ -214,6 +214,7 @@ function mount({root,session,start,control,shot,refresh,fetchRecord,onExit}){
   getStatus:()=>current.status,getHud:hud,draw:render,
   onStart:begin,onPause:pause,onFinish:finish,
   onShot:shootAt,onExit:close,onTick:tick,
+  extraActions:[{key:"throw",label:"Throw snowball"}],
  });
  // The scene host owns canvas, focus, sizing, keyboard, sounds and animation.
  return {dispose:host.dispose,pause:host.pause,getSnapshot:()=>current};
