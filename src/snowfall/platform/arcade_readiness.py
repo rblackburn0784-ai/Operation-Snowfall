@@ -125,6 +125,9 @@ def audit_arcade_qa(dsn: str, *, env=None, connect=None, baseline=None) -> dict:
     blockers = []
     warnings = []
     modes = []
+    if env.get("SNOWFALL_DISCORD_BRIDGE_ENABLED") == "1" or env.get(
+            "SNOWFALL_DISCORD_BRIDGE_TOKEN"):
+        blockers.append("Separate QA web service must never run a second Discord bridge")
     with connect() as con:
         con.execute("SET TRANSACTION READ ONLY")
         if con.execute("SELECT to_regclass(%s)",
