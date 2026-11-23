@@ -1,6 +1,6 @@
 /* Operation Snowfall v2.9.8l — status and resource artwork integration. */
 "use strict";
-const S={staffRole:null,staffDirectory:null,staffDossier:null,staffSelected:null,staffDirectoryBusy:false,staffDossierBusy:false,staffReviewBusy:false,staffDirectorySeq:0,staffDossierSeq:0,staffLab:null,staffLabPending:false,staffAllowed:false,staffCheckedIdentity:null,staffAccessCheckedAt:0,staffData:null,staffPending:false,staffStale:false,streetsDrawerOpen:false,streetsReturnFocus:null,streetsEmbedUrl:null,streetsChatOpen:false,community:null,communityPending:false,communityStale:false,privateQueued:false,arcade:null,arcadeRun:null,arcadePractice:null,arcadePracticeRuntime:null,arcadeGallery:null,arcadeGalleryRuntime:null,arcadeSafe:null,arcadeSafeRuntime:null,arcadeSnowman:null,arcadeSnowmanRuntime:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
+const S={staffRole:null,staffDirectory:null,staffDossier:null,staffSelected:null,staffDirectoryBusy:false,staffDossierBusy:false,staffReviewBusy:false,staffDirectorySeq:0,staffDossierSeq:0,staffLab:null,staffLabPending:false,staffAllowed:false,staffCheckedIdentity:null,staffAccessCheckedAt:0,staffData:null,staffPending:false,staffStale:false,streetsDrawerOpen:false,streetsReturnFocus:null,streetsEmbedUrl:null,streetsChatOpen:false,community:null,communityPending:false,communityStale:false,privateQueued:false,arcade:null,arcadeRun:null,arcadePractice:null,arcadePracticeRuntime:null,arcadeGallery:null,arcadeGalleryRuntime:null,arcadeSafe:null,arcadeSafeRuntime:null,arcadeSnowman:null,arcadeSnowmanRuntime:null,arcadeCatch:null,arcadeCatchRuntime:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
 const txt=(id,v)=>{const node=el(id),value=v==null?"—":String(v);if(node&&node.textContent!==value)node.textContent=value};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -467,7 +467,7 @@ function nextActionId(){
 }
 // Store only pending operation keys and their opaque IDs in this browser tab.
  // No passwords, session cookies, CSRF values or names are persisted.
-const RECOVERABLE_ACTIONS=new Set(["/v1/game/throw","/v1/game/boss","/v1/game/siege","/v1/game/craft","/v1/game/wardrobe/purchase","/v1/game/activities/action","/v1/game/arcade/move","/v1/game/arcade/gallery/shot","/v1/game/arcade/safecracker/move","/v1/game/arcade/snowman/place"]);
+const RECOVERABLE_ACTIONS=new Set(["/v1/game/throw","/v1/game/boss","/v1/game/siege","/v1/game/craft","/v1/game/wardrobe/purchase","/v1/game/activities/action","/v1/game/arcade/move","/v1/game/arcade/gallery/shot","/v1/game/arcade/safecracker/move","/v1/game/arcade/snowman/place","/v1/game/arcade/catch/update"]);
 function pendingStoreKey(){
  const id=String(S.session?.player_id||"");
  return /^[1-9][0-9]{0,18}$/.test(id)?"snowfall-pending-v1:"+String(S.config?.season||"qa")+":"+id:null;
@@ -586,6 +586,7 @@ function section(name,{record=true,focus=true}={}){
  if(name!=="arcade"&&S.arcadeGalleryRuntime)S.arcadeGalleryRuntime.pause();
  if(name!=="arcade"&&S.arcadeSafeRuntime)S.arcadeSafeRuntime.pause();
  if(name!=="arcade"&&S.arcadeSnowmanRuntime)S.arcadeSnowmanRuntime.pause();
+ if(name!=="arcade"&&S.arcadeCatchRuntime)S.arcadeCatchRuntime.pause();
  if(name==="shop")showShop();
  if(name==="community"){updateStreetsChat();showCommunity();void refreshCommunity()}
  if(name==="arcade"){showArcade();if(S.session){if(S.busy||S.privatePending)S.privateQueued=true;else void loadPrivate().catch(e=>notice(e.message,"error"))}}
@@ -623,7 +624,7 @@ function hasPlayIdentity(session,config){return !!session&&(!config?.staging||se
 function syncPlayIdentity(){
  const id=S.session?String(S.session.player_id):null;
  if(id===S.playIdentity)return;
- S.playIdentity=id;if(S.arcadePracticeRuntime)S.arcadePracticeRuntime.dispose();S.arcadePracticeRuntime=null;S.arcadePractice=null;el("arcadePractice")?.classList.add("hidden");if(S.arcadeGalleryRuntime)S.arcadeGalleryRuntime.dispose();S.arcadeGalleryRuntime=null;S.arcadeGallery=null;el("arcadeGallery")?.classList.add("hidden");if(S.arcadeSafeRuntime)S.arcadeSafeRuntime.dispose();S.arcadeSafeRuntime=null;S.arcadeSafe=null;el("arcadeSafe")?.classList.add("hidden");if(S.arcadeSnowmanRuntime)S.arcadeSnowmanRuntime.dispose();S.arcadeSnowmanRuntime=null;S.arcadeSnowman=null;el("arcadeSnowman")?.classList.add("hidden");S.staffLab=null;S.staffRole=null;S.staffDirectory=null;S.staffDossier=null;S.staffSelected=null;S.staffDirectorySeq++;S.staffDossierSeq++;S.staffDirectoryBusy=false;S.staffDossierBusy=false;S.staffReviewBusy=false;S.staffAllowed=false;S.staffCheckedIdentity=null;S.staffAccessCheckedAt=0;S.staffData=null;updateStaffNavigation();closeStreetsDock(false);disconnectStreetsChat();S.arcade=null;S.arcadeRun=null;S.arcadeBoard=null;S.arcadeBoardSeq++;showArcade();S.activities=null;el("activitiesResult")?.classList.add("hidden");showActivities();S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
+ S.playIdentity=id;if(S.arcadePracticeRuntime)S.arcadePracticeRuntime.dispose();S.arcadePracticeRuntime=null;S.arcadePractice=null;el("arcadePractice")?.classList.add("hidden");if(S.arcadeGalleryRuntime)S.arcadeGalleryRuntime.dispose();S.arcadeGalleryRuntime=null;S.arcadeGallery=null;el("arcadeGallery")?.classList.add("hidden");if(S.arcadeSafeRuntime)S.arcadeSafeRuntime.dispose();S.arcadeSafeRuntime=null;S.arcadeSafe=null;el("arcadeSafe")?.classList.add("hidden");if(S.arcadeSnowmanRuntime)S.arcadeSnowmanRuntime.dispose();S.arcadeSnowmanRuntime=null;S.arcadeSnowman=null;el("arcadeSnowman")?.classList.add("hidden");if(S.arcadeCatchRuntime)S.arcadeCatchRuntime.dispose();S.arcadeCatchRuntime=null;S.arcadeCatch=null;el("arcadeCatch")?.classList.add("hidden");S.staffLab=null;S.staffRole=null;S.staffDirectory=null;S.staffDossier=null;S.staffSelected=null;S.staffDirectorySeq++;S.staffDossierSeq++;S.staffDirectoryBusy=false;S.staffDossierBusy=false;S.staffReviewBusy=false;S.staffAllowed=false;S.staffCheckedIdentity=null;S.staffAccessCheckedAt=0;S.staffData=null;updateStaffNavigation();closeStreetsDock(false);disconnectStreetsChat();S.arcade=null;S.arcadeRun=null;S.arcadeBoard=null;S.arcadeBoardSeq++;showArcade();S.activities=null;el("activitiesResult")?.classList.add("hidden");showActivities();S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
  // Never show the prior account's selected rival or equipped Market style
  // while the next login's authoritative records are still loading.
  S.targets=[];S.shop=null;showRivalAppearance(null);
@@ -1757,7 +1758,7 @@ function showArcade(){
  txt("arcadeStatus",!S.session?"Sign in to play.":!S.me?.registered?"Register at Headquarters to play.":!a?"Refresh to load your arcade.":("Day "+(a.day??"—")+" / 7 · "+String(a.phase).toUpperCase()+" · "+fmt(a.completed)+" completed runs · "+fmt(a.bests_total)+" combined best"));
  el("arcadeRefresh").disabled=!!(S.busy||S.privatePending);
  el("arcadeBoardRefresh").disabled=!a||S.busy||S.privatePending;
- if(!a){if(S.arcadePracticeRuntime)S.arcadePracticeRuntime.dispose();S.arcadePracticeRuntime=null;S.arcadePractice=null;el("arcadePractice")?.classList.add("hidden");if(S.arcadeGalleryRuntime)S.arcadeGalleryRuntime.dispose();S.arcadeGalleryRuntime=null;S.arcadeGallery=null;el("arcadeGallery")?.classList.add("hidden");if(S.arcadeSafeRuntime)S.arcadeSafeRuntime.dispose();S.arcadeSafeRuntime=null;S.arcadeSafe=null;el("arcadeSafe")?.classList.add("hidden");if(S.arcadeSnowmanRuntime)S.arcadeSnowmanRuntime.dispose();S.arcadeSnowmanRuntime=null;S.arcadeSnowman=null;el("arcadeSnowman")?.classList.add("hidden");lobby.innerHTML="";stamps.innerHTML="";board.innerHTML="";runNode.classList.add("hidden");runNode.innerHTML="";return}
+ if(!a){if(S.arcadePracticeRuntime)S.arcadePracticeRuntime.dispose();S.arcadePracticeRuntime=null;S.arcadePractice=null;el("arcadePractice")?.classList.add("hidden");if(S.arcadeGalleryRuntime)S.arcadeGalleryRuntime.dispose();S.arcadeGalleryRuntime=null;S.arcadeGallery=null;el("arcadeGallery")?.classList.add("hidden");if(S.arcadeSafeRuntime)S.arcadeSafeRuntime.dispose();S.arcadeSafeRuntime=null;S.arcadeSafe=null;el("arcadeSafe")?.classList.add("hidden");if(S.arcadeSnowmanRuntime)S.arcadeSnowmanRuntime.dispose();S.arcadeSnowmanRuntime=null;S.arcadeSnowman=null;el("arcadeSnowman")?.classList.add("hidden");if(S.arcadeCatchRuntime)S.arcadeCatchRuntime.dispose();S.arcadeCatchRuntime=null;S.arcadeCatch=null;el("arcadeCatch")?.classList.add("hidden");lobby.innerHTML="";stamps.innerHTML="";board.innerHTML="";runNode.classList.add("hidden");runNode.innerHTML="";return}
  const run=S.arcadeRun&&S.arcadeRun.day===a.day&&ARCADE_ART[S.arcadeRun.mode]?S.arcadeRun:null;
  runNode.classList.toggle("hidden",!run);
  if(run){
@@ -1771,7 +1772,7 @@ function showArcade(){
   const r=records.find(x=>x.mode===g.key)||{},used=Number(r.attempts_today||0),cap=Number(a.daily_cap||3);
   const canResume=!!r.active_id;
   return "<article class='arcade-card'><img src='"+ARCADE_ART[g.key]+"' alt='' loading='lazy'><div><p class='eyebrow'>"+fmt(g.rounds)+" rounds · "+esc(g.award_name)+"</p><h3>"+esc(g.title)+"</h3><p>"+esc(g.description)+"</p><p>Personal best: <strong>"+fmt(r.personal_best)+" / 100</strong> · "+fmt(r.games_played)+" finished</p><p>"+fmt(used)+" / "+fmt(cap)+" starts used today</p>"+arcadeButton("start",g.key,canResume?"Resume game":used>=cap?"Daily limit reached":"Play game",locked||(!canResume&&used>=cap))+
-  arcadeButton("practice",g.key,S.config?.interactive_arcade_enabled?"Interactive practice · free":"Interactive practice · coming soon",!S.config?.interactive_arcade_enabled||S.busy||S.privatePending||!S.privateFresh||!hasPlayIdentity(S.session,S.config))+(g.key==="gallery"?arcadeButton("gallery-full",g.key,S.config?.gallery_v299a_enabled?"Play full Target Gallery · QA":"Full Target Gallery · coming soon",!S.config?.gallery_v299a_enabled||locked):"")+(g.key==="safe"?arcadeButton("safe-full",g.key,S.config?.safe_v299b_enabled?"Crack the Frozen Safe · QA":"Frozen Safecracker · coming soon",!S.config?.safe_v299b_enabled||locked):"")+(g.key==="snowman"?arcadeButton("snowman-full",g.key,S.config?.snowman_v299c_enabled?"Build a Snowman · QA":"Snowman Builder · coming soon",!S.config?.snowman_v299c_enabled||locked):"")+"</div></article>";
+  arcadeButton("practice",g.key,S.config?.interactive_arcade_enabled?"Interactive practice · free":"Interactive practice · coming soon",!S.config?.interactive_arcade_enabled||S.busy||S.privatePending||!S.privateFresh||!hasPlayIdentity(S.session,S.config))+(g.key==="gallery"?arcadeButton("gallery-full",g.key,S.config?.gallery_v299a_enabled?"Play full Target Gallery · QA":"Full Target Gallery · coming soon",!S.config?.gallery_v299a_enabled||locked):"")+(g.key==="safe"?arcadeButton("safe-full",g.key,S.config?.safe_v299b_enabled?"Crack the Frozen Safe · QA":"Frozen Safecracker · coming soon",!S.config?.safe_v299b_enabled||locked):"")+(g.key==="snowman"?arcadeButton("snowman-full",g.key,S.config?.snowman_v299c_enabled?"Build a Snowman · QA":"Snowman Builder · coming soon",!S.config?.snowman_v299c_enabled||locked):"")+(g.key==="catch"?arcadeButton("catch-full",g.key,S.config?.catch_v299d_enabled?"Play Snowflake Catch · QA":"Full Snowflake Catch · coming soon",!S.config?.catch_v299d_enabled||locked):"")+"</div></article>";
  }).join("");
  const collected=new Set(a.stamps||[]);
  stamps.innerHTML=Object.entries(a.stamp_labels||{}).map(([key,name])=>"<div class='arcade-stamp"+(collected.has(key)?" earned":"")+"'><span>"+(collected.has(key)?"✓":"◇")+"</span> "+esc(name)+"</div>").join("");
@@ -1803,6 +1804,7 @@ function mountArcadePractice(){
  if(S.arcadeGalleryRuntime)S.arcadeGalleryRuntime.pause();
  if(S.arcadeSafeRuntime)S.arcadeSafeRuntime.pause();
  if(S.arcadeSnowmanRuntime)S.arcadeSnowmanRuntime.pause();
+ if(S.arcadeCatchRuntime)S.arcadeCatchRuntime.pause();
  S.arcadePracticeRuntime=window.SnowfallArcadeV299.mount({
   root,session:S.arcadePractice,
   save:async body=>{
@@ -1840,6 +1842,7 @@ function mountArcadeGallery(){
  if(S.arcadePracticeRuntime)S.arcadePracticeRuntime.pause();
  if(S.arcadeSafeRuntime)S.arcadeSafeRuntime.pause();
  if(S.arcadeSnowmanRuntime)S.arcadeSnowmanRuntime.pause();
+ if(S.arcadeCatchRuntime)S.arcadeCatchRuntime.pause();
  const accepted=view=>{S.arcadeGallery=view;reconcileGalleryPending(view);return view};
  S.arcadeGalleryRuntime=window.SnowfallGalleryV299a.mount({
   root,session:S.arcadeGallery,
@@ -1878,6 +1881,7 @@ function mountArcadeSafe(){
  if(S.arcadePracticeRuntime)S.arcadePracticeRuntime.pause();
  if(S.arcadeGalleryRuntime)S.arcadeGalleryRuntime.pause();
  if(S.arcadeSnowmanRuntime)S.arcadeSnowmanRuntime.pause();
+ if(S.arcadeCatchRuntime)S.arcadeCatchRuntime.pause();
  const accepted=view=>{S.arcadeSafe=view;reconcileSafePending(view);return view};
  S.arcadeSafeRuntime=window.SnowfallSafecrackerV299b.mount({
   root,session:S.arcadeSafe,
@@ -1921,6 +1925,7 @@ function mountArcadeSnowman(){
  if(S.arcadePracticeRuntime)S.arcadePracticeRuntime.pause();
  if(S.arcadeGalleryRuntime)S.arcadeGalleryRuntime.pause();
  if(S.arcadeSafeRuntime)S.arcadeSafeRuntime.pause();
+ if(S.arcadeCatchRuntime)S.arcadeCatchRuntime.pause();
  const accepted=view=>{
   S.arcadeSnowman=view;reconcileSnowmanPending(view);return view;
  };
@@ -1939,6 +1944,49 @@ function mountArcadeSnowman(){
  });
  root.scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"});
 }
+/* v2.9.9d — separate, speed-limited Snowflake Catch with replay recovery. */
+function reconcileCatchPending(view){
+ const prefix=String(S.session?.player_id)+"|/v1/game/arcade/catch/update|";
+ let recovered=null,changed=false;
+ for(const key of S.pendingActions.keys()){
+  if(!key.startsWith(prefix))continue;
+  try{
+   const body=JSON.parse(key.slice(prefix.length));
+   if(body.session_id!==view.session_id||body.action_seq<view.action_seq){
+    S.pendingActions.delete(key);changed=true;
+   }else if(body.action_seq===view.action_seq&&
+            Number.isInteger(body.x)&&body.x>=66&&body.x<=574){
+    recovered=body;
+   }
+  }catch{}
+ }
+ if(changed)savePending();
+ return recovered;
+}
+function mountArcadeCatch(){
+ const root=el("arcadeCatch");
+ if(!root||!S.arcadeCatch||!window.SnowfallCatchV299d)return;
+ if(S.arcadeCatchRuntime)S.arcadeCatchRuntime.dispose();
+ if(S.arcadePracticeRuntime)S.arcadePracticeRuntime.pause();
+ if(S.arcadeGalleryRuntime)S.arcadeGalleryRuntime.pause();
+ if(S.arcadeSafeRuntime)S.arcadeSafeRuntime.pause();
+ if(S.arcadeSnowmanRuntime)S.arcadeSnowmanRuntime.pause();
+ const accepted=view=>{S.arcadeCatch=view;reconcileCatchPending(view);return view};
+ S.arcadeCatchRuntime=window.SnowfallCatchV299d.mount({
+  root,session:S.arcadeCatch,
+  recoveredAction:reconcileCatchPending(S.arcadeCatch),
+  start:async()=>accepted(await post("/v1/game/arcade/catch/start",{},true)),
+  control:async(session_id,action)=>accepted(await post(
+   "/v1/game/arcade/catch/control",{session_id,action},true)),
+  update:async body=>accepted(await post("/v1/game/arcade/catch/update",body,true,true)),
+  refresh:async session_id=>accepted(await get(
+   "/v1/game/arcade/catch/session/"+encodeURIComponent(session_id))),
+  fetchRecord:async()=>get("/v1/game/arcade/catch/record"),
+  onExit:()=>{S.arcadeCatchRuntime=null;S.arcadeCatch=null;
+   root.classList.add("hidden");root.innerHTML=""}
+ });
+ root.scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"});
+}
 function bindArcade(){
  const page=el("page-arcade");if(!page)return;
  el("arcadeRefresh").onclick=()=>{if(registered()&&!S.busy&&!S.privatePending)void loadPrivate().catch(e=>notice(e.message,"error"))};
@@ -1948,7 +1996,13 @@ function bindArcade(){
   const b=event.target.closest("button[data-arcade]");
   if(!b||b.disabled||!registered()||!arcadeAllowed()||S.busy||S.privatePending)return;
   const a=S.arcade,action=b.dataset.arcade,value=b.dataset.value;
-  if(action==="snowman-full"&&value==="snowman"&&S.config?.snowman_v299c_enabled){
+  if(action==="catch-full"&&value==="catch"&&S.config?.catch_v299d_enabled){
+   act(async()=>{
+    const view=await post("/v1/game/arcade/catch/start",{},true);
+    S.arcadeCatch=view;reconcileCatchPending(view);mountArcadeCatch();
+    notice("Snowflake Catch ready — avoid hazards, catch falling bonuses!","success");
+   });
+  }else if(action==="snowman-full"&&value==="snowman"&&S.config?.snowman_v299c_enabled){
    act(async()=>{
     const view=await post("/v1/game/arcade/snowman/start",{},true);
     S.arcadeSnowman=view;reconcileSnowmanPending(view);mountArcadeSnowman();
