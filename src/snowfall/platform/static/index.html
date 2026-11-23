@@ -8,8 +8,9 @@
   <meta name="description" content="Operation Snowfall — the seven-day winter city showdown. Isolated staging preview.">
   <title>Operation Snowfall | The Winter Underworld</title>
   <link rel="icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/static/app.css?v=298l-r3">
-  <script defer src="/static/app.js?v=298l-r2"></script>
+  <link rel="stylesheet" href="/static/app.css?v=299">
+  <script defer src="/static/app.js?v=299"></script>
+  <script defer src="/static/arcade-v299.js?v=299"></script>
 </head>
 <body>
   <a class="skip-link" href="#mainContent">Skip to game content</a>
@@ -422,9 +423,10 @@
         </section>
         <section id="page-arcade" class="panel" aria-labelledby="arcadeTitle">
           <div class="section-heading"><div><p class="eyebrow">THE WINTER UNDERWORLD · NO-PRIZE SOCIAL GAMES</p><h2 id="arcadeTitle">Winter Arcade</h2></div><span class="pill">HONORARY SCORES</span></div>
-          <div class="arcade-intro"><div><h3>Five games. One shared passport.</h3><p>Play without spending snowballs. Each game allows three starts per event day, shared with Discord. Resume an unfinished run at any time that day.</p></div><button class="button button-outline" id="arcadeRefresh">Refresh arcade</button></div>
+          <div class="arcade-intro"><div><h3>Five games. One shared passport.</h3><p>Play without spending snowballs. Each game allows three starts per event day, shared with Discord. Resume an unfinished run at any time that day. New interactive practice drills are unlimited and do not affect competitive starts, passports or rewards.</p></div><button class="button button-outline" id="arcadeRefresh">Refresh arcade</button></div>
           <p id="arcadeStatus" class="play-action-status" role="status">Sign in to see your arcade records.</p>
-          <div id="arcadeRun" class="arcade-run hidden" aria-label="Current arcade game"></div>
+          <div id="arcadeRun" class="arcade-run hidden" aria-label="Current classic arcade game"></div>
+           <section id="arcadePractice" class="arcade-training hidden" aria-label="Interactive arcade practice preview"></section>
           <div id="arcadeLobby" class="arcade-lobby"></div>
           <section class="activity-card arcade-passport" aria-labelledby="arcadePassportTitle"><h3 id="arcadePassportTitle">My Arcade Passport</h3><div id="arcadeStamps" class="arcade-stamps"></div></section>
           <section class="activity-card arcade-rankings" aria-labelledby="arcadeBoardTitle"><h3 id="arcadeBoardTitle">High scores &amp; City Cup</h3><p>Honorary rankings only. No championship points or prizes.</p><div class="arcade-filters"><label>Game<select id="arcadeBoardMode"><option value="gallery">Target Gallery</option><option value="safe">Frozen Safecracker</option><option value="snowman">Snowman Builder</option><option value="catch">Snowflake Catch</option><option value="trivia">Christmas Trivia</option></select></label><label>Period<select id="arcadeBoardPeriod"><option value="season">Season</option><option value="daily">Today</option></select></label><button class="button button-outline" id="arcadeBoardRefresh">View rankings</button></div><div id="arcadeBoard" aria-live="polite"></div></section>
