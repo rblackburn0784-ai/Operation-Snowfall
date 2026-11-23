@@ -62,6 +62,7 @@ test("narrow rival stage keeps the entire long name, not a clipped substring",()
 
 test("unbannered names retain their normal size, names refit when banner is removed",()=>{
  const h=harness(),well=h.elements.get("hqBannerWell");
+ h.widths.hq=160;
  well.dataset.banner="gilded_banner";
  h.run('fitBannerName("hq")');
  assert.notEqual(h.elements.get("hqBannerText").style.fontSize,"");
