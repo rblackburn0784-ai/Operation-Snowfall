@@ -478,6 +478,7 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
   const cmd=node.dataset.scene;
   if(cmd==="start")void act(onStart,"Start");
   if(cmd==="pause")void act(onPause,"Pause");
+  if(cmd==="throw"&&onShot)void shoot();
   if(cmd==="finish"){
    if(getStatus()!=="finished"&&performance.now()>=confirmFinishUntil){
     confirmFinishUntil=performance.now()+6000;
