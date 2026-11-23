@@ -310,6 +310,34 @@ class SharedGame:
         from snowfall.platform.safecracker_arcade import SafecrackerEngine
         return SafecrackerEngine(self.store, self.season).record(player_id, now=now)
 
+    # v2.9.9c: drag-and-drop snowman blueprint game, QA-only records.
+    def snowman_start(self, player_id: int, *, now=None) -> dict:
+        from snowfall.platform.snowman_arcade import SnowmanBuilderEngine
+        return SnowmanBuilderEngine(self.store, self.season).start(player_id, now=now)
+
+    def snowman_session(self, player_id: int, session_id: str, *, now=None) -> dict:
+        from snowfall.platform.snowman_arcade import SnowmanBuilderEngine
+        return SnowmanBuilderEngine(self.store, self.season).session(
+            player_id, session_id, now=now)
+
+    def snowman_control(self, player_id: int, session_id: str, action: str,
+                        *, now=None) -> dict:
+        from snowfall.platform.snowman_arcade import SnowmanBuilderEngine
+        return SnowmanBuilderEngine(self.store, self.season).control(
+            player_id, session_id, action, now=now)
+
+    def snowman_place(self, player_id: int, session_id: str, action_seq: int,
+                      piece_id: str, x: int, y: int, interaction_id: str,
+                      *, now=None) -> dict:
+        from snowfall.platform.snowman_arcade import SnowmanBuilderEngine
+        return SnowmanBuilderEngine(self.store, self.season).place(
+            player_id, session_id, action_seq, piece_id, x, y, interaction_id,
+            now=now)
+
+    def snowman_record(self, player_id: int, *, now=None) -> dict:
+        from snowfall.platform.snowman_arcade import SnowmanBuilderEngine
+        return SnowmanBuilderEngine(self.store, self.season).record(player_id, now=now)
+
     def arcade_board(self, player_id: int, mode: str, *, daily=False, now=None) -> dict:
         from snowfall.services.social_arcade import SocialArcadeEngine
         engine = SocialArcadeEngine(self.store)
