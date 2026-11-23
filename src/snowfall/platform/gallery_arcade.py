@@ -89,7 +89,7 @@ def schedule_targets(rng=None) -> list[dict]:
         wave = min(3, starts // 15000 + 1)
         kind = ("decoy" if i > 3 and i % 8 == 5
                 else "gold" if i > 1 and i % 7 == 3 else "normal")
-        length = (2100, 1730, 1450)[wave - 1]
+        length = (2100, 1840, 1600)[wave - 1]
         if kind == "gold":
             length -= 230
         targets.append({
