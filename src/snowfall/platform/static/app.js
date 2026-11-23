@@ -1,6 +1,6 @@
 /* Operation Snowfall v2.9.8l — status and resource artwork integration. */
 "use strict";
-const S={staffRole:null,staffDirectory:null,staffDossier:null,staffSelected:null,staffDirectoryBusy:false,staffDossierBusy:false,staffReviewBusy:false,staffDirectorySeq:0,staffDossierSeq:0,staffLab:null,staffLabPending:false,staffAllowed:false,staffCheckedIdentity:null,staffAccessCheckedAt:0,staffData:null,staffPending:false,staffStale:false,streetsDrawerOpen:false,streetsReturnFocus:null,streetsEmbedUrl:null,streetsChatOpen:false,community:null,communityPending:false,communityStale:false,privateQueued:false,arcade:null,arcadeRun:null,arcadePractice:null,arcadePracticeRuntime:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
+const S={staffRole:null,staffDirectory:null,staffDossier:null,staffSelected:null,staffDirectoryBusy:false,staffDossierBusy:false,staffReviewBusy:false,staffDirectorySeq:0,staffDossierSeq:0,staffLab:null,staffLabPending:false,staffAllowed:false,staffCheckedIdentity:null,staffAccessCheckedAt:0,staffData:null,staffPending:false,staffStale:false,streetsDrawerOpen:false,streetsReturnFocus:null,streetsEmbedUrl:null,streetsChatOpen:false,community:null,communityPending:false,communityStale:false,privateQueued:false,arcade:null,arcadeRun:null,arcadePractice:null,arcadePracticeRuntime:null,arcadeGallery:null,arcadeGalleryRuntime:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
 const txt=(id,v)=>{const node=el(id),value=v==null?"—":String(v);if(node&&node.textContent!==value)node.textContent=value};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -467,7 +467,7 @@ function nextActionId(){
 }
 // Store only pending operation keys and their opaque IDs in this browser tab.
  // No passwords, session cookies, CSRF values or names are persisted.
-const RECOVERABLE_ACTIONS=new Set(["/v1/game/throw","/v1/game/boss","/v1/game/siege","/v1/game/craft","/v1/game/wardrobe/purchase","/v1/game/activities/action","/v1/game/arcade/move"]);
+const RECOVERABLE_ACTIONS=new Set(["/v1/game/throw","/v1/game/boss","/v1/game/siege","/v1/game/craft","/v1/game/wardrobe/purchase","/v1/game/activities/action","/v1/game/arcade/move","/v1/game/arcade/gallery/shot"]);
 function pendingStoreKey(){
  const id=String(S.session?.player_id||"");
  return /^[1-9][0-9]{0,18}$/.test(id)?"snowfall-pending-v1:"+String(S.config?.season||"qa")+":"+id:null;
@@ -583,6 +583,7 @@ function section(name,{record=true,focus=true}={}){
  reflectNavigationGroup(name);
  if(name==="staff"){void refreshStaffDashboard();void refreshStaffLab();void refreshStaffDirectory(1)}
  if(name!=="arcade"&&S.arcadePracticeRuntime)S.arcadePracticeRuntime.pause();
+ if(name!=="arcade"&&S.arcadeGalleryRuntime)S.arcadeGalleryRuntime.pause();
  if(name==="shop")showShop();
  if(name==="community"){updateStreetsChat();showCommunity();void refreshCommunity()}
  if(name==="arcade"){showArcade();if(S.session){if(S.busy||S.privatePending)S.privateQueued=true;else void loadPrivate().catch(e=>notice(e.message,"error"))}}
@@ -620,7 +621,7 @@ function hasPlayIdentity(session,config){return !!session&&(!config?.staging||se
 function syncPlayIdentity(){
  const id=S.session?String(S.session.player_id):null;
  if(id===S.playIdentity)return;
- S.playIdentity=id;if(S.arcadePracticeRuntime)S.arcadePracticeRuntime.dispose();S.arcadePracticeRuntime=null;S.arcadePractice=null;el("arcadePractice")?.classList.add("hidden");S.staffLab=null;S.staffRole=null;S.staffDirectory=null;S.staffDossier=null;S.staffSelected=null;S.staffDirectorySeq++;S.staffDossierSeq++;S.staffDirectoryBusy=false;S.staffDossierBusy=false;S.staffReviewBusy=false;S.staffAllowed=false;S.staffCheckedIdentity=null;S.staffAccessCheckedAt=0;S.staffData=null;updateStaffNavigation();closeStreetsDock(false);disconnectStreetsChat();S.arcade=null;S.arcadeRun=null;S.arcadeBoard=null;S.arcadeBoardSeq++;showArcade();S.activities=null;el("activitiesResult")?.classList.add("hidden");showActivities();S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
+ S.playIdentity=id;if(S.arcadePracticeRuntime)S.arcadePracticeRuntime.dispose();S.arcadePracticeRuntime=null;S.arcadePractice=null;el("arcadePractice")?.classList.add("hidden");if(S.arcadeGalleryRuntime)S.arcadeGalleryRuntime.dispose();S.arcadeGalleryRuntime=null;S.arcadeGallery=null;el("arcadeGallery")?.classList.add("hidden");S.staffLab=null;S.staffRole=null;S.staffDirectory=null;S.staffDossier=null;S.staffSelected=null;S.staffDirectorySeq++;S.staffDossierSeq++;S.staffDirectoryBusy=false;S.staffDossierBusy=false;S.staffReviewBusy=false;S.staffAllowed=false;S.staffCheckedIdentity=null;S.staffAccessCheckedAt=0;S.staffData=null;updateStaffNavigation();closeStreetsDock(false);disconnectStreetsChat();S.arcade=null;S.arcadeRun=null;S.arcadeBoard=null;S.arcadeBoardSeq++;showArcade();S.activities=null;el("activitiesResult")?.classList.add("hidden");showActivities();S.chosenTarget=false;S.lastThrow=null;S.targetsReady=false;
  // Never show the prior account's selected rival or equipped Market style
  // while the next login's authoritative records are still loading.
  S.targets=[];S.shop=null;showRivalAppearance(null);
@@ -1754,7 +1755,7 @@ function showArcade(){
  txt("arcadeStatus",!S.session?"Sign in to play.":!S.me?.registered?"Register at Headquarters to play.":!a?"Refresh to load your arcade.":("Day "+(a.day??"—")+" / 7 · "+String(a.phase).toUpperCase()+" · "+fmt(a.completed)+" completed runs · "+fmt(a.bests_total)+" combined best"));
  el("arcadeRefresh").disabled=!!(S.busy||S.privatePending);
  el("arcadeBoardRefresh").disabled=!a||S.busy||S.privatePending;
- if(!a){if(S.arcadePracticeRuntime)S.arcadePracticeRuntime.dispose();S.arcadePracticeRuntime=null;S.arcadePractice=null;el("arcadePractice")?.classList.add("hidden");lobby.innerHTML="";stamps.innerHTML="";board.innerHTML="";runNode.classList.add("hidden");runNode.innerHTML="";return}
+ if(!a){if(S.arcadePracticeRuntime)S.arcadePracticeRuntime.dispose();S.arcadePracticeRuntime=null;S.arcadePractice=null;el("arcadePractice")?.classList.add("hidden");if(S.arcadeGalleryRuntime)S.arcadeGalleryRuntime.dispose();S.arcadeGalleryRuntime=null;S.arcadeGallery=null;el("arcadeGallery")?.classList.add("hidden");lobby.innerHTML="";stamps.innerHTML="";board.innerHTML="";runNode.classList.add("hidden");runNode.innerHTML="";return}
  const run=S.arcadeRun&&S.arcadeRun.day===a.day&&ARCADE_ART[S.arcadeRun.mode]?S.arcadeRun:null;
  runNode.classList.toggle("hidden",!run);
  if(run){
@@ -1768,7 +1769,7 @@ function showArcade(){
   const r=records.find(x=>x.mode===g.key)||{},used=Number(r.attempts_today||0),cap=Number(a.daily_cap||3);
   const canResume=!!r.active_id;
   return "<article class='arcade-card'><img src='"+ARCADE_ART[g.key]+"' alt='' loading='lazy'><div><p class='eyebrow'>"+fmt(g.rounds)+" rounds · "+esc(g.award_name)+"</p><h3>"+esc(g.title)+"</h3><p>"+esc(g.description)+"</p><p>Personal best: <strong>"+fmt(r.personal_best)+" / 100</strong> · "+fmt(r.games_played)+" finished</p><p>"+fmt(used)+" / "+fmt(cap)+" starts used today</p>"+arcadeButton("start",g.key,canResume?"Resume game":used>=cap?"Daily limit reached":"Play game",locked||(!canResume&&used>=cap))+
-  arcadeButton("practice",g.key,S.config?.interactive_arcade_enabled?"Interactive practice · free":"Interactive practice · coming soon",!S.config?.interactive_arcade_enabled||S.busy||S.privatePending||!S.privateFresh||!hasPlayIdentity(S.session,S.config))+"</div></article>";
+  arcadeButton("practice",g.key,S.config?.interactive_arcade_enabled?"Interactive practice · free":"Interactive practice · coming soon",!S.config?.interactive_arcade_enabled||S.busy||S.privatePending||!S.privateFresh||!hasPlayIdentity(S.session,S.config))+(g.key==="gallery"?arcadeButton("gallery-full",g.key,S.config?.gallery_v299a_enabled?"Play full Target Gallery · QA":"Full Target Gallery · coming soon",!S.config?.gallery_v299a_enabled||locked):"")+"</div></article>";
  }).join("");
  const collected=new Set(a.stamps||[]);
  stamps.innerHTML=Object.entries(a.stamp_labels||{}).map(([key,name])=>"<div class='arcade-stamp"+(collected.has(key)?" earned":"")+"'><span>"+(collected.has(key)?"✓":"◇")+"</span> "+esc(name)+"</div>").join("");
@@ -1811,6 +1812,38 @@ function mountArcadePractice(){
  });
  root.scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"});
 }
+/* v2.9.9a: independent, server-verified interactive practice gallery.
+   Never modifies the classic Discord arcade passport or daily starts. */
+function reconcileGalleryPending(view){
+ const prefix=String(S.session?.player_id)+"|/v1/game/arcade/gallery/shot|";
+ let changed=false;
+ for(const key of S.pendingActions.keys()){
+  if(!key.startsWith(prefix))continue;
+  try{
+   const body=JSON.parse(key.slice(prefix.length));
+   if(body.session_id===view.session_id&&body.shot_index<view.shots_used){
+    S.pendingActions.delete(key);changed=true;
+   }
+  }catch{}
+ }
+ if(changed)savePending();
+}
+function mountArcadeGallery(){
+ const root=el("arcadeGallery");
+ if(!root||!S.arcadeGallery||!window.SnowfallGalleryV299a)return;
+ if(S.arcadeGalleryRuntime)S.arcadeGalleryRuntime.dispose();
+ if(S.arcadePracticeRuntime)S.arcadePracticeRuntime.pause();
+ const accepted=view=>{S.arcadeGallery=view;reconcileGalleryPending(view);return view};
+ S.arcadeGalleryRuntime=window.SnowfallGalleryV299a.mount({
+  root,session:S.arcadeGallery,
+  start:async()=>accepted(await post("/v1/game/arcade/gallery/start",{},true)),
+  control:async(session_id,action)=>accepted(await post("/v1/game/arcade/gallery/control",{session_id,action},true)),
+  shot:async body=>accepted(await post("/v1/game/arcade/gallery/shot",body,true,true)),
+  refresh:async session_id=>accepted(await get("/v1/game/arcade/gallery/session/"+encodeURIComponent(session_id))),
+  onExit:()=>{S.arcadeGalleryRuntime=null;S.arcadeGallery=null;root.classList.add("hidden");root.innerHTML=""}
+ });
+ root.scrollIntoView({block:"start",behavior:motionEnabled()?"smooth":"auto"});
+}
 function bindArcade(){
  const page=el("page-arcade");if(!page)return;
  el("arcadeRefresh").onclick=()=>{if(registered()&&!S.busy&&!S.privatePending)void loadPrivate().catch(e=>notice(e.message,"error"))};
@@ -1820,7 +1853,13 @@ function bindArcade(){
   const b=event.target.closest("button[data-arcade]");
   if(!b||b.disabled||!registered()||!arcadeAllowed()||S.busy||S.privatePending)return;
   const a=S.arcade,action=b.dataset.arcade,value=b.dataset.value;
-  if(action==="practice"&&ARCADE_ART[value]){
+  if(action==="gallery-full"&&value==="gallery"&&S.config?.gallery_v299a_enabled){
+   act(async()=>{
+    const view=await post("/v1/game/arcade/gallery/start",{},true);
+    S.arcadeGallery=view;reconcileGalleryPending(view);mountArcadeGallery();
+    notice("Target Gallery ready — 3 waves, 45 seconds, practice-only scoring.","success");
+   });
+  }else if(action==="practice"&&ARCADE_ART[value]){
    act(async()=>{
     const practice=await post("/v1/game/arcade/practice/start",{mode:value},true);
     S.arcadePractice=practice;
