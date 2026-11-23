@@ -338,6 +338,32 @@ class SharedGame:
         from snowfall.platform.snowman_arcade import SnowmanBuilderEngine
         return SnowmanBuilderEngine(self.store, self.season).record(player_id, now=now)
 
+    # v2.9.9d: independent Snowflake Catch arcade; no Discord economy writes.
+    def catch_start(self, player_id: int, *, now=None) -> dict:
+        from snowfall.platform.catch_arcade import SnowflakeCatchEngine
+        return SnowflakeCatchEngine(self.store, self.season).start(player_id, now=now)
+
+    def catch_session(self, player_id: int, session_id: str, *, now=None) -> dict:
+        from snowfall.platform.catch_arcade import SnowflakeCatchEngine
+        return SnowflakeCatchEngine(self.store, self.season).session(
+            player_id, session_id, now=now)
+
+    def catch_control(self, player_id: int, session_id: str, action: str,
+                      *, now=None) -> dict:
+        from snowfall.platform.catch_arcade import SnowflakeCatchEngine
+        return SnowflakeCatchEngine(self.store, self.season).control(
+            player_id, session_id, action, now=now)
+
+    def catch_update(self, player_id: int, session_id: str, action_seq: int,
+                     x: int, interaction_id: str, *, now=None) -> dict:
+        from snowfall.platform.catch_arcade import SnowflakeCatchEngine
+        return SnowflakeCatchEngine(self.store, self.season).update(
+            player_id, session_id, action_seq, x, interaction_id, now=now)
+
+    def catch_record(self, player_id: int, *, now=None) -> dict:
+        from snowfall.platform.catch_arcade import SnowflakeCatchEngine
+        return SnowflakeCatchEngine(self.store, self.season).record(player_id, now=now)
+
     def arcade_board(self, player_id: int, mode: str, *, daily=False, now=None) -> dict:
         from snowfall.services.social_arcade import SocialArcadeEngine
         engine = SocialArcadeEngine(self.store)
