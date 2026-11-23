@@ -1085,3 +1085,45 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
  .score-row .score-total img{height:31px;width:32px}
  .score-row{gap:.45rem;padding:.6rem}
 }
+
+/* Resource-card layout hotfix (v2.9.8l2).
+   Display-only corrections; official numbers, bars elsewhere and resource
+   calculations are unchanged. Avoid clipping large snowball artwork. */
+#playerDashboard .resource-ammo-stat .resource-art-ammo{
+ margin-top:clamp(10px,1.2vw,16px);
+ object-position:left bottom;
+}
+/* The cold portrait stays above the live reading; the ornate horizontal
+   thermometer now replaces the small progress line at the foot of the card. */
+#playerDashboard .resource-warmth-stat .warmth-artwork{
+ width:100%;height:clamp(76px,7vw,95px);min-height:0;
+ display:flex;align-items:center;justify-content:flex-start;
+}
+#playerDashboard .resource-warmth-stat .warmth-artwork .resource-cold-art{
+ width:100%;height:100%;max-width:100%;
+ object-fit:contain;object-position:left center;
+}
+#playerDashboard .resource-warmth-stat .warmth-meter{
+ width:100%;height:clamp(32px,4.6vw,48px);
+ min-height:32px;margin:.55rem 0 0;padding:0;
+ border:0;border-radius:0;box-shadow:none;
+ background:transparent;overflow:visible;
+ display:block;flex:none;margin-top:auto;
+}
+#playerDashboard .resource-warmth-stat .warmth-meter .resource-warmth-bar{
+ display:block;width:100%;max-width:100%;height:100%;
+ object-fit:contain;object-position:left center;
+}
+/* Preserve the existing #hqWarmthMeter node for the normal JS meter update;
+   the picture is now the visual meter, so don't draw a second progress bar. */
+#playerDashboard .resource-warmth-stat .warmth-meter>span{display:none}
+@media(max-width:640px){
+ #playerDashboard .resource-ammo-stat .resource-art-ammo{margin-top:9px}
+ #playerDashboard .resource-warmth-stat .warmth-artwork{height:74px}
+ #playerDashboard .resource-warmth-stat .warmth-meter{height:36px;min-height:32px}
+}
+@media(max-width:380px){
+ #playerDashboard .resource-ammo-stat .resource-art-ammo{margin-top:8px}
+ #playerDashboard .resource-warmth-stat .warmth-artwork{height:65px}
+ #playerDashboard .resource-warmth-stat .warmth-meter{height:32px}
+}
