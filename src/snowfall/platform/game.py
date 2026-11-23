@@ -390,6 +390,12 @@ class SharedGame:
         from snowfall.platform.trivia_arcade import ChristmasTriviaEngine
         return ChristmasTriviaEngine(self.store, self.season).record(player_id, now=now)
 
+    # v2.9.9f: single safe read model for all five QA-only full mini-games.
+    def arcade_hub(self, player_id: int, *, now=None) -> dict:
+        from snowfall.platform.arcade_hub import ArcadeHubEngine
+        return ArcadeHubEngine(self.store, self.season).overview(
+            player_id, now=now)
+
     def arcade_board(self, player_id: int, mode: str, *, daily=False, now=None) -> dict:
         from snowfall.services.social_arcade import SocialArcadeEngine
         engine = SocialArcadeEngine(self.store)
