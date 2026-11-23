@@ -9,6 +9,7 @@ from snowfall.db.migrate_postgres import migrate
 from snowfall.db.postgres import PostgresStore
 from snowfall.db.store import Store
 from snowfall.platform.interactive_arcade import InteractiveArcadePractice, install_practice_schema
+from snowfall.platform.gallery_arcade import GalleryEngine, install_gallery_schema, target_position
 
 SEASON = "web-qa-2026"
 START = datetime(2026, 12, 20, 18, tzinfo=timezone.utc)
@@ -42,6 +43,7 @@ def test_additive_practice_table_runs_on_real_postgres_without_game_schema_chang
         pg.initialize()
         with pg.connect() as con:
             install_practice_schema(con)
+            install_gallery_schema(con)
         pg.initialize()  # Existing canonical version stays unchanged.
         arcade = InteractiveArcadePractice(pg, SEASON)
         run = arcade.start(101, "gallery", now=START)
@@ -55,6 +57,26 @@ def test_additive_practice_table_runs_on_real_postgres_without_game_schema_chang
             assert con.execute("SELECT COUNT(*) FROM social_arcade_runs").fetchone()[0] == 0
             assert con.execute("SELECT COUNT(*) FROM score_ledger").fetchone()[0] == 0
             assert con.execute("SELECT COUNT(*) FROM web_arcade_practice_sessions").fetchone()[0] == 1
+        gallery = GalleryEngine(pg, SEASON)
+        ready = gallery.start(101, now=START)
+        assert ready["status"] == "paused" and ready["ammo"] == 32
+        sid = ready["session_id"]
+        playing = gallery.control(101, sid, "resume", now=START+timedelta(milliseconds=100))
+        t = playing["schedule"][0]
+        x, y = target_position(t, t["start"]+80)
+        hit = gallery.shoot(101, sid, 0, round(x), round(y),
+                            "gallery-pg-first-shot",
+                            now=START+timedelta(milliseconds=100+t["start"]+80))
+        assert hit["hits"] == 1 and hit["score"] == 7
+        assert gallery.shoot(101, sid, 0, round(x), round(y),
+                             "gallery-pg-first-shot",
+                             now=START+timedelta(seconds=3))["repeated"]
+        assert gallery.control(101, sid, "finish", now=START+timedelta(seconds=4))["status"] == "finished"
+        with pg.connect() as con:
+            assert con.execute("SELECT COUNT(*) FROM web_arcade_gallery_sessions").fetchone()[0] == 1
+            assert con.execute("SELECT COUNT(*) FROM web_arcade_gallery_shots").fetchone()[0] == 1
+            assert con.execute("SELECT COUNT(*) FROM score_ledger").fetchone()[0] == 0
+
     finally:
         with psycopg.connect(root, autocommit=True) as admin:
             admin.execute(sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(
