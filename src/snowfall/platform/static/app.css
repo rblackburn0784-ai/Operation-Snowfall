@@ -1128,3 +1128,21 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
  #playerDashboard .resource-warmth-stat .warmth-artwork{height:65px}
  #playerDashboard .resource-warmth-stat .warmth-meter{height:32px}
 }
+
+
+/* v2.9.9 — web-only mini-game foundation; does not style Discord arcade cards. */
+.arcade-training{margin:1.25rem 0;padding:clamp(.75rem,2vw,1.25rem);border:1px solid #758b91;background:linear-gradient(145deg,#173243,#0b202c);border-radius:12px}
+.arcade-training.hidden{display:none}
+.arcade-training-head{display:flex;justify-content:space-between;gap:1rem;align-items:start;flex-wrap:wrap}
+.arcade-training-head h3{font:700 1.45rem Georgia,serif;color:#f1d5a7;margin:.2rem 0}
+.arcade-training-head p{max-width:55ch;line-height:1.5;margin:.4rem 0;color:#d0dfe4}
+.arcade-training-status{display:flex;gap:.65rem;flex-wrap:wrap;margin:.9rem 0}
+.arcade-training-status span{border:1px solid #526f7c;border-radius:5px;background:#243b49;padding:.4rem .65rem;color:#f1d7a7;font-size:.8rem;font-variant-numeric:tabular-nums}
+.arcade-training-canvas{display:block;width:100%;max-width:900px;aspect-ratio:16/9;height:auto;margin:auto;border:2px solid #96774d;border-radius:7px;touch-action:none;cursor:crosshair;outline-offset:5px;background:#102532;user-select:none}
+.arcade-training-canvas:focus-visible{outline:3px solid #efd190}
+.arcade-training-feedback{min-height:1.5rem;margin:.7rem 0;color:#e6d0a9}
+.arcade-training-controls{display:flex;gap:.5rem;flex-wrap:wrap}
+.arcade-training-controls .button{min-height:44px;white-space:normal;flex:1 1 140px}
+.arcade-card .arcade-practice-launch{margin-left:.45rem}
+@media(max-width:640px){.arcade-training{padding:.6rem}.arcade-training-head .button{width:100%}.arcade-training-controls .button{flex-basis:45%}.arcade-training-status span{flex:1 1 95px;text-align:center}}
+@media(max-width:380px){.arcade-training-controls .button{flex-basis:100%}.arcade-card .arcade-practice-launch{margin:.5rem 0 0}}
