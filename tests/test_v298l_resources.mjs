@@ -56,7 +56,9 @@ test("resource data drives real images; unknown readings hide rather than invent
  assert.match(node("hqWarmthArt").getAttribute("src"),/warmth_4\.webp$/);
  assert.match(node("hqColdArt").getAttribute("src"),/cold_4\.webp$/);
  assert.match(node("marketCurrencyArt").getAttribute("src"),/currency_4\.webp$/);
- assert.match(node("hqPointsArt").getAttribute("src"),/points_4\.webp$/);
+ // Headquarters uses the requested swapped art, not swapped resource values.
+ assert.match(node("hqCurrencyArt").getAttribute("src"),/points_4\.webp$/);
+ assert.match(node("hqPointsArt").getAttribute("src"),/currency_4\.webp$/);
  assert.match(node("playPointsArt").getAttribute("src"),/points_4\.webp$/);
  assert.match(node("alleyAmmoArt").getAttribute("src"),/snowballs_4\.webp$/);
  assert.match(node("hqColdLabel").textContent,/Freezing/);
