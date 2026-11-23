@@ -275,11 +275,17 @@ function mount({root,session,save,onExit}){
 /* Shared scene host: reusable for the full Gallery and later Safecracker,
    Snowman, Catch and Trivia. Gameplay/validation remain in mode controllers. */
 function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
-                     onFinish,onShot,onExit,onTick}){
- if(!root||typeof draw!=="function"||typeof onShot!=="function")
+                     onFinish,onShot,onExit,onTick,hudFields,extraActions,onExtraAction,
+                     onPointer,onKey,showAim=true,welcome}){
+ if(!root||typeof draw!=="function"||(typeof onShot!=="function"&&typeof onPointer!=="function"))
   throw Error("Invalid arcade scene");
  let disposed=false,busy=false,shotBusy=false,muted=true,audio=null,frame=0;
  let lastHud=0,lastTick=0,aim={x:320,y:182},particles=[];
+ const fields=Array.isArray(hudFields)&&hudFields.length?hudFields:[
+  {key:"time",initial:"45s"},{key:"wave",initial:"Wave 1/3"},
+  {key:"score",initial:"0/100"},{key:"ammo",initial:"32 balls"},
+  {key:"combo",initial:"0 streak"},{key:"accuracy",initial:"0% accurate"}];
+ const additional=Array.isArray(extraActions)?extraActions:[];
  const safe=s=>String(s).replace(/[&<>"']/g,ch=>({
   "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
  root.classList.remove("hidden");
@@ -288,9 +294,7 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
   "<h3>"+safe(title)+"</h3><p>"+safe(help)+"</p></div>"+
   "<button type='button' class='button button-outline' data-scene='exit'>Save & close</button></div>"+
   "<div class='arcade-training-status arcade-gallery-hud' aria-live='off'>"+
-  "<span data-scene-label='time'>45s</span><span data-scene-label='wave'>Wave 1/3</span>"+
-  "<span data-scene-label='score'>0/100</span><span data-scene-label='ammo'>32 balls</span>"+
-  "<span data-scene-label='combo'>0 streak</span><span data-scene-label='accuracy'>0% accurate</span></div>"+
+  fields.map(f=>"<span data-scene-label='"+safe(f.key)+"'>"+safe(f.initial||"—")+"</span>").join("")+"</div>"+
   "<canvas class='arcade-training-canvas' width='640' height='360' tabindex='0' "+
   "aria-label='"+safe(title)+"; move the crosshair with pointer or arrows and throw with touch, click, Space or Enter'></canvas>"+
   "<p class='arcade-training-feedback' role='status' aria-live='polite'></p>"+
@@ -298,7 +302,9 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
   "<button type='button' class='button button-gold' data-scene='start'>Start / resume</button>"+
   "<button type='button' class='button button-outline' data-scene='pause'>Pause</button>"+
   "<button type='button' class='button button-outline' data-scene='sound' aria-pressed='false'>Sound off</button>"+
-  "<button type='button' class='button button-outline' data-scene='finish'>End run</button></div>";
+  "<button type='button' class='button button-outline' data-scene='finish'>End run</button>"+
+  additional.map(a=>"<button type='button' class='button button-gold' data-scene='"+
+    safe(a.key)+"'>"+safe(a.label)+"</button>").join("")+"</div>";
  const canvas=root.querySelector("canvas"),ctx=canvas.getContext("2d");
  if(!ctx)throw Error("Canvas 2D support required.");
  const message=root.querySelector(".arcade-training-feedback");
@@ -351,6 +357,15 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
  }
  function pointer(event){
   aim=mouse(event);
+  if(onPointer){
+   if(event.type==="pointerdown"){
+    canvas.focus();
+    try{canvas.setPointerCapture(event.pointerId)}catch{}
+   }
+   onPointer({type:event.type,x:aim.x,y:aim.y,pointerId:event.pointerId},event);
+   event.preventDefault();
+   return;
+  }
   if(event.type==="pointerdown"){
    canvas.focus();
    if(playable())void shoot();
@@ -358,6 +373,9 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
   }
  }
  function keyboard(event){
+  if(onKey&&onKey({key:event.key,shiftKey:!!event.shiftKey},event)){
+   event.preventDefault();return;
+  }
   const step=event.shiftKey?22:12;
   if(event.key==="ArrowLeft")aim.x=Math.max(0,aim.x-step);
   else if(event.key==="ArrowRight")aim.x=Math.min(640,aim.x+step);
@@ -370,7 +388,7 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
  function updateHud(){
   if(disposed)return;
   const values=getHud()||{};
-  for(const key of ["time","wave","score","ammo","combo","accuracy"]){
+  for(const {key} of fields){
    const node=label(key);
    if(node&&values[key]!==undefined)node.textContent=String(values[key]);
   }
@@ -378,6 +396,10 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
   button("start").textContent=getStatus()==="finished"?"Play again":playable()?"Playing":"Start / resume";
   button("pause").disabled=busy||shotBusy||!playable();
   button("finish").disabled=busy||shotBusy||getStatus()==="finished";
+  for(const action of additional){
+   const control=button(action.key);
+   if(control)control.disabled=busy||shotBusy||!playable();
+  }
  }
  function tick(time){
   if(disposed)return;
@@ -393,13 +415,15 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
     ctx.beginPath();ctx.arc(p.x,p.y,Math.max(4,r),0,Math.PI*2);ctx.stroke();
     ctx.restore();
    }
-   // The crosshair never intercepts the pointer/touch targets.
-   ctx.strokeStyle="#f8e8cc";ctx.lineWidth=2;
-   ctx.beginPath();ctx.arc(aim.x,aim.y,17,0,Math.PI*2);
-   ctx.moveTo(aim.x-25,aim.y);ctx.lineTo(aim.x-9,aim.y);
-   ctx.moveTo(aim.x+9,aim.y);ctx.lineTo(aim.x+25,aim.y);
-   ctx.moveTo(aim.x,aim.y-25);ctx.lineTo(aim.x,aim.y-9);
-   ctx.moveTo(aim.x,aim.y+9);ctx.lineTo(aim.x,aim.y+25);ctx.stroke();
+   if(showAim){
+    // Crosshair overlay is optional: the safe uses a physical dial.
+    ctx.strokeStyle="#f8e8cc";ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(aim.x,aim.y,17,0,Math.PI*2);
+    ctx.moveTo(aim.x-25,aim.y);ctx.lineTo(aim.x-9,aim.y);
+    ctx.moveTo(aim.x+9,aim.y);ctx.lineTo(aim.x+25,aim.y);
+    ctx.moveTo(aim.x,aim.y-25);ctx.lineTo(aim.x,aim.y-9);
+    ctx.moveTo(aim.x,aim.y+9);ctx.lineTo(aim.x,aim.y+25);ctx.stroke();
+   }
    if(time-lastHud>=250){lastHud=time;updateHud()}
    if(time-lastTick>=900){lastTick=time;onTick?.()}
   }catch(e){feedback("Drawing error: "+(e.message||"try reloading."))}
@@ -412,6 +436,8 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
   if(cmd==="start")void act(onStart,"Start");
   if(cmd==="pause")void act(onPause,"Pause");
   if(cmd==="finish")void act(onFinish,"Finish");
+  if(additional.some(a=>a.key===cmd)&&onExtraAction)
+   void act(()=>onExtraAction(cmd),cmd);
   if(cmd==="sound"){
    muted=!muted;node.textContent="Sound "+(muted?"off":"on");
    node.setAttribute("aria-pressed",String(!muted));
@@ -429,6 +455,8 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
   global.cancelAnimationFrame(frame);
   canvas.removeEventListener("pointerdown",pointer);
   canvas.removeEventListener("pointermove",pointer);
+  canvas.removeEventListener("pointerup",pointer);
+  canvas.removeEventListener("pointercancel",pointer);
   canvas.removeEventListener("keydown",keyboard);
   root.removeEventListener("click",controls);
   global.document.removeEventListener("visibilitychange",visibility);
@@ -436,13 +464,16 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
  }
  canvas.addEventListener("pointerdown",pointer);
  canvas.addEventListener("pointermove",pointer);
+ canvas.addEventListener("pointerup",pointer);
+ canvas.addEventListener("pointercancel",pointer);
  canvas.addEventListener("keydown",keyboard);
  root.addEventListener("click",controls);
  global.document.addEventListener("visibilitychange",visibility);
- feedback("Ready to enter the gallery. Aim with mouse, touch or arrow keys.");
+ feedback(welcome||"Ready to enter the gallery. Aim with mouse, touch or arrow keys.");
  updateHud();
  frame=global.requestAnimationFrame(tick);
- return {dispose,pause:()=>act(onPause,"Pause"),update:updateHud,setFeedback:feedback};
+ return {dispose,pause:()=>act(onPause,"Pause"),update:updateHud,
+         setFeedback:feedback,tone:sound};
 }
 
 global.SnowfallArcadeV299=Object.freeze({mount,mountScene,modes:Object.freeze(Object.keys(MODES))});
