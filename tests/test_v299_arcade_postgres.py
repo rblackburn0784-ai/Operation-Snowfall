@@ -14,6 +14,7 @@ from snowfall.platform.safecracker_arcade import SafecrackerEngine, install_safe
 from snowfall.platform.snowman_arcade import SnowmanBuilderEngine, install_snowman_schema
 from snowfall.platform.catch_arcade import SnowflakeCatchEngine, install_catch_schema
 from snowfall.platform.trivia_arcade import ChristmasTriviaEngine, install_trivia_schema
+from snowfall.platform.arcade_hub import ArcadeHubEngine, GAMES
 
 SEASON = "web-qa-2026"
 START = datetime(2026, 12, 20, 18, tzinfo=timezone.utc)
@@ -179,6 +180,28 @@ def test_additive_practice_table_runs_on_real_postgres_without_game_schema_chang
             assert con.execute("SELECT COUNT(*) FROM web_arcade_trivia_answers").fetchone()[0] == 1
             assert con.execute("SELECT COUNT(*) FROM social_arcade_runs").fetchone()[0] == 0
             assert con.execute("SELECT COUNT(*) FROM score_ledger").fetchone()[0] == 0
+
+        # Hub reads the five existing QA schemas; it does not create tables,
+        # acquire official competitive starts or expose future trivia keys.
+        hub = ArcadeHubEngine(pg, SEASON, env={g[5]: "1" for g in GAMES})
+        overview = hub.overview(101, now=START+timedelta(seconds=8))
+        assert overview["version"] == "2.9.9f"
+        assert overview["available_games"] == 5
+        assert overview["resumable_games"] == 4
+        assert overview["completed_practice_runs"] == 1
+        assert [m["key"] for m in overview["modes"]] == [
+            "gallery", "safe", "snowman", "catch", "trivia"]
+        by_key = {m["key"]: m for m in overview["modes"]}
+        assert by_key["gallery"]["status"] == "ready"
+        assert by_key["gallery"]["finished_runs"] == 1
+        assert by_key["safe"]["can_resume"]
+        assert by_key["snowman"]["progress_label"] == "1 / 20 parts fitted"
+        assert by_key["trivia"]["progress_label"] == "1 / 15 questions answered"
+        assert "correct" not in str(by_key["trivia"])
+        with pg.connect() as con:
+            assert con.execute("SELECT COUNT(*) FROM social_arcade_runs").fetchone()[0] == 0
+            assert con.execute("SELECT COUNT(*) FROM score_ledger").fetchone()[0] == 0
+
 
 
 
