@@ -187,6 +187,17 @@ class SnowmanControlBody(BaseModel):
     action: Literal["pause", "resume", "finish"]
 
 
+class SnowflakeCatchUpdateBody(BaseModel):
+    session_id: str = Field(pattern=r"^[a-f0-9]{32}$")
+    action_seq: int = Field(ge=0, le=359)
+    x: int = Field(ge=66, le=574)
+
+
+class SnowflakeCatchControlBody(BaseModel):
+    session_id: str = Field(pattern=r"^[a-f0-9]{32}$")
+    action: Literal["pause", "resume", "finish"]
+
+
 class OAuthStart(BaseModel):
     mode: Literal["login", "link"] = "login"
 
@@ -821,6 +832,46 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         snowman_enabled()
         response.headers["Cache-Control"] = "no-store"
         return jsonable_encoder(shared.snowman_record(principal))
+
+    def catch_enabled():
+        if os.environ.get("SNOWFALL_ARCADE_V299D_ENABLED", "") != "1":
+            raise HTTPException(503, "Snowflake Catch is not enabled on this server")
+
+    @app.post("/v1/game/arcade/catch/start")
+    def arcade_catch_start(principal: int = Depends(game_writer)):
+        catch_enabled()
+        return jsonable_encoder(shared.catch_start(principal))
+
+    @app.get("/v1/game/arcade/catch/session/{session_id}")
+    def arcade_catch_session(session_id: str, response: Response,
+                             principal: int = Depends(player)):
+        catch_enabled()
+        response.headers["Cache-Control"] = "no-store"
+        if not re.fullmatch(r"[a-f0-9]{32}", session_id):
+            raise HTTPException(400, "Invalid Snowflake Catch session")
+        return jsonable_encoder(shared.catch_session(principal, session_id))
+
+    @app.post("/v1/game/arcade/catch/control")
+    def arcade_catch_control(body: SnowflakeCatchControlBody,
+                             principal: int = Depends(game_writer)):
+        catch_enabled()
+        return jsonable_encoder(shared.catch_control(
+            principal, body.session_id, body.action))
+
+    @app.post("/v1/game/arcade/catch/update")
+    def arcade_catch_update(body: SnowflakeCatchUpdateBody,
+                            idempotency_key: str | None = Header(default=None),
+                            principal: int = Depends(game_writer)):
+        catch_enabled()
+        return jsonable_encoder(shared.catch_update(
+            principal, body.session_id, body.action_seq, body.x,
+            _idempotency(principal, "catch:update", idempotency_key)))
+
+    @app.get("/v1/game/arcade/catch/record")
+    def arcade_catch_record(response: Response, principal: int = Depends(player)):
+        catch_enabled()
+        response.headers["Cache-Control"] = "no-store"
+        return jsonable_encoder(shared.catch_record(principal))
 
     @app.get("/v1/game/arcade/board")
     def arcade_board(response: Response,
