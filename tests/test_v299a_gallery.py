@@ -106,7 +106,7 @@ def test_pause_resume_does_not_advance_timer_and_audits_misses(gallery):
     assert 5050 <= paused["elapsed_ms"] <= 5150
     again = engine.session(101, sid, now=when(50_000))
     assert again["status"] == "paused" and again["elapsed_ms"] == paused["elapsed_ms"]
-    resumed = engine.control(101, sid, "resume", now=when(50_100))
+    assert engine.control(101, sid, "resume", now=when(50_100))["status"] == "active"
     miss = engine.shoot(101, sid, 0, 1, 1, "miss-01", now=when(50_350))
     assert miss["last_event"]["outcome"] == "miss"
     assert miss["misses"] == 1 and miss["combo"] == 0
