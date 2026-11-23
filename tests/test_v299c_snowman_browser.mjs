@@ -108,7 +108,7 @@ test("Snowman Builder reuses the existing stage and preserves Gallery/Safe/Disco
  assert.equal(typeof win.SnowfallArcadeV299.mountScene,"function");
  assert.equal(typeof win.SnowfallSnowmanV299c.mount,"function");
  assert.ok(html.indexOf("arcade-v299.js")<html.indexOf("arcade-snowman-v299c.js"));
- assert.match(html,/arcade-snowman-v299c\.js\?v=299c/);
+ assert.match(html,/arcade-snowman-v299c\.js\?v=299g/);
  assert.match(html,/id="arcadeSnowman"/);
  assert.match(css,/arcade-full-snowman/);
  assert.match(css,/touch-action:none/);
