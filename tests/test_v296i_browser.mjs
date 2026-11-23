@@ -39,7 +39,9 @@ test("all portraits have calibrated gear and side trail placements",()=>{
    // v2.9.8h reduces the portrait under its frame (10% rather than 6%
    // inset), so eye-aligned goggles shrink proportionally without drifting.
    assert.ok(eyes.width<37&&eyes.width>24,key);
-   assert.ok(neck.top>eyes.top+12,key);
+   // v2.9.8j brings the scarf closer to the collar, without covering eyes.
+   assert.ok(neck.top>eyes.top+5&&neck.top<eyes.top+24,key);
+   assert.ok(neck.width<34&&neck.width>20,key);
    assert.ok(trail.left>60&&trail.left+trail.width<=100,key);
    assert.deepEqual(calc("candy_trail"),trail);
   }

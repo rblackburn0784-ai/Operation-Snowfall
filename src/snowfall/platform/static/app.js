@@ -1,4 +1,4 @@
-/* Operation Snowfall v2.9.8i — borderless single-line character banners. */
+/* Operation Snowfall v2.9.8j — banner-safe name sizing and scarf collar fit. */
 "use strict";
 const S={staffRole:null,staffDirectory:null,staffDossier:null,staffSelected:null,staffDirectoryBusy:false,staffDossierBusy:false,staffReviewBusy:false,staffDirectorySeq:0,staffDossierSeq:0,staffLab:null,staffLabPending:false,staffAllowed:false,staffCheckedIdentity:null,staffAccessCheckedAt:0,staffData:null,staffPending:false,staffStale:false,streetsDrawerOpen:false,streetsReturnFocus:null,streetsEmbedUrl:null,streetsChatOpen:false,community:null,communityPending:false,communityStale:false,privateQueued:false,arcade:null,arcadeRun:null,arcadeBoard:null,arcadeBoardSeq:0,activities:null,session:null,me:null,world:null,raid:null,bossRequest:0,bossPending:false,bossStale:false,hq:null,hqClock:0,shop:null,items:[],catalogReady:false,market:{identity:undefined,featured:0,preview:{},category:'all',ownership:'all',rarity:'all',sort:'catalogue',search:''},board:[],cities:[],citiesReady:false,territory:null,territoryPending:false,territoryStale:false,territoryRequest:0,territoryDay:'current',citySelected:null,wire:null,wireDay:'current',wireRequest:0,wirePending:false,wireStale:false,connection:'loading',targets:[],targetsReady:false,playIdentity:undefined,chosenTarget:false,lastThrow:null,privatePending:false,privateFresh:false,config:null,progress:null,discard:null,verification:null,busy:false,pendingActions:new Map()};
 const el=id=>document.getElementById(id);
@@ -72,7 +72,10 @@ function cosmeticPlacement(portrait,gear,framed){
  const point=n=>+(inset+n*scale).toFixed(3),size=n=>+(n*scale).toFixed(3);
  const [ex,ey,ew,angle]=p.eyes,[nx,ny,nw]=p.neck;
  if(gear==="goggles")return {left:point(ex),top:point(ey),width:size(ew),transform:"translate(-50%,-49%) rotate("+angle+"deg)"};
- if(gear==="scarf")return {left:point(nx),top:point(ny),width:size(nw),transform:"translateX(-50%)"};
+ // Place the existing scarf closer to the throat, scaled to the neck instead
+ // of spreading over the entire jacket front. Portrait-specific landmarks stay
+ // authoritative for male and female poses.
+ if(gear==="scarf")return {left:point(nx),top:point(ny-6.5),width:size(nw*.78),transform:"translateX(-50%)"};
  if(gear==="boots")return {left:point(7),top:point(67),width:size(26),transform:"none"};
  if(gear==="snow_trail"||gear==="candy_trail")return {left:point(66),top:point(61),width:size(30),transform:"none"};
  return null;
@@ -82,28 +85,35 @@ function alignProfileLayer(node,placement){
  node.style.height=placement?"auto":"";
  node.style.transform=placement?placement.transform:"";
 }
-/* Fit names into the original banner art without wrapping or clipping. */
+/* The decorated edges of Market banners are not usable writing space.
+   These ratios describe their central ribbon, NOT the full PNG bounding box. */
+const BANNER_NAME_SAFE_WIDTH=Object.freeze({
+ none:.94,midnight_banner:.38,aurora_banner:.37,gilded_banner:.34
+});
 function fitBannerName(prefix){
- const node=el(prefix+"BannerText");
+ const node=el(prefix+"BannerText"),well=el(prefix+"BannerWell");
  if(!node?.style)return;
+ // Never use overflow clipping: it used to silently erase the end of names.
  node.style.fontSize="";
  node.style.overflow="";
  node.style.transform="";
+ const banner=well?.dataset?.banner||"none";
+ const ratio=BANNER_NAME_SAFE_WIDTH[banner]||BANNER_NAME_SAFE_WIDTH.none;
+ const containerWidth=well?.clientWidth||0;
+ const available=containerWidth>0?containerWidth*ratio:node.clientWidth||0;
  if(typeof window==="undefined"||typeof window.getComputedStyle!=="function"||
-    !Number.isFinite(node.clientWidth)||node.clientWidth<=0)return;
+     !Number.isFinite(available)||available<=0)return;
  let size=parseFloat(window.getComputedStyle(node).fontSize);
  if(!Number.isFinite(size)||size<=0)return;
- const width=node.clientWidth;
- for(let pass=0;pass<5&&node.scrollWidth>width+1;pass++){
-  const smaller=Math.max(9,size*Math.min(.98,width/node.scrollWidth)*.97);
-  if(smaller>=size)break;
+ for(let pass=0;pass<8&&node.scrollWidth>available+.5;pass++){
+  const smaller=Math.max(8,size*Math.min(.98,available/node.scrollWidth)*.975);
+  if(smaller>=size-.01)break;
   size=smaller;
   node.style.fontSize=size.toFixed(2)+"px";
  }
- // Extreme names stay on a single line without hidden characters.
- if(node.scrollWidth>width+1){
-  node.style.overflow="visible";
-  node.style.transform="scaleX("+(width/node.scrollWidth*.98).toFixed(3)+")";
+ // Long character names remain whole and centred even at narrow widths.
+ if(node.scrollWidth>available+.5){
+  node.style.transform="scaleX("+Math.max(.15,available/node.scrollWidth*.98).toFixed(3)+")";
  }
 }
 function fitVisibleBannerNames(){
@@ -117,8 +127,14 @@ function renderProfileLayers(prefix,layers,displayName="Winter player"){
  well.dataset.trail=layers.trail.key||"none";
  bannerWell.classList.remove("hidden");
  bannerWell.classList.toggle("has-banner",!!layers.banner.key);
+ bannerWell.dataset.banner=layers.banner.key||"none";
  txt(prefix+"BannerText",displayName);
  fitBannerName(prefix);
+ // Layout may not have settled yet when switching tabs or the Market preview;
+ // follow up in the next animation frame using the actual available width.
+ if(typeof requestAnimationFrame==="function"){
+  requestAnimationFrame(()=>fitBannerName(prefix));
+ }
  for(const slot of Object.keys(layers)){
   const id=slot[0].toUpperCase()+slot.slice(1),node=el(prefix+id),layer=layers[slot];
   if(!node)continue;

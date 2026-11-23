@@ -984,3 +984,37 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
  .rival-stage{max-width:200px}
  /* Original banner art stays unboxed on narrow screens too. */
 }
+
+/* v2.9.8j: fit the actual central ribbon, never a clipped 85%-width text box.
+   The banner art itself, frames, and portrait size remain untouched. */
+.collector-profile .collector-banner-name,
+.rival-appearance .collector-banner-name{
+ position:absolute;left:50%;top:50%;translate:-50% -50%;
+ width:max-content;max-width:none;min-width:0;
+ padding:0;margin:0;overflow:visible;text-overflow:initial;
+ white-space:nowrap;overflow-wrap:normal;word-break:normal;
+ transform-origin:50% 50%;will-change:auto;
+ letter-spacing:0;line-height:1.06;
+}
+.collector-banner-well:not(.has-banner) .collector-banner-name{
+ width:max-content;max-width:none;overflow:visible;
+}
+.collector-profile .collector-banner-well,
+.rival-appearance .collector-banner-well{overflow:visible}
+
+/* Calibrated scarf: narrower and closer to the neck. The existing original
+   artwork fades into the coat rather than creating a hard, pasted-on edge.
+   A dedicated neck-wrapped source PNG would be needed for real occlusion
+   behind the coat's lapels; this is a non-destructive alignment improvement. */
+#hqPortraitWell .gear-layer[data-cosmetic="scarf"],
+#fitPortraitWell .gear-layer[data-cosmetic="scarf"],
+#rivalPortraitWell .gear-layer[data-cosmetic="scarf"]{
+ z-index:3;opacity:.98;object-fit:contain;pointer-events:none;
+ filter:drop-shadow(0 2px 2px rgba(4,15,24,.48));
+ -webkit-mask-image:linear-gradient(to bottom,black 0%,black 57%,rgba(0,0,0,.88) 73%,transparent 100%);
+ mask-image:linear-gradient(to bottom,black 0%,black 57%,rgba(0,0,0,.88) 73%,transparent 100%);
+}
+@media(max-width:400px){
+ .collector-profile .collector-banner-name,
+ .rival-appearance .collector-banner-name{line-height:1}
+}
