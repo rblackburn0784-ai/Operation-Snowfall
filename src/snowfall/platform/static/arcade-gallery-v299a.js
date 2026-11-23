@@ -4,6 +4,9 @@
 "use strict";
 const WIDTH=640,HEIGHT=360,LIMIT=45000;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+function position(t,ms){
+ return {x:t.x0+t.amp*Math.sin(t.phase+(ms-t.start)/1000*t.rate),y:t.y};
+}
 function mount({root,session,start,control,shot,refresh,onExit}){
  if(!global.SnowfallArcadeV299?.mountScene)
   throw Error("Arcade 2.0 screen is not available.");
@@ -24,9 +27,6 @@ function mount({root,session,start,control,shot,refresh,onExit}){
   const ms=Number(current.elapsed_ms)||0;
   return clamp(Math.round(ms+(current.status==="active"?
    Math.max(0,performance.now()-reference):0)),0,LIMIT);
- }
- function position(t,ms){
-  return {x:t.x0+t.amp*Math.sin(t.phase+(ms-t.start)/1000*t.rate),y:t.y};
  }
  const path="/v1/game/arcade/gallery";
  async function resync(){
