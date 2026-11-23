@@ -123,7 +123,7 @@ function boot(ui,source=fresh()){
 test("Trivia is full shared Arcade mode with independent QA switch",()=>{
  assert.equal(typeof win.SnowfallTriviaV299e.mount,"function");
  assert.equal(typeof win.SnowfallArcadeV299.mountScene,"function");
- assert.match(html,/arcade-trivia-v299e\.js\?v=299e/);
+ assert.match(html,/arcade-trivia-v299e\.js\?v=299g/);
  assert.match(html,/id="arcadeTrivia"/);
  assert.ok(html.indexOf("arcade-v299.js")<html.indexOf("arcade-trivia-v299e.js"));
  assert.match(css,/arcade-full-trivia/);
