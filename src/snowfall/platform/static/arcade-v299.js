@@ -276,25 +276,34 @@ function mount({root,session,save,onExit}){
    Snowman, Catch and Trivia. Gameplay/validation remain in mode controllers. */
 function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
                      onFinish,onShot,onExit,onTick,hudFields,extraActions,onExtraAction,
-                     onPointer,onKey,showAim=true,welcome,canvasLabel}){
+                     onPointer,onKey,showAim=true,welcome,canvasLabel,guide=[]}){
  if(!root||typeof draw!=="function"||(typeof onShot!=="function"&&typeof onPointer!=="function"))
   throw Error("Invalid arcade scene");
  let disposed=false,busy=false,shotBusy=false,muted=true,audio=null,frame=0;
+ let calmEffects=false,highContrast=false,confirmFinishUntil=0;
  let lastHud=0,lastTick=0,aim={x:320,y:182},particles=[];
  const fields=Array.isArray(hudFields)&&hudFields.length?hudFields:[
   {key:"time",initial:"45s"},{key:"wave",initial:"Wave 1/3"},
   {key:"score",initial:"0/100"},{key:"ammo",initial:"32 balls"},
   {key:"combo",initial:"0 streak"},{key:"accuracy",initial:"0% accurate"}];
  const additional=Array.isArray(extraActions)?extraActions:[];
+ const steps=Array.isArray(guide)?guide.filter(x=>typeof x==="string").slice(0,5):[];
  const safe=s=>String(s).replace(/[&<>"']/g,ch=>({
   "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
  root.classList.remove("hidden");
  root.innerHTML="<div class='arcade-training-head'><div>"+
   "<p class='eyebrow'>WINTER ARCADE 2.0 · SKILL GAME · UNRANKED QA</p>"+
-  "<h3>"+safe(title)+"</h3><p>"+safe(help)+"</p></div>"+
+  "<h3>"+safe(title)+"</h3><p>"+safe(help)+"</p>"+
+  "<details class='arcade-scene-guide'><summary>How to play · controls &amp; scoring</summary>"+
+  "<ol>"+(steps.length?steps:[
+   "Press Start / resume, or Pause to save your session.",
+   "Use the canvas with pointer, touch or keyboard controls.",
+   "Scores and timers are verified by the server and unranked in QA.",
+  ]).map(x=>"<li>"+safe(x)+"</li>").join("")+"</ol></details></div>"+
   "<button type='button' class='button button-outline' data-scene='exit'>Save & close</button></div>"+
   "<div class='arcade-training-status arcade-gallery-hud' aria-live='off'>"+
   fields.map(f=>"<span data-scene-label='"+safe(f.key)+"'>"+safe(f.initial||"—")+"</span>").join("")+"</div>"+
+  "<p class='arcade-scene-phase' data-scene='phase' role='status' aria-live='polite'>Ready · Start when you like</p>"+
   "<canvas class='arcade-training-canvas' width='640' height='360' tabindex='0' "+
   "aria-label='"+safe(canvasLabel||title+"; use pointer or keyboard to play")+
   "'></canvas>"+
@@ -303,6 +312,8 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
   "<button type='button' class='button button-gold' data-scene='start'>Start / resume</button>"+
   "<button type='button' class='button button-outline' data-scene='pause'>Pause</button>"+
   "<button type='button' class='button button-outline' data-scene='sound' aria-pressed='false'>Sound off</button>"+
+  "<button type='button' class='button button-outline' data-scene='effects' aria-pressed='false'>Calm effects off</button>"+
+  "<button type='button' class='button button-outline' data-scene='contrast' aria-pressed='false'>High contrast off</button>"+
   "<button type='button' class='button button-outline' data-scene='finish'>End run</button>"+
   additional.map(a=>"<button type='button' class='button button-gold' data-scene='"+
     safe(a.key)+"'>"+safe(a.label)+"</button>").join("")+"</div>";
@@ -402,6 +413,21 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
   button("start").textContent=getStatus()==="finished"?"Play again":playable()?"Playing":"Start / resume";
   button("pause").disabled=busy||shotBusy||!playable();
   button("finish").disabled=busy||shotBusy||getStatus()==="finished";
+  if(getStatus()==="finished"||confirmFinishUntil<performance.now())confirmFinishUntil=0;
+  button("finish").textContent=confirmFinishUntil?"Confirm end run":"End run";
+  const phase=button("phase"),seconds=Number.parseFloat(String(values.time||""));
+  const urgency=playable()&&Number.isFinite(seconds)&&seconds<=10?
+   (seconds<=5?"critical":"warning"):"";
+  if(phase){
+   phase.textContent=getStatus()==="finished"?"Run finished · See your result below":
+    getStatus()==="paused"?"Paused safely · Resume when you are ready":
+    urgency==="critical"?"Last five seconds — finish your move!":
+    urgency==="warning"?"Ten seconds or less — hurry!":
+    playable()?"Playing · Practice score saved on the server":
+    "Ready · Press Start / resume";
+   phase.classList?.toggle?.("arcade-urgent",!!urgency);
+   phase.classList?.toggle?.("arcade-critical",urgency==="critical");
+  }
   for(const action of additional){
    const control=button(action.key);
    if(control)control.disabled=busy||shotBusy||!playable();
@@ -410,7 +436,18 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
  function tick(time){
   if(disposed)return;
   try{
-   draw(ctx,{time,aim,reduced:reduced(),width:640,height:360});
+   const calm=reduced()||calmEffects;
+   draw(ctx,{time,aim,reduced:calm,width:640,height:360});
+   // Decorative edge snow, respecting calm/reduced motion; no hit-box changes.
+   if(!calm&&playable()){
+    ctx.save();ctx.fillStyle="rgba(220,241,241,.47)";
+    for(let i=0;i<15;i++){
+     const x=(i*73+time*(.006+i%3*.004))%640;
+     const y=(i*31+time*.009)%24;
+     ctx.fillRect(x,y,2,2);
+    }
+    ctx.restore();
+   }
    particles=particles.filter(p=>p.until>time);
    for(const p of particles){
     ctx.save();
@@ -441,9 +478,31 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
   const cmd=node.dataset.scene;
   if(cmd==="start")void act(onStart,"Start");
   if(cmd==="pause")void act(onPause,"Pause");
-  if(cmd==="finish")void act(onFinish,"Finish");
+  if(cmd==="finish"){
+   if(getStatus()!=="finished"&&performance.now()>=confirmFinishUntil){
+    confirmFinishUntil=performance.now()+6000;
+    feedback("End this run early? Press Confirm end run again. Use Pause or Save & close to keep progress.");
+    updateHud();
+   }else if(getStatus()!=="finished"){
+    confirmFinishUntil=0;void act(onFinish,"Finish");
+   }
+  }
   if(additional.some(a=>a.key===cmd)&&onExtraAction)
    void act(()=>onExtraAction(cmd),cmd);
+  if(cmd==="effects"){
+   calmEffects=!calmEffects;
+   node.textContent="Calm effects "+(calmEffects?"on":"off");
+   node.setAttribute("aria-pressed",String(calmEffects));
+   feedback(calmEffects?"Calm effects on.":"Gentle winter effects enabled.");
+  }
+  if(cmd==="contrast"){
+   highContrast=!highContrast;
+   if(highContrast)root.classList.add("arcade-high-contrast");
+   else root.classList.remove("arcade-high-contrast");
+   node.textContent="High contrast "+(highContrast?"on":"off");
+   node.setAttribute("aria-pressed",String(highContrast));
+   feedback(highContrast?"High contrast enabled.":"Normal game contrast restored.");
+  }
   if(cmd==="sound"){
    muted=!muted;node.textContent="Sound "+(muted?"off":"on");
    node.setAttribute("aria-pressed",String(!muted));
