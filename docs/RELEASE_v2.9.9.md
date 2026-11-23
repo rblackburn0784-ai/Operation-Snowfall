@@ -29,11 +29,16 @@ alter the canonical Discord/game database version or existing arcade tables.
 2. On a protected staging shell, set SNOWFALL_DATABASE_URL to the QA private
    DSN and SNOWFALL_API_SEASON_KEY=web-qa-2026.
 3. Run: python -m snowfall.platform.arcade_migration --confirm WEB_QA_ONLY
-4. Verify the new web_arcade_practice_sessions table and index, then deploy
-   the QA web service only. Do not run this against the production database.
+4. Verify the new web_arcade_practice_sessions table and index, then set
+   SNOWFALL_ARCADE_V299_ENABLED=1 on the QA web service and redeploy that
+   service only. Do not run this against the production database.
 5. Sign in with a registered Underworld QA character, choose Winter Arcade
    then Interactive practice under each game. Pause, reload, choose the same
    game again to resume the server checkpoint.
+
+The feature gate is OFF by default: the new practice buttons read Coming soon
+until the QA table is installed and the environment flag is enabled. The API
+also rejects practice calls while the flag is off.
 
 The installer checks the canonical game schema and QA season before creating
 the separate practice table. Without the installation, new practice requests
