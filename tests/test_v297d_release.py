@@ -8,7 +8,7 @@ def test_release_contract_and_artwork():
     root = Path(__file__).resolve().parents[1]
     static = root / "src/snowfall/platform/static"
     assert VERSION == "2.9.7"
-    assert WEB_RELEASE == "2.9.9a"
+    assert WEB_RELEASE == "2.9.9b"
     html = (static / "index.html").read_text(encoding="utf-8")
     assert WEB_RELEASE in html
     assert "app.css?v=298l" in html and "app.js?v=298l" in html
