@@ -106,7 +106,7 @@ test("banner never clips a name and old wardrobe/portrait layer IDs remain",()=>
  }
  assert.match(js,/BANNER_NAME_SAFE_WIDTH/);
  assert.match(js,/requestAnimationFrame\(\(\)=>fitBannerName\(prefix\)\)/);
- assert.match(html,/snowfall-web-release" content="2\.9\.8k"/);
+ assert.match(html,/snowfall-web-release" content="2\.9\.8l"/);
  assert.match(html,/app\.css\?v=298l/);
  assert.match(html,/app\.js\?v=298l/);
 });
