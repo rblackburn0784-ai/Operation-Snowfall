@@ -274,13 +274,23 @@ function mount({root,session,save,onExit}){
 
 /* Shared scene host: reusable for the full Gallery and later Safecracker,
    Snowman, Catch and Trivia. Gameplay/validation remain in mode controllers. */
+// Session-wide visual preferences; no account or scoring data is stored.
+const scenePrefs={calm:false,contrast:false,muted:true};
+const imageCache=new Map();
+function loadArt(url){
+ if(!imageCache.has(url)){
+  const image=new Image();image.src=url;imageCache.set(url,image);
+ }
+ return imageCache.get(url);
+}
 function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
                      onFinish,onShot,onExit,onTick,hudFields,extraActions,onExtraAction,
                      onPointer,onKey,showAim=true,welcome,canvasLabel,guide=[]}){
  if(!root||typeof draw!=="function"||(typeof onShot!=="function"&&typeof onPointer!=="function"))
   throw Error("Invalid arcade scene");
  let disposed=false,busy=false,shotBusy=false,muted=true,audio=null,frame=0;
- let calmEffects=false,highContrast=false,confirmFinishUntil=0;
+ let calmEffects=scenePrefs.calm,highContrast=scenePrefs.contrast,confirmFinishUntil=0;
+ muted=scenePrefs.muted;
  let lastHud=0,lastTick=0,aim={x:320,y:182},particles=[];
  const fields=Array.isArray(hudFields)&&hudFields.length?hudFields:[
   {key:"time",initial:"45s"},{key:"wave",initial:"Wave 1/3"},
@@ -438,7 +448,8 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
   if(disposed)return;
   try{
    const calm=reduced()||calmEffects;
-   draw(ctx,{time,aim,reduced:calm,width:640,height:360});
+   ctx.save();
+   try{draw(ctx,{time,aim,reduced:calm,width:640,height:360})}finally{ctx.restore()}
    // Decorative edge snow, respecting calm/reduced motion; no hit-box changes.
    if(!calm&&playable()){
     ctx.save();ctx.fillStyle="rgba(220,241,241,.47)";
@@ -450,7 +461,7 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
     ctx.restore();
    }
    particles=particles.filter(p=>p.until>time);
-   for(const p of particles){
+   for(const p of calm?[]:particles){
     ctx.save();
     const r=7+(.33-(p.until-time)/1000)*55;
     ctx.globalAlpha=Math.max(0,(p.until-time)/330);
@@ -492,13 +503,13 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
   if(additional.some(a=>a.key===cmd)&&onExtraAction)
    void act(()=>onExtraAction(cmd),cmd);
   if(cmd==="effects"){
-   calmEffects=!calmEffects;
+   calmEffects=!calmEffects;scenePrefs.calm=calmEffects;
    node.textContent="Calm effects "+(calmEffects?"on":"off");
    node.setAttribute("aria-pressed",String(calmEffects));
    feedback(calmEffects?"Calm effects on.":"Gentle winter effects enabled.");
   }
   if(cmd==="contrast"){
-   highContrast=!highContrast;
+   highContrast=!highContrast;scenePrefs.contrast=highContrast;
    if(highContrast)root.classList.add("arcade-high-contrast");
    else root.classList.remove("arcade-high-contrast");
    node.textContent="High contrast "+(highContrast?"on":"off");
@@ -506,7 +517,7 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
    feedback(highContrast?"High contrast enabled.":"Normal game contrast restored.");
   }
   if(cmd==="sound"){
-   muted=!muted;node.textContent="Sound "+(muted?"off":"on");
+   muted=!muted;scenePrefs.muted=muted;node.textContent="Sound "+(muted?"off":"on");
    node.setAttribute("aria-pressed",String(!muted));
    if(!muted)sound();
   }
@@ -537,6 +548,10 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
  canvas.addEventListener("keydown",keyboard);
  root.addEventListener("click",controls);
  global.document.addEventListener("visibilitychange",visibility);
+ for(const [name,label,on] of [["effects","Calm effects",calmEffects],["contrast","High contrast",highContrast],["sound","Sound",!muted]]){
+  const node=button(name);node.textContent=label+" "+(on?"on":"off");node.setAttribute("aria-pressed",String(on));
+ }
+ if(highContrast)root.classList.add("arcade-high-contrast");
  feedback(welcome||"Ready to enter the gallery. Aim with mouse, touch or arrow keys.");
  updateHud();
  frame=global.requestAnimationFrame(tick);
@@ -544,5 +559,5 @@ function mountScene({root,title,help,getStatus,getHud,draw,onStart,onPause,
          setFeedback:feedback,tone:sound};
 }
 
-global.SnowfallArcadeV299=Object.freeze({mount,mountScene,modes:Object.freeze(Object.keys(MODES))});
+global.SnowfallArcadeV299=Object.freeze({mount,mountScene,loadArt,modes:Object.freeze(Object.keys(MODES))});
 })(window);
