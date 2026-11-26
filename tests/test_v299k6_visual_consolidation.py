@@ -7,7 +7,7 @@ STATIC = ROOT / "src/snowfall/platform/static"
 def test_consolidated_artwork():
     expected = {
         "v299k1": ["trivia-stage.webp"] + [f"trivia-answer-{c}.webp" for c in ("blue","red","gold","green")],
-        "v299k2": ["gallery-stage.webp"] + [f"gallery-{k}-{i}.webp" for k in ("standard","gold","decoy","impact") for i in range(9 if k=="impact" else 6)],
+        "v299k2": ["gallery-stage.webp"] + [f"gallery-{k}.webp" for k in ("standard","gold","decoy","impact")] + [f"gallery-{k}-{i}.webp" for k in ("standard","gold","decoy","impact") for i in range(9 if k=="impact" else 6)],
         "v299k3": ["safe-stage.webp","safe-panel.webp","safe-wheel.webp"],
         "v299k4": ["catch-stage.webp"] + [f"catch-{k}-{i}.webp" for k in ("white","gold","crystal","hazard","basket") for i in range(6)],
         "v299k5": ["snowman-stage.webp"] + [f"snowman-{k}{suffix}.webp" for k in ("base","torso","head","hat","scarf","nose","arm_left","arm_right","buttons","sunhat","beachball") for suffix in [""]+[f"-{i}" for i in range(6)]],
