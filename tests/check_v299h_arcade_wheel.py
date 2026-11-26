@@ -38,7 +38,7 @@ def verify(output: Path) -> dict:
             raise ValueError("Wheel missing arcade deployment assets: " +
                              ", ".join(missing))
         page = wheel.read(STATIC + "index.html").decode("utf-8")
-        if 'content="2.9.9h"' not in page:
+        if 'content="2.9.9k7a"' not in page:
             raise ValueError("Built arcade HTML has a stale release stamp")
         for name in GAME_MODULES:
             if "/static/" + name not in page:
