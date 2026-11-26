@@ -25,10 +25,19 @@ function sprite(type){
  }
  return sprites[type];
 }
-function partArt(ctx,type,x,y,{ghost=false,scale=1}={}){
+const animatedSprites={};
+function animatedSprite(type,time){
+ if(!spriteSizes[type]||typeof Image==="undefined")return null;
+ if(!animatedSprites[type])animatedSprites[type]=Array.from({length:6},(_,i)=>{
+  const img=new Image();img.src="/art/v290/arcade/v299k5/snowman-"+type+"-"+i+".webp";return img;
+ });
+ return animatedSprites[type][Math.floor(Math.max(0,time)/140)%6];
+}
+function partArt(ctx,type,x,y,{ghost=false,scale=1,time=0,reduced=false}={}){
  ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);
  ctx.globalAlpha=ghost ? 0.24 : 1;
- const img=sprite(type),size=spriteSizes[type];
+ const animated=animatedSprite(type,ghost||reduced?0:time);
+ const img=animated?.complete&&animated.naturalWidth?animated:sprite(type),size=spriteSizes[type];
  if(img?.complete&&img.naturalWidth&&size){
   const [w,h]=size;
   ctx.drawImage(img,-w/2,-h/2,w,h);
@@ -289,7 +298,7 @@ function mount({root,session,start,control,place,refresh,fetchRecord,onExit,
      ctx.restore();
      partArt(ctx,type,slot.x,slot.y,{ghost:true,scale:.78});
     }
-   }else partArt(ctx,type,slot.x,slot.y);
+   }else partArt(ctx,type,slot.x,slot.y,{time,reduced});
   }
   ctx.fillStyle="#182e3d";ctx.fillRect(469,55,165,283);
   ctx.strokeStyle="#d6ba8a";ctx.lineWidth=2;ctx.strokeRect(469,55,165,283);
@@ -302,7 +311,7 @@ function mount({root,session,start,control,place,refresh,fetchRecord,onExit,
    ctx.fillRect(box.x,box.y,box.w,box.h);
    ctx.strokeStyle=chosen?"#fbe4b0":"#6d8b91";
    ctx.lineWidth=chosen?2.5:1;ctx.strokeRect(box.x,box.y,box.w,box.h);
-   partArt(ctx,p.id,box.x+16,box.y+12,{scale:.24});
+   partArt(ctx,p.id,box.x+16,box.y+12,{scale:.24,time,reduced});
    ctx.fillStyle="#ecf2ef";ctx.font="12px sans-serif";
    ctx.fillText((i+1<=9?String(i+1):i===9?"0":"-")+
     ". "+p.label,box.x+30,box.y+16);
@@ -313,7 +322,7 @@ function mount({root,session,start,control,place,refresh,fetchRecord,onExit,
    ctx.save();ctx.strokeStyle=shade;ctx.setLineDash([5,5]);ctx.lineWidth=2;
    ctx.beginPath();ctx.arc(location.x,location.y,21,0,Math.PI*2);ctx.stroke();
    ctx.setLineDash([]);
-   partArt(ctx,selected,location.x,location.y,{ghost:false,scale:.48});
+   partArt(ctx,selected,location.x,location.y,{ghost:false,scale:.48,time,reduced});
    ctx.restore();
   }
   ctx.font="13px sans-serif";ctx.fillStyle="#f3e4be";
