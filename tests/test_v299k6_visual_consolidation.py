@@ -26,4 +26,4 @@ def test_release_cache_versions():
     import re
     scripts = re.findall(r'/static/arcade-[^"]+\.js\?v=([^"]+)', html)
     assert len(scripts) == 7
-    assert set(scripts) == {"299k6"}
+    assert set(scripts) == {"299k7a"}
