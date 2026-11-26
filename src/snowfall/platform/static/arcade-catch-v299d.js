@@ -23,8 +23,8 @@ function mount({root,session,start,control,update,refresh,fetchRecord,onExit,
  let updating=false,refreshing=false,pending=recoveredAction||null;
  let lastSend=0,dragging=false,pointerId=null,record=null,recordBusy=false,host=null;
  let lastFeedbackSeq=current.action_seq||0,latestFeedback=null;
- const backdrop=new Image();backdrop.src="/art/v290/arcade/catch.webp";
- const load=name=>{const img=new Image();img.src="/art/v290/arcade/v299k4/"+name+".webp";return img};
+ const backdrop=global.SnowfallArcadeV299?.loadArt?.("/art/v290/arcade/catch.webp")||(()=>{const image=new Image();image.src="/art/v290/arcade/catch.webp";return image})();
+ const load=name=>{const img=global.SnowfallArcadeV299?.loadArt?.("/art/v290/arcade/v299k4/"+name+".webp")||(()=>{const image=new Image();image.src="/art/v290/arcade/v299k4/"+name+".webp";return image})();return img};
  const scenery=load("catch-stage");
  const sprites=Object.fromEntries(["white","gold","crystal","hazard","basket"].map(k=>[k,Array.from({length:6},(_,i)=>load("catch-"+k+"-"+i))]));
  const ready=img=>img&&img.complete&&img.naturalWidth;
