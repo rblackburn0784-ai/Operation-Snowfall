@@ -1,0 +1,1 @@
+Upload snowman-stage.webp and the eleven snowman part WebP files. Eyes are baked into the head sprite to preserve the existing blueprint contract. Banana and egg are reserved for a later server gameplay change.
