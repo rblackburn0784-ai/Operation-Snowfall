@@ -14,6 +14,16 @@ function mount({root,session,start,control,shot,refresh,fetchRecord,onExit}){
  let refreshing=false,unconfirmed=null,impact=null,record=null,recordBusy=false;
  const backdrop=new Image();
  backdrop.src="/art/v290/arcade/gallery.webp";
+ const artRoot="/art/v290/arcade/v299k2/";
+ const load=name=>{const img=new Image();img.src=artRoot+name+".webp";return img};
+ const stage=load("gallery-stage");
+ const sprites=Object.fromEntries(["standard","gold","decoy","impact"].map(kind=>
+  [kind,Array.from({length:kind==="impact"?9:6},(_,i)=>load("gallery-"+kind+"-"+i))]));
+ const ready=img=>img&&img.complete&&img.naturalWidth;
+ function frame(kind,ms,reduced){
+  const frames=sprites[kind],delay=kind==="gold"?150:kind==="impact"?100:160;
+  return frames[reduced?0:Math.floor(Math.max(0,ms)/delay)%frames.length];
+ }
  function apply(next){
   if(!next||!Array.isArray(next.schedule)||next.mode!=="gallery")
    throw Error("Invalid gallery session response.");
@@ -62,7 +72,7 @@ function mount({root,session,start,control,shot,refresh,fetchRecord,onExit}){
    apply(next);
    unconfirmed=null;
    const effect=next.last_event||{};
-   impact={x:body.x,y:body.y,until:performance.now()+450,
+   impact={x:body.x,y:body.y,until:performance.now()+900,
     outcome:effect.outcome||"miss"};
    return effect;
   }catch(e){
@@ -88,11 +98,14 @@ function mount({root,session,start,control,shot,refresh,fetchRecord,onExit}){
   let gradient=ctx.createLinearGradient(0,0,0,HEIGHT);
   gradient.addColorStop(0,"#142b3c");gradient.addColorStop(1,"#274b5b");
   ctx.fillStyle=gradient;ctx.fillRect(0,0,WIDTH,HEIGHT);
-  if(backdrop.complete&&backdrop.naturalWidth){
+  const custom=ready(stage);
+  if(custom){ctx.drawImage(stage,0,0,WIDTH,HEIGHT)}
+  else if(backdrop.complete&&backdrop.naturalWidth){
    ctx.save();ctx.globalAlpha=.24;
    ctx.drawImage(backdrop,0,0,WIDTH,HEIGHT);ctx.restore();
   }
-  // Mid-century fairground booth / three shooting lanes, fixed geometry.
+  // Preserve logical target lanes, but let the supplied scenery show through.
+  if(!custom){
   ctx.fillStyle="#513d31";ctx.fillRect(0,64,WIDTH,12);
   ctx.fillStyle="#74523a";ctx.fillRect(0,99,WIDTH,10);
   for(let row=0;row<3;row++){
@@ -102,6 +115,11 @@ function mount({root,session,start,control,shot,refresh,fetchRecord,onExit}){
    ctx.strokeStyle="#9f7e55";ctx.lineWidth=4;ctx.strokeRect(22,top,596,62);
   }
   ctx.fillStyle="#73543e";ctx.fillRect(0,322,WIDTH,38);
+  }else{
+   ctx.fillStyle="rgba(10,24,39,.78)";ctx.fillRect(75,20,490,49);
+   ctx.fillRect(0,322,WIDTH,38);
+  }
+  ctx.textAlign="start";
   ctx.fillStyle="#edc98b";ctx.font="bold 16px Georgia";
   ctx.fillText("THE FROSTED SHOOTING GALLERY",123,40);
   ctx.font="13px sans-serif";ctx.fillStyle="#d9e8ed";
@@ -120,6 +138,12 @@ function mount({root,session,start,control,shot,refresh,fetchRecord,onExit}){
    const p=position(t,ms),r=t.radius;
    ctx.save();
    ctx.shadowColor=t.kind==="gold"?"#ffda71":"#b1def1";ctx.shadowBlur=t.kind==="gold"?23:7;
+   const sprite=frame(t.kind==="gold"?"gold":t.kind==="decoy"?"decoy":"standard",ms-t.start,reduced);
+   if(ready(sprite)){
+    ctx.shadowBlur=0;
+    ctx.drawImage(sprite,p.x-r,p.y-r,r*2,r*2);
+    ctx.restore();continue;
+   }
    ctx.fillStyle="#1f242c";ctx.fillRect(p.x-4,p.y+r,8,26);
    if(t.kind==="decoy"){
     circle(ctx,p.x,p.y,r+3,"#dbe5eb");
@@ -139,11 +163,19 @@ function mount({root,session,start,control,shot,refresh,fetchRecord,onExit}){
    ctx.restore();
   }
   if(impact&&impact.until>time){
-   ctx.save();ctx.globalAlpha=(impact.until-time)/450;
+   const age=900-(impact.until-time);
+   const sprite=frame("impact",age,reduced);
+   ctx.save();
+   if(ready(sprite)){
+    ctx.drawImage(sprite,impact.x-90,impact.y-33,180,66);
+   }else{
+   ctx.globalAlpha=Math.min(1,(impact.until-time)/450);
    circle(ctx,impact.x,impact.y,Math.max(8,(450-(impact.until-time))*.19),
     impact.outcome==="gold"?"#ffd778":"#e9f6ff");
+   }
    ctx.restore();
   }
+  ctx.textAlign="start";
   ctx.fillStyle="#e8d3aa";ctx.font="bold 14px sans-serif";
   ctx.fillText("🎯 Standard +7    ✦ Gold +15    ⊘ Decoy −9    Miss −2",89,346);
   if(current.status!=="active"){
