@@ -24,6 +24,11 @@ function mount({root,session,start,control,update,refresh,fetchRecord,onExit,
  let lastSend=0,dragging=false,pointerId=null,record=null,recordBusy=false,host=null;
  let lastFeedbackSeq=current.action_seq||0,latestFeedback=null;
  const backdrop=new Image();backdrop.src="/art/v290/arcade/catch.webp";
+ const load=name=>{const img=new Image();img.src="/art/v290/arcade/v299k4/"+name+".webp";return img};
+ const scenery=load("catch-stage");
+ const sprites=Object.fromEntries(["white","gold","crystal","hazard","basket"].map(k=>[k,Array.from({length:6},(_,i)=>load("catch-"+k+"-"+i))]));
+ const ready=img=>img&&img.complete&&img.naturalWidth;
+ const frame=(kind,ms,reduced)=>sprites[kind][reduced?0:Math.floor(Math.max(0,ms)/140)%6];
  function elapsed(){
   return clamp(Math.round((Number(current.elapsed_ms)||0)+
    (current.status==="active"?Math.max(0,performance.now()-reference):0)),
@@ -199,13 +204,15 @@ function mount({root,session,start,control,update,refresh,fetchRecord,onExit,
   const background=ctx.createLinearGradient(0,0,0,H);
   background.addColorStop(0,"#0c2941");background.addColorStop(1,"#49768f");
   ctx.fillStyle=background;ctx.fillRect(0,0,W,H);
-  if(backdrop.complete&&backdrop.naturalWidth){
+  const custom=ready(scenery);
+  if(custom){ctx.drawImage(scenery,0,0,W,H);ctx.fillStyle="rgba(8,25,40,.25)";ctx.fillRect(0,0,W,H)}
+  else if(backdrop.complete&&backdrop.naturalWidth){
    ctx.save();ctx.globalAlpha=.23;
    ctx.drawImage(backdrop,0,0,W,H);ctx.restore();
   }
   // The arena is independent of the HUD and scales with the shared stage.
-  ctx.fillStyle="#e6eff6";ctx.fillRect(0,326,W,34);
-  ctx.fillStyle="#b6d5e8";ctx.fillRect(0,337,W,13);
+  ctx.fillStyle=custom?"rgba(8,25,40,.88)":"#e6eff6";ctx.fillRect(0,343,W,17);
+  if(custom){ctx.fillStyle="rgba(8,25,40,.72)";ctx.fillRect(105,9,430,51)}
   ctx.fillStyle="#dfc48e";ctx.font="bold 20px Georgia";
   ctx.textAlign="center";ctx.fillText("SNOWFLAKE CATCH",320,30);
   ctx.fillStyle="#dae9ed";ctx.font="13px sans-serif";
@@ -234,7 +241,11 @@ function mount({root,session,start,control,update,refresh,fetchRecord,onExit,
    ctx.save();
    ctx.shadowColor=item.kind==="gold"?"#ffcf68":"#c9ebfa";
    ctx.shadowBlur=item.kind==="gold"?16:5;
-   if(item.kind==="hazard")hazard(ctx,p.x,p.y);
+   const kind=["gold","crystal","hazard"].includes(item.kind)?item.kind:"white";
+   const sprite=frame(kind,ms-item.start,reduced);
+   const size=kind==="white"?32:kind==="gold"?40:44;
+   if(ready(sprite)){ctx.shadowBlur=0;ctx.drawImage(sprite,p.x-size/2,p.y-size/2,size,size)}
+   else if(item.kind==="hazard")hazard(ctx,p.x,p.y);
    else if(item.kind==="crystal")crystal(ctx,p.x,p.y);
    else snowflake(ctx,p.x,p.y,item.kind==="gold"?18:14,item.kind==="gold");
    ctx.restore();
@@ -242,6 +253,9 @@ function mount({root,session,start,control,update,refresh,fetchRecord,onExit,
   // Catch basket: rounded snow basket, centered at authoritative-smoothed x.
   ctx.save();
   ctx.shadowColor="#000";ctx.shadowBlur=10;
+  const basket=frame("basket",ms,reduced);
+  if(ready(basket)){ctx.shadowBlur=0;ctx.drawImage(basket,visualX-55,BASKET_Y-19,110,55)}
+  else{
   oval(ctx,visualX,BASKET_Y+8,54,12,"#192f43");
   ctx.fillStyle="#936f46";ctx.beginPath();
   ctx.moveTo(visualX-52,BASKET_Y+3);ctx.lineTo(visualX-37,BASKET_Y+29);
@@ -252,6 +266,7 @@ function mount({root,session,start,control,update,refresh,fetchRecord,onExit,
   for(let offset=-30;offset<=30;offset+=15){
    ctx.beginPath();ctx.moveTo(visualX+offset,BASKET_Y+10);
    ctx.lineTo(visualX+offset*.8,BASKET_Y+31);ctx.stroke();
+  }
   }
   ctx.restore();
   ctx.font="13px sans-serif";ctx.fillStyle="#cfe4ed";
