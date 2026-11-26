@@ -96,7 +96,7 @@ test("Safecracker uses the shared scene with a unique default-off launch, no cla
  assert.equal(typeof win.SnowfallArcadeV299.mountScene,"function");
  assert.equal(typeof win.SnowfallSafecrackerV299b.mount,"function");
  assert.ok(html.indexOf("arcade-v299.js")<html.indexOf("arcade-safe-v299b.js"));
- assert.match(html,/arcade-safe-v299b\.js\?v=299h/);
+ assert.match(html,/arcade-safe-v299b\.js\?v=299k7a/);
  assert.match(html,/id="arcadeSafe"/);
  assert.match(css,/arcade-full-safe/);
  assert.match(css,/touch-action:none/);
