@@ -1,0 +1,1 @@
+Upload the supplied Gallery Artwork ZIP WebP files here, including gallery-stage.webp and numbered gallery-standard, gallery-gold, gallery-decoy and gallery-impact frames. Keep original filenames. Do not deploy before verifying assets and tests.
