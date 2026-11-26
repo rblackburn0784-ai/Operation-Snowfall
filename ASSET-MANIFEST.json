@@ -1,0 +1,37 @@
+[
+  {
+    "source": "Trivia.png",
+    "file": "src/snowfall/graphics/art/v290/arcade/v299k1/trivia-stage.webp",
+    "sha256": "fe6a88232e0b142a640d5f62d57dc4d73a8df9e8795dcd064de3fb776e9da723",
+    "frames": 1,
+    "bytes": 159030
+  },
+  {
+    "source": "Animated Blue Snowflake Gift Box(1).gif",
+    "file": "src/snowfall/graphics/art/v290/arcade/v299k1/trivia-answer-blue.webp",
+    "sha256": "5197b26394c50e5252c759c807dd42b1d1811dba0009d278f988862b14b5f979",
+    "frames": 6,
+    "bytes": 69306
+  },
+  {
+    "source": "Animated Red Christmas Gift Banner(1).gif",
+    "file": "src/snowfall/graphics/art/v290/arcade/v299k1/trivia-answer-red.webp",
+    "sha256": "f710e6fdb28eb7ffea265126dcd7c510c8487e481eb04e8abb44848a50be2f80",
+    "frames": 6,
+    "bytes": 72090
+  },
+  {
+    "source": "Animated Golden Gift with Sparkles(2).gif",
+    "file": "src/snowfall/graphics/art/v290/arcade/v299k1/trivia-answer-gold.webp",
+    "sha256": "3233fc56e91f834db8cd8960406fb9c1420e4aed9cf69792b8f28779eef1e2bc",
+    "frames": 6,
+    "bytes": 68008
+  },
+  {
+    "source": "Animated Green Gift Banner Sparkles(1).gif",
+    "file": "src/snowfall/graphics/art/v290/arcade/v299k1/trivia-answer-green.webp",
+    "sha256": "a9dd1b4a83cc8e7f63d1a25aa877996caebcef11e100783348463f73d2e935a3",
+    "frames": 6,
+    "bytes": 47944
+  }
+]
