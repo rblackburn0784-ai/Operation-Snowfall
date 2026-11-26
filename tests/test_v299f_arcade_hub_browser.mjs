@@ -77,7 +77,7 @@ test("Arcade Hub keeps all five original game modules and Classic arcade separat
  assert.match(html,/id="arcadeLobby"/);
  assert.match(html,/id="arcadeStamps"/);
  assert.match(html,/id="arcadeBoard"/);
- assert.match(html,/arcade-hub-v299f\.js\?v=299h/);
+ assert.match(html,/arcade-hub-v299f\.js\?v=299k7a/);
  assert.match(css,/@media\(max-width:430px\)/);
  assert.match(css,/\.arcade-hub-card/);
  assert.match(app,/hub_v299f_enabled/);
