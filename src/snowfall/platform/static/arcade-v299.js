@@ -278,6 +278,7 @@ function mount({root,session,save,onExit}){
 const scenePrefs={calm:false,contrast:false,muted:true};
 const imageCache=new Map();
 function loadArt(url){
+ if(typeof Image==="undefined")return {complete:false,naturalWidth:0};
  if(!imageCache.has(url)){
   const image=new Image();image.src=url;imageCache.set(url,image);
  }
