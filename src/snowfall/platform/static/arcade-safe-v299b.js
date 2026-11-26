@@ -3,7 +3,7 @@
 (function(global){
 "use strict";
 const W=640,H=360,LIMIT=90000,NOTCHES=40,STEP=Math.PI*2/NOTCHES;
-const CX=326,CY=179,R=106;
+const CX=335,CY=165,R=106;
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const mod=n=>(n%NOTCHES+NOTCHES)%NOTCHES;
 const ORDER=["CLOCKWISE","ANTICLOCKWISE","CLOCKWISE"];
@@ -33,6 +33,9 @@ function mount({root,session,start,control,move,refresh,fetchRecord,onExit,
  let dialPreview=null,operationBusy=false,host=null;
  const asset=new Image();
  asset.src="/art/v290/arcade/safe.webp";
+ const load=name=>{const img=new Image();img.src="/art/v290/arcade/v299k3/"+name+".webp";return img};
+ const stageArt=load("safe-stage"),panel=load("safe-panel"),wheel=load("safe-wheel");
+ const ready=img=>img.complete&&img.naturalWidth;
  function apply(value){
   if(!value||value.mode!=="safe"||typeof value.action_seq!=="number")
    throw Error("Invalid Safecracker session.");
@@ -147,9 +150,11 @@ function mount({root,session,start,control,move,refresh,fetchRecord,onExit,
   let sky=ctx.createLinearGradient(0,0,0,H);
   sky.addColorStop(0,"#0f273b");sky.addColorStop(1,"#315067");
   ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
-  if(asset.complete&&asset.naturalWidth){
+  const custom=ready(stageArt)&&ready(panel)&&ready(wheel);
+  if(custom){ctx.drawImage(stageArt,0,0,W,H)}else if(asset.complete&&asset.naturalWidth){
    ctx.save();ctx.globalAlpha=.22;ctx.drawImage(asset,0,0,W,H);ctx.restore();
   }
+  if(!custom){
   ctx.strokeStyle="#8f734b";ctx.lineWidth=6;
   ctx.fillStyle="#253a46";ctx.fillRect(132,58,390,285);
   ctx.strokeRect(132,58,390,285);
@@ -158,11 +163,17 @@ function mount({root,session,start,control,move,refresh,fetchRecord,onExit,
   for(const [x,y] of pins){
    ctx.fillStyle="#b6986d";ctx.beginPath();ctx.arc(x,y,6,0,Math.PI*2);ctx.fill();
   }
+  }
   ctx.fillStyle="#dfc48e";ctx.font="bold 19px Georgia";
   ctx.textAlign="center";ctx.fillText("FROZEN SAFECRACKER",320,34);
   ctx.font="12px sans-serif";ctx.fillStyle="#d0e1e7";
   ctx.fillText("ROTATE THE LOCK • LISTEN FOR THE CLICK • SET EACH TUMBLER",320,53);
   const dial=dialPreview===null?current.dial:dialPreview;
+  if(custom){
+   ctx.drawImage(panel,95,75,110,220);
+   ctx.save();ctx.translate(CX,CY);ctx.rotate(dial*STEP);ctx.drawImage(wheel,-R,-R,2*R,2*R);ctx.restore();
+   ctx.fillStyle="#fff2c9";ctx.font="bold 20px Georgia";ctx.fillText(String(mod(dial)).padStart(2,"0"),CX,CY+7);
+  }else{
   ctx.save();
   ctx.shadowColor="#000";ctx.shadowBlur=12;
   fillCircle(ctx,CX,CY,R+12,"#b18c53");
@@ -188,6 +199,7 @@ function mount({root,session,start,control,move,refresh,fetchRecord,onExit,
   fillCircle(ctx,CX,CY,48,"#273d4b");
   ctx.fillStyle="#fff2c9";ctx.font="bold 30px Georgia";
   ctx.fillText(String(mod(dial)).padStart(2,"0"),CX,CY+10);
+  }
   ctx.fillStyle="#182d3d";ctx.beginPath();
   ctx.moveTo(CX,CY-106);ctx.lineTo(CX-13,CY-133);
   ctx.lineTo(CX+13,CY-133);ctx.closePath();ctx.fill();
@@ -195,14 +207,14 @@ function mount({root,session,start,control,move,refresh,fetchRecord,onExit,
   // External stage lights display which tumbler has clicked into place.
   const stage=current.stage;
   for(let i=0;i<3;i++){
-   const x=460,y=140+i*48;
+   const x=custom?150:460,y=custom?133+i*42:140+i*48;
    fillCircle(ctx,x,y,17,i<stage?"#e3cb8b":i===stage?"#7ab2c4":"#364d57");
    fillCircle(ctx,x,y,11,i<stage?"#467d66":i===stage?"#335d70":"#263944");
    ctx.fillStyle="#f7edcf";ctx.font="bold 15px sans-serif";
    ctx.fillText(i<stage?"✓":String(i+1),x,y+5);
   }
   ctx.fillStyle="#f2deb9";ctx.font="bold 14px Georgia";
-  ctx.fillText("TUMBLERS",463,107);
+  if(!custom)ctx.fillText("TUMBLERS",463,107);
   ctx.textAlign="left";
   ctx.font="bold 14px sans-serif";
   ctx.fillStyle="#e9dcba";
@@ -213,7 +225,7 @@ function mount({root,session,start,control,move,refresh,fetchRecord,onExit,
   const signal=current.signal;
   const light=signal==="click"?"#f7d77d":signal==="near"?"#a9e4de":
    signal==="faint"?"#9dbdcb":"#637a85";
-  fillCircle(ctx,463,286,8,light);
+  fillCircle(ctx,custom?150:463,custom?270:286,8,light);
   ctx.fillStyle="#e3ebef";ctx.font="bold 12px sans-serif";
   ctx.fillText(signal==="click"?"CLICK!":"SIGNAL",463,314);
   if(current.status!=="active"){
