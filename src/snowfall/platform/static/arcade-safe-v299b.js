@@ -3,7 +3,7 @@
 (function(global){
 "use strict";
 const W=640,H=360,LIMIT=90000,NOTCHES=40,STEP=Math.PI*2/NOTCHES;
-const CX=335,CY=165,R=106;
+const CX=326,CY=179,R=106;
 const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
 const mod=n=>(n%NOTCHES+NOTCHES)%NOTCHES;
 const ORDER=["CLOCKWISE","ANTICLOCKWISE","CLOCKWISE"];
