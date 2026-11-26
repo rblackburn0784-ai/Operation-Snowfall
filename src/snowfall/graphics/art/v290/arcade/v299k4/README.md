@@ -1,0 +1,1 @@
+Upload catch-stage.webp and six numbered frames each for catch-white, catch-gold, catch-crystal, catch-hazard and catch-basket. Burning log artwork is reserved for future gameplay changes. Verify visuals and regression tests before deployment.
