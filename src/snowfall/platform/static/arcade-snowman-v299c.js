@@ -17,9 +17,23 @@ function circle(ctx,x,y,r,color){
 function oval(ctx,x,y,rx,ry,color){
  ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);ctx.fill();
 }
+const spriteSizes={base:[82,82],torso:[70,70],head:[58,58],hat:[60,46],scarf:[56,58],nose:[37,14],arm_left:[48,40],arm_right:[48,40],buttons:[12,42],sunhat:[76,36],beachball:[48,48]};
+const sprites={};
+function sprite(type){
+ if(!sprites[type]&&typeof Image!=="undefined"){
+  const img=new Image();img.src="/art/v290/arcade/v299k5/snowman-"+type+".webp";sprites[type]=img;
+ }
+ return sprites[type];
+}
 function partArt(ctx,type,x,y,{ghost=false,scale=1}={}){
  ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);
  ctx.globalAlpha=ghost ? 0.24 : 1;
+ const img=sprite(type),size=spriteSizes[type];
+ if(img?.complete&&img.naturalWidth&&size){
+  const [w,h]=size;
+  ctx.drawImage(img,-w/2,-h/2,w,h);
+  ctx.restore();return;
+ }
  const snow=ghost?"#f0ece2":"#f2f6f6";
  const ice=ghost?"#d9dfe1":"#c8e0e7";
  ctx.lineWidth=ghost?2.5:3;
@@ -79,6 +93,7 @@ function mount({root,session,start,control,place,refresh,fetchRecord,onExit,
  let cursor={x:249,y:205},guide=true,record=null,recordBusy=false;
  let busy=false,pending=recoveredAction||null,host=null;
  const art=new Image();art.src="/art/v290/arcade/snowman.webp";
+ const scenery=new Image();scenery.src="/art/v290/arcade/v299k5/snowman-stage.webp";
  function elapsed(){
   return clamp(Math.round(current.elapsed_ms+(current.status==="active"?
    Math.max(0,performance.now()-reference):0)),0,LIMIT);
@@ -243,24 +258,25 @@ function mount({root,session,start,control,place,refresh,fetchRecord,onExit,
   const gradient=ctx.createLinearGradient(0,0,0,H);
   gradient.addColorStop(0,"#132e43");gradient.addColorStop(1,"#477c8c");
   ctx.fillStyle=gradient;ctx.fillRect(0,0,W,H);
-  if(art.complete&&art.naturalWidth){
+  const custom=scenery.complete&&scenery.naturalWidth;
+  if(custom){ctx.drawImage(scenery,0,0,W,H)}
+  else if(art.complete&&art.naturalWidth){
    ctx.save();ctx.globalAlpha=.18;ctx.drawImage(art,0,0,W,H);ctx.restore();
   }
   // The blueprint and the tray share the same canvas coordinates as
   // server-side collision detection.
-  ctx.fillStyle="rgba(8,28,41,.48)";ctx.fillRect(16,54,440,285);
+  ctx.fillStyle=custom?"rgba(8,28,41,.22)":"rgba(8,28,41,.48)";ctx.fillRect(16,54,440,285);
   ctx.strokeStyle="#a4c9d4";ctx.lineWidth=2;ctx.strokeRect(16,54,440,285);
   ctx.fillStyle="#e8f4f6";ctx.font="bold 18px Georgia";
   ctx.fillText("SNOWMAN WORKSHOP",23,30);
   ctx.fillStyle="#f0d8a7";ctx.font="13px sans-serif";
   ctx.fillText("BLUEPRINT "+Math.min(current.stage+1,3)+
    "/3 · "+current.blueprint.name,23,48);
-  ctx.fillStyle="#dbe9ee";ctx.fillRect(21,315,428,22);
-  ctx.fillStyle="#aac8d1";ctx.fillRect(21,328,428,10);
+  if(!custom){ctx.fillStyle="#dbe9ee";ctx.fillRect(21,315,428,22);
+  ctx.fillStyle="#aac8d1";ctx.fillRect(21,328,428,10);}
   const placed=new Set(current.placed);
   const slots=current.blueprint.slots;
-  const order=["base","torso","head","arm_left","arm_right","hat",
-   "buttons","nose","scarf"];
+  const order=["arm_left","arm_right","base","torso","head","buttons","nose","scarf","hat"];
   for(const type of order){
    const slot=slots.find(v=>v.id===type);
    if(!slot)continue;
