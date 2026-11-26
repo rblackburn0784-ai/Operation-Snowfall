@@ -21,7 +21,7 @@ const spriteSizes={base:[82,82],torso:[70,70],head:[58,58],hat:[60,46],scarf:[56
 const sprites={};
 function sprite(type){
  if(!sprites[type]&&typeof Image!=="undefined"){
-  const img=new Image();img.src="/art/v290/arcade/v299k5/snowman-"+type+".webp";sprites[type]=img;
+  const img=global.SnowfallArcadeV299?.loadArt?.("/art/v290/arcade/v299k5/snowman-"+type+".webp")||(()=>{const image=new Image();image.src="/art/v290/arcade/v299k5/snowman-"+type+".webp";return image})();sprites[type]=img;
  }
  return sprites[type];
 }
@@ -29,7 +29,7 @@ const animatedSprites={};
 function animatedSprite(type,time){
  if(!spriteSizes[type]||typeof Image==="undefined")return null;
  if(!animatedSprites[type])animatedSprites[type]=Array.from({length:6},(_,i)=>{
-  const img=new Image();img.src="/art/v290/arcade/v299k5/snowman-"+type+"-"+i+".webp";return img;
+  const img=global.SnowfallArcadeV299?.loadArt?.("/art/v290/arcade/v299k5/snowman-"+type+"-"+i+".webp")||(()=>{const image=new Image();image.src="/art/v290/arcade/v299k5/snowman-"+type+"-"+i+".webp";return image})();return img;
  });
  return animatedSprites[type][Math.floor(Math.max(0,time)/140)%6];
 }
@@ -101,8 +101,8 @@ function mount({root,session,start,control,place,refresh,fetchRecord,onExit,
  let selected=null,dragging=false,pointerId=null,startPoint=null,hover=null;
  let cursor={x:249,y:205},guide=true,record=null,recordBusy=false;
  let busy=false,pending=recoveredAction||null,host=null;
- const art=new Image();art.src="/art/v290/arcade/snowman.webp";
- const scenery=new Image();scenery.src="/art/v290/arcade/v299k5/snowman-stage.webp";
+ const art=global.SnowfallArcadeV299?.loadArt?.("/art/v290/arcade/snowman.webp")||(()=>{const image=new Image();image.src="/art/v290/arcade/snowman.webp";return image})();
+ const scenery=global.SnowfallArcadeV299?.loadArt?.("/art/v290/arcade/v299k5/snowman-stage.webp")||(()=>{const image=new Image();image.src="/art/v290/arcade/v299k5/snowman-stage.webp";return image})();
  function elapsed(){
   return clamp(Math.round(current.elapsed_ms+(current.status==="active"?
    Math.max(0,performance.now()-reference):0)),0,LIMIT);
