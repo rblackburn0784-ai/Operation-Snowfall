@@ -67,12 +67,10 @@ function mount({root,session,start,control,answer,refresh,fetchRecord,
  let lastRefresh=0,glowUntil=0,glowCorrect=null;
  // v2.9.9k1: animated WebP conversions of the user-approved GIFs.
  // The original static arcade visuals remain as fallback until all art ships.
- const art=new Image();art.src="/art/v290/arcade/trivia.webp";
- const stageArt=new Image();
- stageArt.src="/art/v290/arcade/v299k1/trivia-stage.webp";
+ const art=global.SnowfallArcadeV299?.loadArt?.("/art/v290/arcade/trivia.webp")||(()=>{const image=new Image();image.src="/art/v290/arcade/trivia.webp";return image})();
+ const stageArt=global.SnowfallArcadeV299?.loadArt?.("/art/v290/arcade/v299k1/trivia-stage.webp")||(()=>{const image=new Image();image.src="/art/v290/arcade/v299k1/trivia-stage.webp";return image})();
  const presentArt=["blue","red","gold","green"].map(color=>{
-  const sprite=new Image();
-  sprite.src="/art/v290/arcade/v299k1/trivia-answer-"+color+".webp";
+  const sprite=global.SnowfallArcadeV299?.loadArt?.("/art/v290/arcade/v299k1/trivia-answer-"+color+".webp")||(()=>{const image=new Image();image.src="/art/v290/arcade/v299k1/trivia-answer-"+color+".webp";return image})();
   return sprite;
  });
 
