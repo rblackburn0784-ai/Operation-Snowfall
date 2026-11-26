@@ -16,9 +16,9 @@ const scripts=[
  "arcade-trivia-v299e.js","arcade-hub-v299f.js",
 ];
 test("all seven arcade scripts are bundled, loaded once, and fresh for v2.9.9h",()=>{
- assert.match(html,/snowfall-interactive-arcade-release" content="2\.9\.9h"/);
+ assert.match(html,/snowfall-interactive-arcade-release" content="2\.9\.9k7a"/);
  for(const script of scripts){
-  const matches=html.match(new RegExp(script.replace(".","\\.")+"\\?v=299h","g"))||[];
+  const matches=html.match(new RegExp(script.replace(".","\\.")+"\\?v=299k7a","g"))||[];
   assert.equal(matches.length,1,script+" must be loaded and cache-busted once");
   assert.ok(readFileSync(path.join(root,script)).length>300);
  }
