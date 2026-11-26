@@ -65,7 +65,16 @@ function mount({root,session,start,control,answer,refresh,fetchRecord,
  let selected=0,letters=[],busy=false,pending=recoveredAction||null;
  let refreshing=false,recordBusy=false,record=null;
  let lastRefresh=0,glowUntil=0,glowCorrect=null;
+ // v2.9.9k1: animated WebP conversions of the user-approved GIFs.
+ // The original static arcade visuals remain as fallback until all art ships.
  const art=new Image();art.src="/art/v290/arcade/trivia.webp";
+ const stageArt=new Image();
+ stageArt.src="/art/v290/arcade/v299k1/trivia-stage.webp";
+ const presentArt=["blue","red","gold","green"].map(color=>{
+  const sprite=new Image();
+  sprite.src="/art/v290/arcade/v299k1/trivia-answer-"+color+".webp";
+  return sprite;
+ });
 
  function duration(){
   return state.status==="active"?
@@ -239,7 +248,11 @@ function mount({root,session,start,control,answer,refresh,fetchRecord,
   bg.addColorStop(0,"#102b3c");bg.addColorStop(.55,"#23485a");
   bg.addColorStop(1,"#412e43");
   ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-  if(art.complete&&art.naturalWidth){
+  if(stageArt.complete&&stageArt.naturalWidth){
+   // The supplied stage image is a full 16:9 scene with a red question board.
+   ctx.drawImage(stageArt,0,0,W,H);
+   ctx.fillStyle="rgba(8,14,29,.18)";ctx.fillRect(0,0,W,H);
+  }else if(art.complete&&art.naturalWidth){
    ctx.save();ctx.globalAlpha=.17;ctx.drawImage(art,0,0,W,H);ctx.restore();
   }
   if(!reduced){
@@ -278,11 +291,30 @@ function mount({root,session,start,control,answer,refresh,fetchRecord,
     if(!q.options[index])return;
     const highlighted=index===selected;
     if(q.kind==="gift"){
-     wrapped(ctx,box.x,box.y,box.w,box.h,index,highlighted,true);
-     ctx.fillStyle="#fff4dc";ctx.textAlign="center";
-     ctx.font="bold 15px sans-serif";
-     wrapText(ctx,String(index+1)+". "+q.options[index],
-      box.x+box.w/2,box.y+28,box.w-38,18,2);
+     const sprite=presentArt[index];
+     if(sprite?.complete&&sprite.naturalWidth){
+      // Animated WebP naturally advances frames in browser Image elements.
+      ctx.drawImage(sprite,box.x,box.y,box.w,box.h);
+      if(highlighted){
+       ctx.save();ctx.strokeStyle="#ffe8a1";ctx.lineWidth=3;
+       ctx.shadowColor="#ffd477";ctx.shadowBlur=12;
+       ctx.beginPath();ctx.roundRect(box.x+2,box.y+2,box.w-4,box.h-4,12);
+       ctx.stroke();ctx.restore();
+      }
+      // Keep long answers readable without covering the left-side bow.
+      rounded(ctx,box.x+84,box.y+8,box.w-93,box.h-16,8,
+       "rgba(11,24,36,.74)",highlighted?"#ffdf8c":null);
+      ctx.fillStyle="#fff9e9";ctx.textAlign="center";
+      ctx.font="bold 13px sans-serif";
+      wrapText(ctx,String(index+1)+". "+q.options[index],
+       box.x+84+(box.w-93)/2,box.y+27,box.w-109,16,2);
+     }else{
+      wrapped(ctx,box.x,box.y,box.w,box.h,index,highlighted,true);
+      ctx.fillStyle="#fff4dc";ctx.textAlign="center";
+      ctx.font="bold 15px sans-serif";
+      wrapText(ctx,String(index+1)+". "+q.options[index],
+       box.x+box.w/2,box.y+28,box.w-38,18,2);
+     }
     }else{
      rounded(ctx,box.x,box.y,box.w,box.h,17,
       highlighted?"#425967":index===0?"#14635e":"#924955",
