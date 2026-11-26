@@ -31,9 +31,8 @@ function mount({root,session,start,control,move,refresh,fetchRecord,onExit,
  let record=null,recordBusy=false,pending=recoveredAction||null;
  let dragging=false,pointerId=null,lastAngle=null,angleSum=0;
  let dialPreview=null,operationBusy=false,host=null;
- const asset=new Image();
- asset.src="/art/v290/arcade/safe.webp";
- const load=name=>{const img=new Image();img.src="/art/v290/arcade/v299k3/"+name+".webp";return img};
+ const asset=global.SnowfallArcadeV299?.loadArt?.("/art/v290/arcade/safe.webp")||(()=>{const image=new Image();image.src="/art/v290/arcade/safe.webp";return image})();
+ const load=name=>{const img=global.SnowfallArcadeV299?.loadArt?.("/art/v290/arcade/v299k3/"+name+".webp")||(()=>{const image=new Image();image.src="/art/v290/arcade/v299k3/"+name+".webp";return image})();return img};
  const stageArt=load("safe-stage"),panel=load("safe-panel"),wheel=load("safe-wheel");
  const ready=img=>img.complete&&img.naturalWidth;
  function apply(value){
