@@ -12,10 +12,9 @@ function mount({root,session,start,control,shot,refresh,fetchRecord,onExit}){
   throw Error("Arcade 2.0 screen is not available.");
  let current=session,reference=performance.now(),lastRefresh=0;
  let refreshing=false,unconfirmed=null,impact=null,record=null,recordBusy=false;
- const backdrop=new Image();
- backdrop.src="/art/v290/arcade/gallery.webp";
+ const backdrop=global.SnowfallArcadeV299?.loadArt?.("/art/v290/arcade/gallery.webp")||(()=>{const image=new Image();image.src="/art/v290/arcade/gallery.webp";return image})();
  const artRoot="/art/v290/arcade/v299k2/";
- const load=name=>{const img=new Image();img.src=artRoot+name+".webp";return img};
+ const load=name=>{const img=global.SnowfallArcadeV299?.loadArt?.(artRoot+name+".webp")||(()=>{const image=new Image();image.src=artRoot+name+".webp";return image})();return img};
  const stage=load("gallery-stage");
  const sprites=Object.fromEntries(["standard","gold","decoy","impact"].map(kind=>
   [kind,Array.from({length:kind==="impact"?9:6},(_,i)=>load("gallery-"+kind+"-"+i))]));
