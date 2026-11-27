@@ -211,3 +211,77 @@ def test_additive_practice_table_runs_on_real_postgres_without_game_schema_chang
         with psycopg.connect(root, autocommit=True) as admin:
             admin.execute(sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(
                 sql.Identifier(name)))
+
+
+@pytest.mark.skipif(
+    not os.getenv("SNOWFALL_PG_TEST_DSN") or
+    os.getenv("SNOWFALL_PG_TEST_CONFIRM") != "EMPTY_TEST_DATABASE",
+    reason="Explicit isolated PostgreSQL fixture only",
+)
+def test_shared_qa_lifecycle_postgres_transaction_and_identity(tmp_path, monkeypatch):
+    import psycopg
+    from psycopg import sql
+    from types import SimpleNamespace
+    from snowfall.platform import qa_lifecycle
+    from snowfall.platform.identity import IdentityRepository
+    from snowfall.platform.staging import STAGING_PROJECT
+
+    root = os.environ["SNOWFALL_PG_TEST_DSN"]
+    u = urlsplit(root)
+    if u.hostname not in ("localhost", "127.0.0.1") or u.path != "/snowfall_test":
+        pytest.fail("Refusing to connect to non-local PostgreSQL")
+    name = "snowfall_v299k8a_lifecycle_test"
+    dsn = urlunsplit(u._replace(path="/" + name))
+    monkeypatch.setattr(qa_lifecycle, "QA_DB", name)
+    with psycopg.connect(root, autocommit=True) as admin:
+        admin.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(name)))
+    try:
+        source = Store(tmp_path / "source.sqlite3")
+        source.initialize()
+        source.ensure_season(SEASON, START)
+        source.register(SEASON, 101, "TestSnowman", "Chicago", START)
+        source.transition(SEASON, 900, "start", START, "QA arcade")
+        migrate(source.path, dsn, confirmation="OFFLINE_MIGRATE")
+        pg = PostgresStore(dsn, practice_root=tmp_path)
+        identity = IdentityRepository(dsn)
+        identity.provision(confirm="INSTALL_IDENTITY_SCHEMA")
+        principal = identity.resolve_discord("123456789012345678")
+        token, _csrf = identity.new_session(principal)
+        with pg.connect() as con:
+            con.execute("CREATE TABLE snowfall_web_qa_marker "
+                        "(singleton INT PRIMARY KEY, project_id TEXT, season_key TEXT)")
+            con.execute("INSERT INTO snowfall_web_qa_marker VALUES(1,?,?)",
+                        (STAGING_PROJECT, SEASON))
+            install_practice_schema(con)
+            install_gallery_schema(con)
+            install_safe_schema(con)
+            install_snowman_schema(con)
+            install_catch_schema(con)
+            install_trivia_schema(con)
+            con.execute("UPDATE player_resources SET snowballs=1")
+        InteractiveArcadePractice(pg, SEASON).start(101, "gallery", now=START)
+        game = SimpleNamespace(season=SEASON, store=pg)
+        expired = START + timedelta(days=9)
+
+        def act(action, rid, **kwargs):
+            return qa_lifecycle.apply_qa_lifecycle(
+                game, actor_id=900, action=action,
+                confirmation=qa_lifecycle.CONFIRMATIONS[action],
+                reason="PostgreSQL isolated QA test", request_id=rid, now=expired, **kwargs)
+
+        assert act("extend", "postgres-lifecycle-001", extension_days=2)["event"]["day"] == 7
+        result = act("restart", "postgres-lifecycle-002")
+        assert result["event"]["day"] == 1
+        assert act("restart", "postgres-lifecycle-002")["replayed"]
+        assert pg.season(SEASON).projected_end(expired) == expired + timedelta(days=7)
+        assert identity.session(token).player_id == principal
+        assert identity.links(principal)[0]["subject"] == "123456789012345678"
+        assert pg.get_player(SEASON, 101).mr_username == "TestSnowman"
+        with pg.connect() as con:
+            assert con.execute("SELECT COUNT(*) FROM web_arcade_practice_sessions").fetchone()[0] == 0
+            assert con.execute("SELECT snowballs FROM player_resources").fetchone()[0] == 8
+            assert con.execute("SELECT COUNT(*) FROM admin_audit").fetchone()[0] == 3
+    finally:
+        with psycopg.connect(root, autocommit=True) as admin:
+            admin.execute(sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(
+                sql.Identifier(name)))

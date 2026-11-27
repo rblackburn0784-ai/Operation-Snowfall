@@ -77,3 +77,36 @@ def test_other_season_and_confirmation_are_refused(game):
     with pytest.raises(ValueError, match="confirmation"):
         apply_qa_lifecycle(game, actor_id=999, action="restart", confirmation="wrong",
                            reason="Shared QA test", request_id="request-00000000001")
+
+
+def test_host_route_requires_verified_discord_csrf_and_origin(game):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    from snowfall.platform.api import APISettings
+    from snowfall.platform.staging_web import attach_web_ui
+    from test_v298c_staff import STAFF, StaffIdentity, qa_env
+
+    cfg = APISettings("postgresql://unused/db", QA_SEASON, "https://qa.example")
+    identity = StaffIdentity(discord=STAFF, underworld=False)
+    env = qa_env()
+    body = {"action": "restart", "confirmation": CONFIRMATIONS["restart"],
+            "reason": "Shared QA test", "request_id": "request-00000000001"}
+    token, csrf = identity.new_session(6000000000000000001)
+    headers = {"X-Snowfall-CSRF": csrf, "Origin": "https://qa.example"}
+    for is_host in (False, True):
+        if is_host:
+            env["SNOWFALL_WEB_HOST_DISCORD_IDS"] = STAFF
+        app = attach_web_ui(FastAPI(), identity, cfg, env=env, game=game)
+        with TestClient(app, base_url="https://qa.example") as client:
+            assert client.post("/v1/staff/lifecycle", json=body).status_code == 401
+            client.cookies.set("snowfall_session", token)
+            assert client.get("/v1/staff/role").json()["can_manage_qa_event"] is is_host
+            assert client.post("/v1/staff/lifecycle", json=body).status_code == 403
+            assert client.post("/v1/staff/lifecycle", json=body, headers={
+                **headers, "Origin": "https://evil.example"}).status_code == 403
+            result = client.post("/v1/staff/lifecycle", json=body, headers=headers)
+            assert result.status_code == (200 if is_host else 403)
+            if is_host:
+                assert result.json()["event"]["day"] == 1
+                assert client.post("/v1/staff/lifecycle", json=body,
+                                   headers=headers).json()["replayed"] is True

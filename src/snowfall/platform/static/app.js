@@ -2622,8 +2622,15 @@ async function submitStaffLifecycle(){
    if(result.scope!=="ISOLATED_QA_ONLY")throw Error("Unexpected lifecycle response");
    qaLifecyclePending=null;el("staffLifecycleConfirm").value="";
    txt("staffLifecycleStatus",QA_LIFECYCLE[action][1]+" complete · "+result.event.phase+" · Day "+(result.event.day??"—")+".");
-   // Reload after an authoritative mutation so stale arcade sessions, action
-   // timers and dashboards do not survive in this browser.
+   // Dispose any client game session when the shared clock or game state
+   // changes. The next arcade visit will fetch authoritative server state.
+   S.arcadeEpoch++;S.arcadeHubSeq++;S.arcadeBoardSeq++;
+   for(const key of ["Practice","Gallery","Safe","Snowman","Catch","Trivia","Hub"]){
+     S["arcade"+key+"Runtime"]?.dispose();S["arcade"+key+"Runtime"]=null;
+     S["arcade"+key]=null;el("arcade"+key)?.classList.add("hidden");
+   }
+   S.arcadeRun=null;S.arcadeBoard=null;S.arcadeHubPending=false;
+   S.lastThrow=null;S.pendingActions.clear();savePending();
    await refreshStaffDashboard();
    await refresh();
  }catch(e){

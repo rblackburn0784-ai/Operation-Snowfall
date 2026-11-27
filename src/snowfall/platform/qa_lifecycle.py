@@ -131,8 +131,8 @@ def apply_qa_lifecycle(game, *, actor_id, action, confirmation, reason,
         _check_database(con, postgres)
         for row in con.execute(
                 "SELECT after_json FROM admin_audit WHERE season_key=? AND actor_id=? "
-                "AND action LIKE 'qa_lifecycle:%' ORDER BY id DESC",
-                (QA_SEASON, actor_id)).fetchall():
+                "AND action IN (?,?,?,?) ORDER BY id DESC",
+                (QA_SEASON, actor_id, *("qa_lifecycle:" + a for a in CONFIRMATIONS))).fetchall():
             prior = json.loads(row[0] or "{}")
             if prior.get("request_id") == request_id:
                 if prior.get("request") != signature:
