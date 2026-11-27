@@ -38,7 +38,7 @@ def verify(output: Path) -> dict:
             raise ValueError("Wheel missing arcade deployment assets: " +
                              ", ".join(missing))
         page = wheel.read(STATIC + "index.html").decode("utf-8")
-        if 'content="2.9.9k7c"' not in page:
+        if 'content="2.9.9k8a"' not in page:
             raise ValueError("Built arcade HTML has a stale release stamp")
         for name in GAME_MODULES:
             if "/static/" + name not in page:
@@ -55,7 +55,7 @@ def verify(output: Path) -> dict:
             raise ValueError("Arcade website controller appears truncated")
     return {
         "wheel": wheels[0].name, "modules": len(GAME_MODULES),
-        "arcade_art": len(GAME_ART), "release": "2.9.9k7c",
+        "arcade_art": len(GAME_ART), "release": "2.9.9k8a",
     }
 
 
