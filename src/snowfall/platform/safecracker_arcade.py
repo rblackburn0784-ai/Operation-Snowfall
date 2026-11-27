@@ -98,7 +98,7 @@ def _signal(row) -> str:
         return "turn"
     code = json.loads(row["combination_json"])[stage]
     distance = proximity(int(row["dial"]), code)
-    if distance == 0:
+    if distance <= 1:
         return "click"
     if distance <= 3:
         return "near"
@@ -299,13 +299,12 @@ class SafecrackerEngine:
                     travel = min(10000, travel + abs(ticks))
                     feedback = "Dial turning. Listen for a click near the next number."
                 else:
-                    travel = 0
-                    mistakes = min(100, mistakes + 1)
-                    feedback = "Wrong direction! Tumbler slipped — start this turn again."
+                    travel = max(0, travel - abs(ticks))
+                    feedback = "Fine adjustment: turn back in the required direction."
             else:
                 attempts = min(100, attempts + 1)
                 valid = (travel >= MIN_TRAVEL[stage] and
-                         proximity(dial, combo[stage]) == 0)
+                         proximity(dial, combo[stage]) <= 1)
                 if valid:
                     stage += 1
                     travel = 0
@@ -317,10 +316,8 @@ class SafecrackerEngine:
                         score = max(15, min(100, 100 - mistakes * 8 -
                                           (attempts - 3) * 6 - elapsed // 3500))
                 else:
-                    travel = 0
                     mistakes = min(100, mistakes + 1)
-                    feedback = ("Not aligned! Complete a full turn in the required "
-                                "direction and listen for the clear click.")
+                    feedback = "Not aligned yet. Keep your progress and adjust toward the click."
             stamp = _timestamp(now)
             status = "finished" if finished else "active"
             if action_seq + 1 >= MAX_ACTIONS and not finished:
