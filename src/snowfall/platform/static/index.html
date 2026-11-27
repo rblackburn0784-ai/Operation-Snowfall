@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#101b25">
   <meta name="snowfall-web-release" content="2.9.8l">
-  <meta name="snowfall-interactive-arcade-release" content="2.9.9k7c">
+  <meta name="snowfall-interactive-arcade-release" content="2.9.9k8a">
   <meta name="description" content="Operation Snowfall — the seven-day winter city showdown. Isolated staging preview.">
   <title>Operation Snowfall | The Winter Underworld</title>
   <link rel="icon" href="/favicon.ico">
   <link rel="stylesheet" href="/static/app.css?v=298l-r3-299h">
-  <script defer src="/static/app.js?v=298l-r2-299h"></script>
+  <script defer src="/static/app.js?v=298l-r2-299k8a"></script>
   <script defer src="/static/arcade-v299.js?v=299k7a"></script>
   <script defer src="/static/arcade-gallery-v299a.js?v=299k7a"></script>
   <script defer src="/static/arcade-safe-v299b.js?v=299k8"></script>
@@ -463,6 +463,21 @@
           <div class="section-heading"><div><p class="eyebrow">THE WINTER OPERATIONS BUREAU · STAFF ONLY</p><h2 id="staffTitle">Event Control Centre 2.0</h2></div><span class="pill">QA · TEST LAB</span></div>
           <div class="staff-heading"><div><h3>Watch the event, protect the players.</h3><p>Monitor the shared QA event, inspect individual players and audit host review decisions. Use the separate Test Lab for safe gameplay rehearsals without affecting shared progress.</p></div><button id="staffRefresh" class="button button-outline">Refresh control centre</button></div>
           <p id="staffStatus" class="play-action-status" role="status">Checking staff authorisation…</p>
+          <section id="staffLifecycle" class="activity-card hidden" aria-labelledby="staffLifecycleTitle">
+            <h3 id="staffLifecycleTitle">Shared QA event lifecycle</h3>
+            <p>These controls affect the actual shared Discord and website QA event, not the private Test Lab. Registered characters, account links, staff IDs and audit history are kept.</p>
+            <p class="subtle">Restart and reset erase all QA scores, resources, purchases, boss progress and arcade records. Selecting a day preserves existing scores and clears any event extension. Extend retains progress and adds testing time without creating an eighth scoring day.</p>
+            <form id="staffLifecycleForm" class="staff-search-controls">
+              <label>Action<select id="staffLifecycleAction"><option value="restart">Restart QA Event (fresh seven days)</option><option value="day">Select event day</option><option value="extend">Extend QA Event</option><option value="reset">Reset QA gameplay only</option></select></label>
+              <label id="staffLifecycleDayLabel" class="hidden">Event day<select id="staffLifecycleDay"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></label>
+              <label id="staffLifecycleExtensionLabel" class="hidden">Extra days<select id="staffLifecycleExtension"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></label>
+              <label>Reason<input id="staffLifecycleReason" required minlength="8" maxlength="220" value="Shared QA testing"></label>
+              <label>Type confirmation<input id="staffLifecycleConfirm" required maxlength="40" autocomplete="off"></label>
+              <p id="staffLifecycleHelp" class="subtle">Type RESTART QA EVENT to confirm.</p>
+              <button id="staffLifecycleSubmit" type="submit" class="button button-gold">Restart QA Event</button>
+            </form>
+            <p id="staffLifecycleStatus" role="status" class="play-action-status"></p>
+          </section>
           <div id="staffMetrics" class="staff-metrics" aria-label="Event status metrics"></div>
           <section class="activity-card staff-section staff-case-desk" aria-labelledby="staffCaseTitle">
             <div class="staff-lab-title"><div><p class="eyebrow">ACCOUNT INTEGRITY · QA STAFF ONLY</p><h3 id="staffCaseTitle">Player Search &amp; Review Desk</h3></div><span class="pill">PERMISSION-GATED</span></div>
@@ -571,7 +586,7 @@
             </div>
           </section>
           <div class="staff-dashboard-columns">
-            <section class="activity-card"><h3>Event schedule &amp; lifecycle</h3><div id="staffSchedule"></div><p class="subtle">Lifecycle changes remain in the existing audited Discord /snowadmin controls. Player-review changes alone can be made by explicitly approved hosts; event lifecycle is not controlled here.</p></section>
+            <section class="activity-card"><h3>Event schedule &amp; lifecycle</h3><div id="staffSchedule"></div><p class="subtle">Shared QA lifecycle actions are available above for explicitly authorised hosts. The private Test Lab remains separate.</p></section>
             <section class="activity-card"><h3>Audit &amp; integrity flags</h3><p class="subtle">Potential issues require staff review; flags are not automatic misconduct findings.</p><div id="staffRisks"></div></section>
           </div>
           <section class="activity-card staff-section"><h3>Snow Don &amp; City Sieges</h3><div id="staffBoss"></div></section>

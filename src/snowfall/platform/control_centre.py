@@ -132,11 +132,12 @@ def control_centre_view(game, now=None) -> dict:
             "paused_at": _iso(season.paused_at),
             "projected_end": _iso(season.projected_end(now)),
             "pause_seconds": int(season.paused_seconds),
+            "qa_extension_seconds": season.qa_extension_seconds,
         },
         "totals": totals, "risks": risk, "reconciliation_ok": checked["ok"],
         "days": days, "boss": dict(boss) if boss else None,
         "sieges": sieges, "players": players, "review_queue": recent,
         "audit": audit, "prize_preview": preview,
         "prize_policy": "Provisional individual top-three only. No allocations, exports or payouts; flagged/disqualified excluded; QA fixture identities still need verification.",
-        "staff_actions": "Read-only in shared QA. Use existing audited Discord admin tools for authorised lifecycle/moderation actions.",
+        "staff_actions": "This projection is read-only. Explicitly authorised hosts can use the separate shared QA lifecycle controls.",
     }

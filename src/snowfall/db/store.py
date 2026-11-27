@@ -44,6 +44,7 @@ class Season:
     paused_at: datetime | None
     paused_seconds: float
     finalized_at: datetime | None
+    qa_extension_seconds: int = 0
 
     def registration_opens(self) -> datetime:
         return self.planned_start - timedelta(hours=168)
@@ -62,7 +63,7 @@ class Season:
         if self.started_at is not None:
             if now < self.started_at:
                 return "ready"  # never permit simulated or misordered actions pre-start
-            if self.effective_now(now) >= self.started_at + timedelta(hours=168):
+            if self.effective_now(now) >= self.started_at + timedelta(hours=168, seconds=self.qa_extension_seconds):
                 return "closed"
             return "live"
         if now < self.registration_opens():
@@ -84,7 +85,7 @@ class Season:
         extra = timedelta(0)
         if self.paused_at is not None:
             extra = as_utc(now) - self.paused_at
-        return self.started_at + timedelta(hours=168, seconds=self.paused_seconds) + extra
+        return self.started_at + timedelta(hours=168, seconds=self.paused_seconds + self.qa_extension_seconds) + extra
 
 
 def normalize_mr_username(raw: str) -> tuple[str, str]:
@@ -577,7 +578,9 @@ class Store:
     def _make_season(row: sqlite3.Row) -> Season:
         return Season(row["season_key"], _parse(row["planned_start_utc"]),
                       _parse(row["started_at_utc"]), _parse(row["paused_at_utc"]),
-                      row["paused_seconds"], _parse(row["finalized_at_utc"]))
+                      row["paused_seconds"], _parse(row["finalized_at_utc"]),
+                      int(row["qa_extension_seconds"]) if row["season_key"] == "web-qa-2026"
+                      and "qa_extension_seconds" in row.keys() else 0)
 
     def ensure_season(self, key: str, planned_start: datetime) -> Season:
         if not key.strip():

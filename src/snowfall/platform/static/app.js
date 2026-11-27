@@ -2316,7 +2316,7 @@ async function refreshStaffAccess({force=false}={}){
    if(String(S.session?.player_id)!==id)return;
    S.staffAllowed=false;S.staffRole=null;S.staffData=null;S.staffDirectory=null;S.staffDossier=null;
  }
- updateStaffNavigation();showStaffPlayerDesk();
+ updateStaffNavigation();showStaffPlayerDesk();showStaffLifecycle();
 }
 function staffTime(v){
  const t=Date.parse(v);return Number.isFinite(t)?new Date(t).toLocaleString([],{dateStyle:"medium",timeStyle:"short"}):"—";
@@ -2327,6 +2327,7 @@ function staffRow(label,value){
 function showStaffDashboard(){
  const d=S.staffAllowed?S.staffData:null;
  if(!el("staffStatus"))return;
+ showStaffLifecycle();
  el("staffRefresh").disabled=!!(S.staffPending||!S.staffAllowed);
  txt("staffStatus",!S.staffAllowed?"Authorised staff only.":S.staffPending?"Refreshing audited game records…":S.staffStale?"Refresh failed — showing last retrieved data.":!d?"Select Refresh control centre to load records.":("Verified "+staffTime(d.server_time)+" · "+String(d.phase).toUpperCase()+" · Day "+(d.game_day??"—")+" / 7 · QA · "+(S.staffRole?.can_review?"Host review enabled":"Organiser view")));
  if(!d){
@@ -2335,7 +2336,7 @@ function showStaffDashboard(){
  }
  const t=d.totals||{},risk=d.risks||{},times=d.schedule||{};
  el("staffMetrics").innerHTML=[["Registered",t.players],["Flagged",t.flagged],["Ledger entries",t.score_rows],["Snowball attacks",t.combat],["Boss & siege actions",t.boss_siege],["Recorded awards",t.award_rows]].map(([k,v])=>"<div class='activity-card'><small>"+esc(k)+"</small><strong>"+fmt(v)+"</strong></div>").join("");
- el("staffSchedule").innerHTML=staffRow("Current phase",String(d.phase).toUpperCase())+staffRow("Registration opens",staffTime(times.registration_opens))+staffRow("Scheduled kickoff",staffTime(times.planned_start))+staffRow("Actual kickoff",staffTime(times.started_at))+staffRow("Paused since",staffTime(times.paused_at))+staffRow("Projected completion",staffTime(times.projected_end))+staffRow("Accumulated pause",fmt(times.pause_seconds)+" seconds");
+ el("staffSchedule").innerHTML=staffRow("Current phase",String(d.phase).toUpperCase())+staffRow("Registration opens",staffTime(times.registration_opens))+staffRow("Scheduled kickoff",staffTime(times.planned_start))+staffRow("Actual kickoff",staffTime(times.started_at))+staffRow("Paused since",staffTime(times.paused_at))+staffRow("Projected completion",staffTime(times.projected_end))+staffRow("Accumulated pause",fmt(times.pause_seconds)+" seconds")+staffRow("QA extension",fmt(times.qa_extension_seconds||0)+" seconds");
  const risks=[["Flagged players","flagged_players"],["Invalid resource balances","invalid_balances"],["Combat–ledger mismatches","pvp_ledger_mismatches"],["PvP over-cap days","pvp_over_cap"],["Quest over-cap days","quest_over_cap"],["Unbacked quest credits","quest_unbacked"],["Missing quest credits","quest_missing"],["Defense mismatches","defense_mismatches"],["Arcade attempt violations","arcade_over_limit"]];
  el("staffRisks").innerHTML="<p><strong>Reconciliation: "+(d.reconciliation_ok?"PASS":"REVIEW REQUIRED")+"</strong></p>"+risks.map(([name,key])=>staffRow(name,fmt(risk[key]))).join("")+"<p class='subtle'>"+fmt(t.unlinked)+" QA characters without Underworld links (may include intentional fixtures).</p>";
  const boss=d.boss;
@@ -2577,3 +2578,65 @@ function downloadStaffPlayerDossier(){
  finally{setTimeout(()=>URL.revokeObjectURL(url),1000)}
  notice("Private player dossier exported.","success");
 }
+
+
+/* v2.9.9k8a: separate, host-only shared event lifecycle controls. */
+const QA_LIFECYCLE = {
+ restart:["RESTART QA EVENT","Restart QA Event"],
+ day:["SELECT QA DAY","Select event day"],
+ extend:["EXTEND QA EVENT","Extend QA Event"],
+ reset:["RESET QA GAMEPLAY","Reset QA gameplay"]
+};
+let qaLifecycleBusy=false, qaLifecyclePending=null;
+function showStaffLifecycle(){
+ const root=el("staffLifecycle");if(!root)return;
+ const allowed=!!(S.staffAllowed&&S.staffRole?.can_manage_qa_event);
+ root.classList.toggle("hidden",!allowed);
+ if(!allowed){qaLifecyclePending=null;return}
+ const action=el("staffLifecycleAction").value;
+ const pair=QA_LIFECYCLE[action];if(!pair)return;
+ el("staffLifecycleDayLabel").classList.toggle("hidden",action!=="day");
+ el("staffLifecycleExtensionLabel").classList.toggle("hidden",action!=="extend");
+ txt("staffLifecycleHelp","Type "+pair[0]+" to confirm.");
+ const button=el("staffLifecycleSubmit");
+ button.textContent=qaLifecycleBusy?"Applying…":pair[1];
+ button.disabled=qaLifecycleBusy||!S.staffData||S.staffStale;
+}
+async function submitStaffLifecycle(){
+ if(!S.staffAllowed||!S.staffRole?.can_manage_qa_event||qaLifecycleBusy||!S.staffData||S.staffStale)return;
+ const id=String(S.session?.player_id||"");
+ const action=el("staffLifecycleAction").value, expected=QA_LIFECYCLE[action]?.[0];
+ const reason=el("staffLifecycleReason").value.trim();
+ if(!expected||el("staffLifecycleConfirm").value.trim()!==expected||reason.length<8){
+   txt("staffLifecycleStatus","Enter the exact confirmation and a reason of at least 8 characters.");return;
+ }
+ const fields={action,reason,confirmation:expected,
+   day:action==="day"?Number(el("staffLifecycleDay").value):null,
+   extension_days:action==="extend"?Number(el("staffLifecycleExtension").value):null};
+ const key=JSON.stringify([id,fields]);
+ if(qaLifecyclePending?.key!==key)qaLifecyclePending={key,request_id:nextActionId()};
+ qaLifecycleBusy=true;showStaffLifecycle();
+ try{
+   const result=await post("/v1/staff/lifecycle",{...fields,request_id:qaLifecyclePending.request_id},true);
+   if(String(S.session?.player_id||"")!==id||!S.staffAllowed)return;
+   if(result.scope!=="ISOLATED_QA_ONLY")throw Error("Unexpected lifecycle response");
+   qaLifecyclePending=null;el("staffLifecycleConfirm").value="";
+   txt("staffLifecycleStatus",QA_LIFECYCLE[action][1]+" complete · "+result.event.phase+" · Day "+(result.event.day??"—")+".");
+   // Reload after an authoritative mutation so stale arcade sessions, action
+   // timers and dashboards do not survive in this browser.
+   await refreshStaffDashboard();
+   await refresh();
+ }catch(e){
+   if(String(S.session?.player_id||"")===id){
+     if([400,401,403,409,422].includes(e.status))qaLifecyclePending=null;
+     txt("staffLifecycleStatus",e.message);
+   }
+ }finally{qaLifecycleBusy=false;showStaffLifecycle()}
+}
+document.addEventListener("DOMContentLoaded",()=>{
+ const form=el("staffLifecycleForm");if(!form)return;
+ form.addEventListener("submit",e=>{e.preventDefault();void submitStaffLifecycle()});
+ el("staffLifecycleAction").addEventListener("change",()=>{
+   el("staffLifecycleConfirm").value="";showStaffLifecycle();
+ });
+});

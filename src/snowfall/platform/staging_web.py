@@ -80,6 +80,16 @@ class StaffReviewAction(BaseModel):
                             pattern=r"^[A-Za-z0-9_-]+$")
 
 
+class StaffLifecycleAction(BaseModel):
+    action: Literal["restart", "day", "extend", "reset"]
+    day: int | None = Field(default=None, ge=1, le=7)
+    extension_days: int | None = Field(default=None, ge=1, le=7)
+    reason: str = Field(min_length=8, max_length=220)
+    confirmation: str = Field(min_length=1, max_length=40)
+    request_id: str = Field(min_length=16, max_length=96,
+                            pattern=r"^[A-Za-z0-9_-]+$")
+
+
 def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None, game=None) -> FastAPI:
     """Add client UI and temporary demo logins; callable with CI fakes."""
     env = dict(os.environ if env is None else env)
@@ -171,7 +181,24 @@ def attach_web_ui(app: FastAPI, identities, cfg: APISettings, *, env=None, game=
                 "role": "host" if actor in host_ids else "organiser",
                 "can_review": actor in host_ids,
                 "can_edit_scores": False, "can_pay_prizes": False,
-                "can_reset_event": False}
+                "can_reset_event": actor in host_ids,
+                "can_manage_qa_event": actor in host_ids}
+
+    @app.post("/v1/staff/lifecycle")
+    def staff_lifecycle(body: StaffLifecycleAction, request: Request, response: Response):
+        actor = staff_lab_actor(request, mutate=True)
+        if actor not in host_ids:
+            raise HTTPException(403, "Only explicitly authorised hosts can manage shared QA")
+        from snowfall.platform.qa_lifecycle import apply_qa_lifecycle
+        response.headers["Cache-Control"] = "no-store"
+        try:
+            return apply_qa_lifecycle(
+                game, actor_id=int(actor), action=body.action,
+                confirmation=body.confirmation, reason=body.reason,
+                request_id=body.request_id, day=body.day,
+                extension_days=body.extension_days)
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from exc
 
     @app.get("/v1/staff/players")
     def staff_player_search(request: Request, response: Response,
