@@ -87,19 +87,21 @@ def generate_schedule(rng=None) -> list[dict]:
     rng = rng or secrets.SystemRandom()
     schedule = []
     for i in range(45):
-        start = 650 + i * 1280
+        start = (650 + i * 1900 if i < 10 else
+                 20_000 + (i - 10) * 1400 if i < 24 else
+                 40_000 + (i - 24) * 820)
         wave = min(3, start // 20_000 + 1)
         kind = ("hazard" if i > 3 and i % 9 == 6 else
                 "gold" if i % 8 == 5 else
                 "crystal" if i % 7 == 3 else "snowflake")
-        flight = (2550, 2220, 1880)[wave - 1]
-        drift = rng.choice((-1, 1)) * rng.randrange(30 + wave * 9, 65 + wave * 14)
+        flight = (4400, 3400, 2400)[wave - 1]
+        drift = rng.choice((-1, 1)) * rng.randrange(12 + wave * 9, 30 + wave * 14)
         x0 = rng.randrange(125, 516)
         schedule.append({
             "id": i, "kind": kind, "wave": wave,
             "start": start, "flight": flight, "impact": start + flight,
             "x0": x0, "wind": drift,
-            "sway": rng.randrange(8, 22),
+            "sway": rng.randrange(4, 8 + wave * 4),
             "phase": round(rng.uniform(0, math.tau), 5),
         })
     return schedule
@@ -120,6 +122,10 @@ def _elapsed(row, now: datetime) -> int:
         then = datetime.fromisoformat(row["resumed_at_utc"]).astimezone(timezone.utc)
         elapsed += max(0, round((now - then).total_seconds() * 1000))
     return min(DURATION_MS, elapsed)
+
+
+def kind_is_safe(item):
+    return item["kind"] != "hazard"
 
 
 def _resolve(row, elapsed_ms: int, new_x: int):
@@ -147,7 +153,7 @@ def _resolve(row, elapsed_ms: int, new_x: int):
         fraction = max(0.0, min(1.0, (item["impact"] - start_ms) / duration))
         basket = old_x + (new_x - old_x) * fraction
         fx, _ = flake_position(item, item["impact"])
-        hit = abs(basket - fx) <= BASKET_TOLERANCE
+        hit = abs(basket - fx) <= (BASKET_TOLERANCE + (12 if item["wave"] == 1 and kind_is_safe(item) else 0))
         kind = item["kind"]
         if hit and kind == "hazard":
             hazards += 1
