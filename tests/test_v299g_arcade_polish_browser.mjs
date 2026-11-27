@@ -107,9 +107,9 @@ test("all five games publish a keyboard/touch guide in the same screen",()=>{
  assert.match(css,/arcade-high-contrast/);
  assert.match(html,/arcade-v299\.js\?v=299k7a/);
  assert.match(html,/arcade-gallery-v299a\.js\?v=299k7a/);
- assert.match(html,/arcade-safe-v299b\.js\?v=299k7a/);
+ assert.match(html,/arcade-safe-v299b\.js\?v=299k8/);
  assert.match(html,/arcade-snowman-v299c\.js\?v=299k7a/);
- assert.match(html,/arcade-catch-v299d\.js\?v=299k7a/);
+ assert.match(html,/arcade-catch-v299d\.js\?v=299k8/);
  assert.match(html,/arcade-trivia-v299e\.js\?v=299k7a/);
  assert.match(src,/server/);
 });
