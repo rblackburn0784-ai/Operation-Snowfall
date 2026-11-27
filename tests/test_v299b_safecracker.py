@@ -206,3 +206,18 @@ def test_safe_api_flag_auth_csrf_idempotent_calls(monkeypatch):
                            json={**body, "score": 1000, "combination": [1, 2, 3]},
                            headers=hdr).status_code == 200
         assert game.safe_move.call_args.args[:5] == (101, "a"*32, 0, "turn", 8)
+
+
+def test_near_click_and_fine_reverse_preserve_progress(safe):
+    engine, store = safe
+    sid = engine.start(101, now=START)["session_id"]
+    with store.connect() as con:
+        con.execute("UPDATE web_arcade_safe_sessions SET combination_json=? WHERE session_id=?", ("[7, 10, 20]", sid))
+    engine.control(101, sid, "resume", now=when(100))
+    turn = engine.move(101, sid, 0, "turn", 49, "fine-turn", now=when(2000))
+    assert turn["travel"] == 49
+    reverse = engine.move(101, sid, 1, "turn", -1, "fine-reverse", now=when(2200))
+    assert reverse["travel"] == 48 and reverse["signal"] == "click"
+    assert reverse["mistakes"] == 0
+    seated = engine.move(101, sid, 2, "set", 0, "fine-set", now=when(2400))
+    assert seated["stage"] == 1
