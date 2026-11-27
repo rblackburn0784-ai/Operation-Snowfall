@@ -28,11 +28,12 @@ def test_gallery_late_waves_ease_reaction_without_changing_ammo_or_rewards():
     assert base[1] > base[2] > base[3]
 
 
-def test_catch_late_waves_move_slightly_slower_but_remain_within_one_minute():
+def test_catch_gentle_opening_and_progressive_waves_remain_within_one_minute():
     for seed in (4, 8, 17, 42, 99):
         schedule = generate_schedule(random.Random(seed))
         assert len(schedule) == 45
-        flight = {1: 2550, 2: 2220, 3: 1880}
+        flight = {1: 4400, 2: 3400, 3: 2400}
+        assert [sum(item['wave'] == wave for item in schedule) for wave in (1, 2, 3)] == [10, 14, 21]
         assert all(item["flight"] == flight[item["wave"]] for item in schedule)
         assert all(item["start"] + item["flight"] <= CATCH_LIMIT
                    for item in schedule)
@@ -42,7 +43,7 @@ def test_catch_late_waves_move_slightly_slower_but_remain_within_one_minute():
         assert flight[1] > flight[2] > flight[3]
 
 
-def test_safe_hints_cover_a_wider_range_but_victory_requires_exact_alignment():
+def test_safe_hints_allow_one_notch_alignment_tolerance():
     assert DIRECTIONS == (1, -1, 1)
     assert MIN_TRAVEL == (40, 40, 40)
     def cue(dial,travel=40):
@@ -50,7 +51,8 @@ def test_safe_hints_cover_a_wider_range_but_victory_requires_exact_alignment():
             "stage": 0, "travel": travel, "dial": dial,
             "combination_json": json.dumps([0, 10, 20]),
         })
-    assert cue(0) == "click"
+    assert cue(0) == cue(1) == cue(39) == "click"
+    assert cue(2) == cue(38) == "near"
     assert cue(3) == cue(37) == "near"
     assert cue(4) == cue(7) == "faint"
     assert cue(8) == "quiet"
