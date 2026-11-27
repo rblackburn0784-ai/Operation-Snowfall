@@ -112,7 +112,7 @@ test("Catch shares the same scene and does not remove other arcade modes",()=>{
  assert.equal(typeof win.SnowfallArcadeV299.mountScene,"function");
  assert.equal(typeof win.SnowfallCatchV299d.mount,"function");
  assert.ok(html.indexOf("arcade-v299.js")<html.indexOf("arcade-catch-v299d.js"));
- assert.match(html,/arcade-catch-v299d\.js\?v=299k7a/);
+ assert.match(html,/arcade-catch-v299d\.js\?v=299k8/);
  assert.match(html,/id="arcadeCatch"/);
  assert.match(css,/arcade-full-catch/);
  assert.match(css,/touch-action:none/);
