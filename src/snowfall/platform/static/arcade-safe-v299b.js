@@ -325,8 +325,8 @@ function mount({root,session,start,control,move,refresh,fetchRecord,onExit,
    "Turn the dial clockwise for tumbler one, anticlockwise for two, then clockwise for three.",
    "Mouse or touch: drag along the outside ring to spin the dial. Each tumbler requires at least one complete turn in its direction.",
    "Keyboard: Left/Right arrows turn one notch (Shift for four). Press Enter or Space to set the tumbler when aligned.",
-   "Signals progress from quiet to faint, near and CLICK. The practice hint window is slightly wider, but only the exact CLICK sets a tumbler.",
-   "Wrong-direction turns and failed sets cost practice points. Use Retry after an interrupted move; your original turn is preserved.",
+   "Signals progress from quiet to faint, near and CLICK. The practice hint window is slightly wider, but CLICK allows a one-notch margin.",
+   "Small reverse adjustments reduce travel but do not reset it. Failed sets cost points, not progress. Use Retry after an interrupted move; your original turn is preserved.",
   ],
   help:"Rotate the dial clockwise, reverse anticlockwise, then clockwise again. Hear/see subtle resistance near each hidden number; press Set Tumbler on the clear click. Unlimited, unranked QA practice.",
   getStatus:()=>current.status,getHud:hud,draw,onStart:begin,
@@ -337,10 +337,14 @@ function mount({root,session,start,control,move,refresh,fetchRecord,onExit,
    {key:"mistakes",initial:"0 slips"},{key:"score",initial:"0/100"}],
   extraActions:[{key:"cw",label:"↻ Clockwise +4"},
    {key:"ccw",label:"↺ Anticlockwise −4"},
+   {key:"cwFine",label:"↻ +1 notch"},
+   {key:"ccwFine",label:"↺ −1 notch"},
    {key:"set",label:"SET TUMBLER"},
    {key:"retry",label:"Retry last action"}],
   onExtraAction:async name=>{
    if(name==="set")return action("set",0);
+   if(name==="cwFine")return action("turn",1);
+   if(name==="ccwFine")return action("turn",-1);
    if(name==="cw")return action("turn",4);
    if(name==="ccw")return action("turn",-4);
    return retry();
