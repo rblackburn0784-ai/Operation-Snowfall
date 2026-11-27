@@ -300,6 +300,8 @@ class SafecrackerEngine:
                     feedback = "Dial turning. Listen for a click near the next number."
                 else:
                     travel = max(0, travel - abs(ticks))
+                    if abs(ticks) >= 5:
+                        mistakes = min(100, mistakes + 1)
                     feedback = "Fine adjustment: turn back in the required direction."
             else:
                 attempts = min(100, attempts + 1)
