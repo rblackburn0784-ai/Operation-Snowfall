@@ -290,6 +290,20 @@ def test_shared_qa_lifecycle_postgres_transaction_and_identity(tmp_path, monkeyp
             assert con.execute("SELECT COUNT(*) FROM web_arcade_practice_sessions").fetchone()[0] == 0
             assert con.execute("SELECT snowballs FROM player_resources").fetchone()[0] == 8
             assert con.execute("SELECT COUNT(*) FROM admin_audit").fetchone()[0] == 3
+        a = adventure_view(pg, SEASON, 101, expired)
+        def city_move(state, action, target):
+            return adventure_action(pg, SEASON, 101, expired, day=state["day"],
+                                    epoch=state["epoch"], revision=state["revision"],
+                                    action=action, target=target,
+                                    request="city-pg-" + str(state["revision"]))
+        a = city_move(a, "travel", "city")
+        a = city_move(a, "travel", "market")
+        a = city_move(a, "inspect", "stall")
+        assert len(a["city"]["discoveries"]) == 1
+        assert adventure_view(pg, SEASON, 101, expired)["city"]["discoveries"] == a["city"]["discoveries"]
+        act("reset", "postgres-lifecycle-003")
+        assert adventure_view(pg, SEASON, 101, expired)["city"]["discoveries"] == []
+
     finally:
         with psycopg.connect(root, autocommit=True) as admin:
             admin.execute(sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(

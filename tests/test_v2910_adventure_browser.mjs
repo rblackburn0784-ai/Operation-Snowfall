@@ -55,3 +55,28 @@ test("dialogue gates scene actions, completed and offline views disable input",(
  render(null,false);
  assert.doesNotMatch(node.innerHTML,/Detective/);
 });
+
+test("city map displays open, visited and locked locations without hidden names",()=>{
+ const {node,render}=renderer();
+ const city={visited:1,visible:2,discoveries:[],locations:[
+  {key:"office",title:"Detective office",status:"open",visited:true,column:1,row:1},
+  {key:"station",title:"Station",status:"locked",reason:"Opens on day 2",column:3,row:1}
+ ]};
+ render({...state,scene:{key:"city",title:"City",description:"Explore",hotspots:[]},city},false);
+ assert.match(node.innerHTML,/aria-label='Interactive winter city map'/);
+ assert.match(node.innerHTML,/data-target='office'><strong>Detective office/);
+ assert.match(node.innerHTML,/Visited/);
+ assert.match(node.innerHTML,/data-target='station' disabled>/);
+ assert.match(node.innerHTML,/Opens on day 2/);
+ assert.doesNotMatch(node.innerHTML,/archive/);
+ assert.doesNotMatch(node.innerHTML,/Accessible scene objects/);
+ render({...state,city,complete:true,souvenir:"Detective"},false);
+ assert.match(node.innerHTML,/data-target='city'>Open city map/);
+ assert.match(node.innerHTML,/Case complete/);
+ render({...state,city,complete:true,souvenir:"Detective",scene:{key:"market",title:"Market",
+  description:"Explore",art:"/art/v290/mysteries/day_4.webp",
+  hotspots:[{key:"stall",label:"Stall",x:20,y:40}]}},false);
+ assert.match(node.innerHTML,/data-target='stall' style='left:20%;top:40%'[^>]*>/);
+ assert.match(node.innerHTML,/src='\/art\/v290\/mysteries\/day_4.webp'/);
+ assert.match(node.innerHTML,/City discoveries/);
+});

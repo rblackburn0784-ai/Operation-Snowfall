@@ -58,6 +58,10 @@ def test_complete_adventure_and_persistence(game):
     a = move(game, a, "choose", "report")
     assert a["complete"] and a["souvenir"] == "Winter Dispatch Detective"
     assert view(game)["complete"]
+    a = move(game, a, "travel", "city")
+    a = move(game, a, "travel", "market")
+    a = move(game, a, "inspect", "stall")
+    assert a["complete"] and len(a["city"]["discoveries"]) == 1
     assert view(game, 102)["inventory"] == []
     with game.store.connect() as con:
         for table in ("score_ledger", "prize_awards"):
@@ -114,3 +118,85 @@ def test_api_identity_csrf_and_validation():
         assert client.post(path, json=body, headers=headers).status_code == 200
         assert game.adventure_action.call_args.args == (101,)
         assert game.adventure_action.call_args.kwargs["target"] == "drawer"
+
+
+def test_city_daily_unlocks_and_server_rejects_locked_travel(game):
+    a = view(game)
+    a = move(game, a, "travel", "city")
+    assert a["scene"]["key"] == "city"
+    locations = {x["key"]: x for x in a["city"]["locations"]}
+    assert {k for k, v in locations.items() if v["status"] == "open"} == {"office", "hotel", "market"}
+    assert "archive" not in locations
+    assert locations["alley"]["reason"] == "Find a way inside"
+    for target in ("archive", "alley", "station", "not_a_location"):
+        with pytest.raises(ValueError, match="not available"):
+            move(game, a, "travel", target)
+    for day, key in ((2, "station"), (3, "ice_house"), (4, "post_office"),
+                     (5, "press_room"), (6, "telegraph"), (7, "square")):
+        date = NOW + timedelta(days=day - 1)
+        a = view(game, now=date)
+        assert next(x for x in a["city"]["locations"] if x["key"] == key)["status"] == "open"
+        a = move(game, a, "travel", key, now=date)
+        assert a["scene"]["key"] == key
+        a = move(game, a, "travel", "city", now=date)
+    assert a["city"]["visited"] == 7
+
+
+def test_secret_discovery_dialogue_and_unique_souvenirs(game):
+    a = move(game, view(game), "travel", "city")
+    a = move(game, a, "travel", "market")
+    a = move(game, a, "inspect", "stall")
+    a = move(game, a, "inspect", "stall")
+    assert len(a["city"]["discoveries"]) == 1
+    assert view(game)["city"]["discoveries"] == a["city"]["discoveries"]
+    a = move(game, a, "travel", "city")
+    a = move(game, a, "travel", "hotel")
+    assert "hatch" not in {h["key"] for h in a["scene"]["hotspots"]}
+    with pytest.raises(ValueError, match="not available"):
+        move(game, a, "inspect", "hatch")
+    a = move(game, a, "inspect", "directory")
+    a = move(game, a, "inspect", "concierge")
+    a = move(game, a, "choose", "card")
+    a = move(game, a, "choose", "archive")
+    a = move(game, a, "choose", "leave")
+    a = move(game, a, "inspect", "hatch")
+    assert any(x["key"] == "archive" for x in a["city"]["locations"])
+    a = move(game, a, "travel", "city")
+    a = move(game, a, "travel", "archive")
+    a = move(game, a, "inspect", "cabinet")
+    assert len(a["city"]["discoveries"]) == 3
+    other = view(game, 102)
+    assert other["city"]["discoveries"] == []
+    assert not any(x["key"] == "archive" for x in other["city"]["locations"])
+    apply_qa_lifecycle(game, actor_id=900, action="reset",
+                       confirmation=CONFIRMATIONS["reset"], reason="QA city reset",
+                       request_id="city-reset-001", now=NOW)
+    assert not view(game)["city"]["discoveries"]
+    assert not any(x["key"] == "archive" for x in view(game)["city"]["locations"])
+
+
+def test_city_rewind_and_previous_save_upgrade(game):
+    import json
+    a = move(game, view(game), "inspect", "drawer")
+    # Simulate the exact earlier persisted save format.
+    with game.store.connect() as con:
+        state = json.loads(con.execute("SELECT state_json FROM web_adventure_progress "
+                                       "WHERE player_id=101").fetchone()[0])
+        state.pop("visited")
+        state.pop("discoveries")
+        con.execute("UPDATE web_adventure_progress SET state_json=? WHERE player_id=101",
+                    (json.dumps(state),))
+    restored = view(game)
+    assert restored["epoch"] == a["epoch"] and restored["revision"] == a["revision"]
+    assert restored["inventory"] == a["inventory"]
+    later = NOW + timedelta(days=1)
+    a = move(game, view(game, now=later), "travel", "city", now=later)
+    a = move(game, a, "travel", "station", now=later)
+    assert view(game, now=NOW)["scene"]["key"] == "city"
+    a = view(game)
+    with pytest.raises(ValueError, match="not available"):
+        move(game, a, "inspect", "ticket")
+    with pytest.raises(ValueError, match="not available"):
+        move(game, a, "travel", "station")
+    a = move(game, a, "travel", "office")
+    assert a["inventory"][0]["key"] == "brass_key"
