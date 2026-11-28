@@ -170,7 +170,7 @@ def test_secret_discovery_dialogue_and_unique_souvenirs(game):
     assert not any(x["key"] == "archive" for x in other["city"]["locations"])
     apply_qa_lifecycle(game, actor_id=900, action="reset",
                        confirmation=CONFIRMATIONS["reset"], reason="QA city reset",
-                       request_id="city-reset-001", now=NOW)
+                       request_id="city-reset-test-001", now=NOW)
     assert not view(game)["city"]["discoveries"]
     assert not any(x["key"] == "archive" for x in view(game)["city"]["locations"])
 
