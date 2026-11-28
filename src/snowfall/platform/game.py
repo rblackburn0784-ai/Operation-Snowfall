@@ -214,6 +214,13 @@ class SharedGame:
         return perform_activity(self.store, self.season, player_id, action, item,
                                 day, interaction_id, now or _time())
 
+    def adventure_action(self, player_id: int, *, day, epoch, revision, action,
+                         target, request, now=None) -> dict:
+        from snowfall.platform.adventure import adventure_action
+        return adventure_action(self.store, self.season, player_id, now or _time(),
+                                day=day, epoch=epoch, revision=revision,
+                                action=action, target=target, request=request)
+
     def arcade_lobby(self, player_id: int, *, now=None) -> dict:
         from snowfall.services.social_arcade import SocialArcadeEngine, GAMES, STAMPS, DAILY_GAME_CAP
         lobby = SocialArcadeEngine(self.store).lobby(self.season, player_id, now or _time())

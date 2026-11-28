@@ -467,7 +467,7 @@ function nextActionId(){
 }
 // Store only pending operation keys and their opaque IDs in this browser tab.
  // No passwords, session cookies, CSRF values or names are persisted.
-const RECOVERABLE_ACTIONS=new Set(["/v1/game/throw","/v1/game/boss","/v1/game/siege","/v1/game/craft","/v1/game/wardrobe/purchase","/v1/game/activities/action","/v1/game/arcade/move","/v1/game/arcade/gallery/shot","/v1/game/arcade/safecracker/move","/v1/game/arcade/snowman/place","/v1/game/arcade/catch/update","/v1/game/arcade/trivia/answer"]);
+const RECOVERABLE_ACTIONS=new Set(["/v1/game/throw","/v1/game/boss","/v1/game/siege","/v1/game/craft","/v1/game/wardrobe/purchase","/v1/game/activities/action","/v1/game/adventure/action","/v1/game/arcade/move","/v1/game/arcade/gallery/shot","/v1/game/arcade/safecracker/move","/v1/game/arcade/snowman/place","/v1/game/arcade/catch/update","/v1/game/arcade/trivia/answer"]);
 function pendingStoreKey(){
  const id=String(S.session?.player_id||"");
  return /^[1-9][0-9]{0,18}$/.test(id)?"snowfall-pending-v1:"+String(S.config?.season||"qa")+":"+id:null;
@@ -1733,6 +1733,7 @@ function showActivities(){
  const a=S.session&&S.me?.registered&&String(S.activities?.player_id)===String(S.session.player_id)?S.activities:null;
  const locked=!!(S.busy||S.privatePending||!S.privateFresh||a?.phase!=="live"||!hasPlayIdentity(S.session,S.config));
  txt("activitiesStatus",!S.session?"Sign in to open your dossier.":!S.me?.registered?"Register at Headquarters first.":!a?"Refresh to load today's activities.":("Day "+(a.day??"—")+" / 7 · "+String(a.phase).toUpperCase()+" · Shared with Discord"));
+ showAdventure(a?.adventure||null,locked);
  if(!a){root.innerHTML="";return}
  const list=Array.isArray(a.quests)?a.quests:[];
  const quests=list.map(q=>"<div class='activity-line'><div><strong>"+esc(q.name)+"</strong><p>"+fmt(q.progress)+" / "+fmt(q.target)+(q.claimed?" · Claimed":"")+"</p></div>"+activityButton("quest",q.key,q.claimed?"Claimed":"Claim reward",locked||q.claimed||Number(q.progress)<Number(q.target))+"</div>").join("");
@@ -1761,6 +1762,19 @@ function bindActivities(){
  const root=el("activitiesContent"),refreshButton=el("activitiesRefresh");
  if(!root||!refreshButton)return;
  refreshButton.onclick=()=>{if(registered()&&!S.busy&&!S.privatePending)void loadPrivate().catch(e=>notice(e.message,"error"))};
+ el("adventureContent")?.addEventListener("click",event=>{
+  const b=event.target.closest("button[data-adventure]");
+  const a=S.activities?.adventure;
+  if(!b||b.disabled||!a||!S.session||String(S.activities.player_id)!==String(S.session.player_id)||S.busy||S.privatePending||!registered())return;
+  const body={day:a.day,epoch:a.epoch,revision:a.revision,action:b.dataset.adventure,target:b.dataset.target};
+  void act(async()=>{
+   const result=await post("/v1/game/adventure/action",body,true,true);
+   if(S.activities?.adventure?.epoch===body.epoch&&String(S.activities.player_id)===String(S.session?.player_id)){
+    S.activities.adventure=result;showAdventure(result,true);
+   }
+  });
+  showAdventure(a,true);
+ });
  root.addEventListener("click",event=>{
   const b=event.target.closest("button[data-activity]");
   if(!b||!root.contains(b)||b.disabled||!registered()||S.busy||S.privatePending)return;
@@ -1774,6 +1788,30 @@ function bindActivities(){
   });
   showActivities();
  });
+}
+
+/* v2.9.10 — adventure rendering, no client-owned state or hidden solutions. */
+function adventureButton(action,target,label,disabled,extra=""){
+ return "<button type='button' class='button button-outline "+extra+"' data-adventure='"+esc(action)+"' data-target='"+esc(target)+"'"+(disabled?" disabled":"")+">"+esc(label)+"</button>";
+}
+function showAdventure(a,locked){
+ const root=el("adventureContent");if(!root)return;
+ if(!a){root.innerHTML="<h3>Winter Adventure</h3><p>Sign in, register and start the event to explore.</p>";return}
+ const disabled=locked||a.complete||a.phase!=="live";
+ const scene=a.scene||{};
+ const spots=Array.isArray(scene.hotspots)?scene.hotspots:[];
+ const art=scene.key==="office"?"/static/adventure-office.svg":"/static/adventure-alley.svg";
+ const focus=document.activeElement?.closest?.("button[data-adventure]");
+ const focusKey=focus&&root.contains(focus)?[focus.dataset.adventure,focus.dataset.target]:null;
+ const hotspot=spots.map((h,i)=>{
+  const x=Math.max(8,Math.min(92,Number(h.x)||50)),y=Math.max(10,Math.min(90,Number(h.y)||50));
+  return "<button type='button' class='adventure-hotspot' data-adventure='inspect' data-target='"+esc(h.key)+"' style='left:"+x+"%;top:"+y+"%' aria-label='"+esc("Inspect "+h.label)+"' title='"+esc(h.label)+"'"+(disabled||a.dialogue?" disabled":"")+"><span>"+(i+1)+"</span></button>";
+ }).join("");
+ const choices=a.dialogue?"<section class='adventure-dialogue'><h4>"+esc(a.dialogue.speaker)+"</h4><p>"+esc(a.dialogue.text)+"</p><div class='adventure-options'>"+(a.dialogue.choices||[]).map(c=>adventureButton("choose",c.key,c.label,disabled)).join("")+"</div></section>":"<div class='adventure-options' aria-label='Accessible scene objects'>"+spots.map((h,i)=>adventureButton("inspect",h.key,(i+1)+". "+h.label,disabled)).join("")+"</div>";
+ const inventory=(a.inventory||[]).map(i=>"<li><strong>"+esc(i.label)+"</strong><p>"+esc(i.description)+"</p>"+(i.use?adventureButton("use",i.key,i.use,disabled||!!a.dialogue):"")+"</li>").join("");
+ const evidence=(a.evidence||[]).map(e=>"<li><strong>"+esc(e.label)+"</strong><p>"+esc(e.text)+"</p></li>").join("");
+ root.innerHTML="<header class='adventure-heading'><div><p class='eyebrow'>WINTER ACTIVITIES 2.0 · EXPLORATION</p><h3>"+esc(a.title)+"</h3></div><span class='pill'>"+(a.complete?"CASE COMPLETE":"PROGRESS SAVED")+"</span></header><p>Explore the scene, examine objects and speak to characters. Your adventure satchel is separate from combat inventory.</p><h4>"+esc(scene.title)+"</h4><p>"+esc(scene.description)+"</p><div class='adventure-scene'><img src='"+art+"' alt='"+esc(scene.title+" illustration")+"' draggable='false'>"+hotspot+"</div><p class='subtle'>Tap a numbered hotspot or select an object below. No timer or snowball cost.</p><p class='adventure-message' role='status' aria-live='polite'>"+esc(a.message)+"</p>"+(a.complete?"<p class='adventure-complete'>Case complete · Collectible earned: "+esc(a.souvenir)+"</p>":choices)+"<div class='adventure-dossier'><section><h4>Satchel</h4><ul>"+(inventory||"<li>Nothing collected yet.</li>")+"</ul></section><section><h4>Evidence notebook</h4><ul>"+(evidence||"<li>No evidence discovered yet.</li>")+"</ul></section></div><p class='subtle'>Adventure progress is saved on your character. This preview is honorary and does not award official points or prizes.</p>";
+ if(focusKey&&!disabled){const next=[...root.querySelectorAll("button[data-adventure]")].find(b=>!b.disabled&&b.dataset.adventure===focusKey[0]&&b.dataset.target===focusKey[1]);next?.focus({preventScroll:true})}
 }
 
 /* v2.9.8a — five shared arcade games, with server-owned puzzle sessions. */

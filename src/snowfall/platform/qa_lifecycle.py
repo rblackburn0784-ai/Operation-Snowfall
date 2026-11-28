@@ -15,6 +15,7 @@ CONFIRMATIONS = {
 # Child tables precede parents. Keep registrations, identity tables, staff audit,
 # publication IDs and prize records. Never use CASCADE.
 GAME_TABLES = (
+    "web_adventure_progress",
     "web_arcade_gallery_shots", "web_arcade_safe_actions",
     "web_arcade_snowman_actions", "web_arcade_catch_actions",
     "web_arcade_trivia_answers", "web_arcade_gallery_sessions",
@@ -76,7 +77,7 @@ def _reset_gameplay(con, postgres, effective_now):
                        "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
                        (table,)).fetchone())
         if not present:
-            if not table.startswith("web_arcade_"):
+            if not table.startswith(("web_arcade_", "web_adventure_")):
                 raise ValueError("QA reset refused: missing gameplay table")
             continue
         if con.execute(f"SELECT COUNT(*) FROM {table} WHERE season_key<>?",

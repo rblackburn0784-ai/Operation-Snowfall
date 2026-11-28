@@ -95,7 +95,7 @@ class DiscardService:
                     (sorted(OWNER_COLUMNS),))
         groups = {}
         for table, column in cur.fetchall():
-            if table not in EXPECTED_TABLES and table != "snowfall_web_qa_bonus":
+            if table not in EXPECTED_TABLES and table not in {"snowfall_web_qa_bonus", "web_adventure_progress"}:
                 raise IdentityConflict("Unknown player data table; staff review required")
             groups.setdefault(table, []).append(column)
 

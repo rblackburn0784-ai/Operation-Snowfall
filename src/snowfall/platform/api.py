@@ -127,6 +127,14 @@ class ActivityBody(BaseModel):
     day: int | None = Field(default=None, ge=1, le=7)
 
 
+class AdventureBody(BaseModel):
+    day: int = Field(ge=1, le=7)
+    epoch: str = Field(pattern=r"^[a-f0-9]{32}$")
+    revision: int = Field(ge=0, le=2147483646)
+    action: Literal["inspect", "choose", "use"]
+    target: str = Field(pattern=r"^[a-z_]{1,48}$")
+
+
 class ArcadeStart(BaseModel):
     mode: Literal["gallery", "safe", "snowman", "catch", "trivia"]
     day: int = Field(ge=1, le=7)
@@ -669,6 +677,16 @@ def create_app(settings: APISettings | None = None, *, identity=None, game=None,
         iid = _idempotency(principal, "activities:" + body.action, idempotency_key)
         return jsonable_encoder(shared.activity_action(
             principal, body.action, body.item, body.day, iid))
+
+    @app.post("/v1/game/adventure/action")
+    def adventure_action(body: AdventureBody, response: Response,
+                         idempotency_key: str | None = Header(default=None),
+                         principal: int = Depends(game_writer)):
+        response.headers["Cache-Control"] = "no-store"
+        iid = _idempotency(principal, "adventure", idempotency_key)
+        return jsonable_encoder(shared.adventure_action(
+            principal, day=body.day, epoch=body.epoch, revision=body.revision,
+            action=body.action, target=body.target, request=iid))
 
     @app.get("/v1/game/arcade")
     def arcade_lobby(response: Response, principal: int = Depends(player)):

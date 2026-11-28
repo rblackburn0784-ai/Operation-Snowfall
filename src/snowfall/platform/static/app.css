@@ -1449,3 +1449,24 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
   animation:none!important;transition:none!important
  }
 }
+
+/* Winter Activities 2.0: reusable illustrated scene and accessible controls. */
+.adventure-panel{margin:1rem 0 1.5rem;padding:clamp(.75rem,2vw,1.5rem);background:linear-gradient(145deg,#152d3b,#10212c);border:1px solid #6c8495;border-radius:14px;color:#f1f6fa;min-width:0}
+.adventure-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem;flex-wrap:wrap}
+.adventure-panel h3,.adventure-panel h4{color:#f5d99c;margin:.45rem 0}
+.adventure-panel p{margin:.55rem 0;line-height:1.5}
+.adventure-scene{position:relative;isolation:isolate;aspect-ratio:16/9;overflow:hidden;border:1px solid #7895a5;border-radius:10px;background:#1b2b37}
+.adventure-scene img{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none}
+.adventure-hotspot{position:absolute;transform:translate(-50%,-50%);width:44px;height:44px;border:2px solid #ffdea0;border-radius:50%;background:#1d3341e8;color:#fff5d6;font-size:1.15rem;font-weight:800;box-shadow:0 0 0 4px #14243180;cursor:pointer;touch-action:manipulation}
+.adventure-hotspot:hover,.adventure-hotspot:focus-visible{background:#d5ab65;color:#182630;outline:3px solid white;outline-offset:2px}
+.adventure-hotspot:disabled{opacity:.38;cursor:default}
+.adventure-options{display:flex;gap:.5rem;flex-wrap:wrap}
+.adventure-options button,.adventure-dossier button{min-height:44px;white-space:normal;touch-action:manipulation;overflow-wrap:anywhere}
+.adventure-message,.adventure-dialogue,.adventure-complete{padding:.8rem;border:1px solid #718c9c;border-radius:8px;background:#203b4b}
+.adventure-complete{color:#ffdf9e;border-color:#bd9c5b;font-weight:700}
+.adventure-dossier{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem;margin-top:1rem}
+.adventure-dossier section{padding:.8rem;background:#142b38;border:1px solid #577485;border-radius:8px;min-width:0}
+.adventure-dossier ul{padding-left:1.15rem;margin:.5rem 0}
+.adventure-dossier li{margin:.5rem 0;overflow-wrap:anywhere}
+.adventure-panel .subtle{color:#c5d7df}
+@media(max-width:580px){.adventure-dossier{grid-template-columns:1fr}.adventure-options button{flex:1 1 45%}.adventure-hotspot{font-size:.9rem}.adventure-scene{margin-inline:0}}

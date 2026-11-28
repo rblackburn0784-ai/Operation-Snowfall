@@ -270,7 +270,16 @@ def test_shared_qa_lifecycle_postgres_transaction_and_identity(tmp_path, monkeyp
                 reason="PostgreSQL isolated QA test", request_id=rid, now=expired, **kwargs)
 
         assert act("extend", "postgres-lifecycle-001", extension_days=2)["event"]["day"] == 7
+        from snowfall.platform.adventure import adventure_view, adventure_action
+        opening = adventure_view(pg, SEASON, 101, expired)
+        found = adventure_action(pg, SEASON, 101, expired, day=opening["day"],
+                                 epoch=opening["epoch"], revision=opening["revision"],
+                                 action="inspect", target="drawer", request="postgres-adventure-001")
+        assert found["inventory"][0]["key"] == "brass_key"
+        assert adventure_view(pg, SEASON, 101, expired)["revision"] == 1
         result = act("restart", "postgres-lifecycle-002")
+        fresh = adventure_view(pg, SEASON, 101, expired)
+        assert fresh["epoch"] != opening["epoch"] and not fresh["inventory"]
         assert result["event"]["day"] == 1
         assert act("restart", "postgres-lifecycle-002")["replayed"]
         assert pg.season(SEASON).projected_end(expired) == expired + timedelta(days=7)

@@ -5,6 +5,8 @@ through the raw MysterySnapshot dataclass. No alternate reward implementation.
 """
 from dataclasses import asdict
 
+from snowfall.platform.adventure import adventure_view
+
 from snowfall.services.achievements import AchievementEngine
 from snowfall.services.economy import EconomyEngine, ITEM_NAMES, DAILY_USE_CAPS
 from snowfall.services.experience import headquarters
@@ -47,6 +49,7 @@ def activities_view(store, season, user, now):
     return {
         "player_id": str(user), "day": day, "phase": mystery.phase,
         "case": investigation, "encounter": ordinary,
+        "adventure": adventure_view(store, season, user, now),
         "history": [asdict(entry) for entry in mystery.history
                     if day is not None and entry.day <= day],
         "inventory": asdict(inventory),
