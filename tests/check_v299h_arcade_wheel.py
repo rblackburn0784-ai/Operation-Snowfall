@@ -31,6 +31,7 @@ def verify(output: Path) -> dict:
             *(STATIC + name for name in GAME_MODULES),
             STATIC + "app.js", STATIC + "app.css",
             STATIC + "index.html",
+            STATIC + "adventure-office.svg", STATIC + "adventure-alley.svg",
             *(ART + name for name in GAME_ART),
         }
         missing = sorted(required - names)
@@ -38,8 +39,13 @@ def verify(output: Path) -> dict:
             raise ValueError("Wheel missing arcade deployment assets: " +
                              ", ".join(missing))
         page = wheel.read(STATIC + "index.html").decode("utf-8")
-        if 'content="2.9.9k8a"' not in page:
+        if 'name="snowfall-interactive-arcade-release" content="2.9.10"' not in page:
             raise ValueError("Built arcade HTML has a stale release stamp")
+        if 'name="snowfall-adventure-release" content="2.9.10"' not in page:
+            raise ValueError("Built adventure HTML has a stale release stamp")
+        for name in ("adventure-office.svg", "adventure-alley.svg"):
+            if b"<svg" not in wheel.read(STATIC + name):
+                raise ValueError("Invalid bundled adventure art: " + name)
         for name in GAME_MODULES:
             if "/static/" + name not in page:
                 raise ValueError("Game module missing from entrypoint: " + name)
@@ -55,7 +61,7 @@ def verify(output: Path) -> dict:
             raise ValueError("Arcade website controller appears truncated")
     return {
         "wheel": wheels[0].name, "modules": len(GAME_MODULES),
-        "arcade_art": len(GAME_ART), "release": "2.9.9k8a",
+        "arcade_art": len(GAME_ART), "release": "2.9.10",
     }
 
 

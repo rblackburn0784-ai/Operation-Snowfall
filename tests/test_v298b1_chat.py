@@ -8,6 +8,7 @@ def test_live_chat_uses_guarded_third_party_frame():
     html = (ROOT/"index.html").read_text(encoding="utf-8")
     js = (ROOT/"app.js").read_text(encoding="utf-8")
     assert f'name="snowfall-interactive-arcade-release" content="{WEB_RELEASE}"' in html
+    assert f'name="snowfall-adventure-release" content="{WEB_RELEASE}"' in html
     assert 'id="streetsChatFrame"' in html
     assert 'referrerpolicy="no-referrer"' in html
     assert 'id="streetsChatEnable"' in html
