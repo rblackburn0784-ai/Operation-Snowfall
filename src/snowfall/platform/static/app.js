@@ -1767,13 +1767,20 @@ function bindActivities(){
   const a=S.activities?.adventure;
   if(!b||b.disabled||!a||!S.session||String(S.activities.player_id)!==String(S.session.player_id)||S.busy||S.privatePending||!registered())return;
   const body={day:a.day,epoch:a.epoch,revision:a.revision,action:b.dataset.adventure,target:b.dataset.target};
-  void act(async()=>{
-   const result=await post("/v1/game/adventure/action",body,true,true);
-   if(S.activities?.adventure?.epoch===body.epoch&&String(S.activities.player_id)===String(S.session?.player_id)){
-    S.activities.adventure=result;showAdventure(result,true);
+  const keyboard=event.detail===0,owner=String(S.session.player_id);
+  void (async()=>{
+   const pending=act(async()=>{
+    const result=await post("/v1/game/adventure/action",body,true,true);
+    if(S.activities?.adventure?.epoch===body.epoch&&String(S.activities.player_id)===String(S.session?.player_id)){
+     S.activities.adventure=result;showAdventure(result,true);
+    }
+   });
+   showAdventure(a,true);
+   await pending;
+   if(keyboard&&String(S.session?.player_id)===owner&&el("page-activities")?.classList.contains("active")){
+    el("adventureContent")?.querySelector(".adventure-message")?.focus({preventScroll:true});
    }
-  });
-  showAdventure(a,true);
+  })();
  });
  root.addEventListener("click",event=>{
   const b=event.target.closest("button[data-activity]");
@@ -1796,6 +1803,9 @@ function adventureButton(action,target,label,disabled,extra=""){
 }
 function showAdventure(a,locked){
  const root=el("adventureContent");if(!root)return;
+ const renderKey=JSON.stringify([a,!!locked]);
+ if(root.dataset.renderKey===renderKey)return;
+ root.dataset.renderKey=renderKey;
  if(!a){root.innerHTML="<h3>Winter Adventure</h3><p>Sign in, register and start the event to explore.</p>";return}
  const disabled=locked||a.complete||a.phase!=="live";
  const scene=a.scene||{};
@@ -1810,7 +1820,7 @@ function showAdventure(a,locked){
  const choices=a.dialogue?"<section class='adventure-dialogue'><h4>"+esc(a.dialogue.speaker)+"</h4><p>"+esc(a.dialogue.text)+"</p><div class='adventure-options'>"+(a.dialogue.choices||[]).map(c=>adventureButton("choose",c.key,c.label,disabled)).join("")+"</div></section>":"<div class='adventure-options' aria-label='Accessible scene objects'>"+spots.map((h,i)=>adventureButton("inspect",h.key,(i+1)+". "+h.label,disabled)).join("")+"</div>";
  const inventory=(a.inventory||[]).map(i=>"<li><strong>"+esc(i.label)+"</strong><p>"+esc(i.description)+"</p>"+(i.use?adventureButton("use",i.key,i.use,disabled||!!a.dialogue):"")+"</li>").join("");
  const evidence=(a.evidence||[]).map(e=>"<li><strong>"+esc(e.label)+"</strong><p>"+esc(e.text)+"</p></li>").join("");
- root.innerHTML="<header class='adventure-heading'><div><p class='eyebrow'>WINTER ACTIVITIES 2.0 · EXPLORATION</p><h3>"+esc(a.title)+"</h3></div><span class='pill'>"+(a.complete?"CASE COMPLETE":"PROGRESS SAVED")+"</span></header><p>Explore the scene, examine objects and speak to characters. Your adventure satchel is separate from combat inventory.</p><h4>"+esc(scene.title)+"</h4><p>"+esc(scene.description)+"</p><div class='adventure-scene'><img src='"+art+"' alt='"+esc(scene.title+" illustration")+"' draggable='false'>"+hotspot+"</div><p class='subtle'>Tap a numbered hotspot or select an object below. No timer or snowball cost.</p><p class='adventure-message' role='status' aria-live='polite'>"+esc(a.message)+"</p>"+(a.complete?"<p class='adventure-complete'>Case complete · Collectible earned: "+esc(a.souvenir)+"</p>":choices)+"<div class='adventure-dossier'><section><h4>Satchel</h4><ul>"+(inventory||"<li>Nothing collected yet.</li>")+"</ul></section><section><h4>Evidence notebook</h4><ul>"+(evidence||"<li>No evidence discovered yet.</li>")+"</ul></section></div><p class='subtle'>Adventure progress is saved on your character. This preview is honorary and does not award official points or prizes.</p>";
+ root.innerHTML="<header class='adventure-heading'><div><p class='eyebrow'>WINTER ACTIVITIES 2.0 · EXPLORATION</p><h3>"+esc(a.title)+"</h3></div><span class='pill'>"+(a.complete?"CASE COMPLETE":"PROGRESS SAVED")+"</span></header><p>Explore the scene, examine objects and speak to characters. Your adventure satchel is separate from combat inventory.</p><h4>"+esc(scene.title)+"</h4><p>"+esc(scene.description)+"</p><div class='adventure-scene'><img src='"+art+"' alt='"+esc(scene.title+" illustration")+"' draggable='false'>"+hotspot+"</div><p class='subtle'>Tap a numbered hotspot or select an object below. No timer or snowball cost.</p><p class='adventure-message' role='status' aria-live='polite' tabindex='-1'>"+esc(a.message)+"</p>"+(a.complete?"<p class='adventure-complete'>Case complete · Collectible earned: "+esc(a.souvenir)+"</p>":choices)+"<div class='adventure-dossier'><section><h4>Satchel</h4><ul>"+(inventory||"<li>Nothing collected yet.</li>")+"</ul></section><section><h4>Evidence notebook</h4><ul>"+(evidence||"<li>No evidence discovered yet.</li>")+"</ul></section></div><p class='subtle'>Adventure progress is saved on your character. This preview is honorary and does not award official points or prizes.</p>";
  if(focusKey&&!disabled){const next=[...root.querySelectorAll("button[data-adventure]")].find(b=>!b.disabled&&b.dataset.adventure===focusKey[0]&&b.dataset.target===focusKey[1]);next?.focus({preventScroll:true})}
 }
 

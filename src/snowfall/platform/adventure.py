@@ -15,7 +15,7 @@ TABLE = "web_adventure_progress"
 CHAPTER = "winter_dispatch"
 ITEMS = {
     "brass_key": ("Brass key", "A small key with a snowflake engraved on its bow."),
-    "dispatch": ("Dispatch envelope", "A recovered envelope, safely delivered."),
+    "dispatch": ("Dispatch envelope", "A recovered envelope with a blue wax seal."),
 }
 EVIDENCE = {
     "tracks": ("Square-heeled footprints", "Fresh square-heeled prints lead toward the loading bay."),
@@ -180,6 +180,8 @@ def _view(record, day, phase, *, repeated=False):
             "inventory": [{"key": k, "label": ITEMS[k][0], "description": ITEMS[k][1],
                            "use": (scene["uses"][k]["label"] if k in scene["uses"]
                                    and _has(state, scene["uses"][k].get("requires", []))
+                                   and (not scene["uses"][k].get("flag")
+                                        or scene["uses"][k]["flag"] not in state["flags"])
                                    else None)}
                           for k in state["items"]],
             "evidence": [{"label": EVIDENCE[k][0], "text": EVIDENCE[k][1]}
