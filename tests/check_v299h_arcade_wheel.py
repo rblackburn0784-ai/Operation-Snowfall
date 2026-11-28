@@ -39,9 +39,9 @@ def verify(output: Path) -> dict:
             raise ValueError("Wheel missing arcade deployment assets: " +
                              ", ".join(missing))
         page = wheel.read(STATIC + "index.html").decode("utf-8")
-        if 'name="snowfall-interactive-arcade-release" content="2.9.10"' not in page:
+        if 'name="snowfall-interactive-arcade-release" content="2.9.10a"' not in page:
             raise ValueError("Built arcade HTML has a stale release stamp")
-        if 'name="snowfall-adventure-release" content="2.9.10"' not in page:
+        if 'name="snowfall-adventure-release" content="2.9.10a"' not in page:
             raise ValueError("Built adventure HTML has a stale release stamp")
         for name in ("adventure-office.svg", "adventure-alley.svg"):
             if b"<svg" not in wheel.read(STATIC + name):
@@ -61,7 +61,7 @@ def verify(output: Path) -> dict:
             raise ValueError("Arcade website controller appears truncated")
     return {
         "wheel": wheels[0].name, "modules": len(GAME_MODULES),
-        "arcade_art": len(GAME_ART), "release": "2.9.10",
+        "arcade_art": len(GAME_ART), "release": "2.9.10a",
     }
 
 

@@ -10,6 +10,9 @@ import json
 import secrets
 
 from snowfall.services.winter_fun import WinterFunEngine
+from snowfall.platform.adventure_city import (
+    CITY, CASE_SCENES, CITY_SCENES, CITY_DIALOGUES, atlas, available, normalize_location,
+)
 
 TABLE = "web_adventure_progress"
 CHAPTER = "winter_dispatch"
@@ -85,6 +88,10 @@ DIALOGUES = {
 }
 
 
+SCENES.update(CITY_SCENES)
+DIALOGUES.update(CITY_DIALOGUES)
+
+
 def _ensure(con):
     # Additive table, same SQL on SQLite and PostgreSQL. Caller holds the
     # existing global gameplay write lock, including on first deployment.
@@ -97,7 +104,8 @@ def _ensure(con):
 
 def _fresh():
     return {"scene": "office", "items": [], "evidence": [], "flags": [],
-            "dialogue": None, "complete": False, "message": "Search the room to begin."}
+            "dialogue": None, "complete": False, "message": "Search the room to begin.",
+            "visited": ["office"], "discoveries": []}
 
 
 def _load(con, season, user, *, create):
@@ -105,7 +113,13 @@ def _load(con, season, user, *, create):
         FROM web_adventure_progress WHERE season_key=? AND player_id=? AND chapter=?""",
                       (season, user, CHAPTER)).fetchone()
     if row is not None:
-        return row[0], row[1], json.loads(row[2]), row[3], row[4]
+        state = json.loads(row[2])
+        # Upgrade old saved states without resetting the investigation.
+        state.setdefault("visited", ["office"] + (["alley"] if
+                         "door_open" in state["flags"] and
+                         (state["scene"] == "alley" or "dispatch" in state["items"]) else []))
+        state.setdefault("discoveries", [])
+        return row[0], row[1], state, row[3], row[4]
     if not create:
         return None
     epoch = secrets.token_hex(16)
@@ -122,7 +136,15 @@ def _has(state, requirements):
     return all(x in facts for x in requirements)
 
 
-def _rule(state, action, target):
+def _rule(state, action, target, day):
+    if action == "travel":
+        if target == CITY:
+            return {"move": CITY, "text": "You open the city atlas."}
+        if state["scene"] != CITY or not available(target, state, day):
+            raise ValueError("That location is not available. Check the city map.")
+        return {"move": target, "text": "You arrive at " + SCENES[target]["title"] + "."}
+    if state["complete"] and state["scene"] in CASE_SCENES:
+        raise ValueError("This adventure is already complete. Explore the city instead.")
     scene = SCENES[state["scene"]]
     if action == "choose" and state["dialogue"]:
         rule = DIALOGUES[state["dialogue"]]["choices"].get(target)
@@ -141,7 +163,7 @@ def _rule(state, action, target):
 
 
 def _apply(state, rule):
-    for field, effect in (("items", "give"), ("evidence", "evidence")):
+    for field, effect in (("items", "give"), ("evidence", "evidence"), ("discoveries", "collect")):
         for value in rule.get(effect, []):
             if value not in state[field]:
                 state[field].append(value)
@@ -150,6 +172,8 @@ def _apply(state, rule):
     if rule.get("move"):
         state["scene"] = rule["move"]
         state["dialogue"] = None
+        if rule["move"] != CITY and rule["move"] not in state["visited"]:
+            state["visited"].append(rule["move"])
     if rule.get("dialogue"):
         state["dialogue"] = rule["dialogue"]
     if rule.get("close") or rule.get("complete"):
@@ -161,6 +185,7 @@ def _apply(state, rule):
 
 def _view(record, day, phase, *, repeated=False):
     epoch, revision, state, _, _ = record
+    normalize_location(state, day)
     scene = SCENES[state["scene"]]
     dialogue = None
     if state["dialogue"]:
@@ -171,6 +196,7 @@ def _view(record, day, phase, *, repeated=False):
                                 if _has(state, r.get("requires", []))]}
     return {"chapter": CHAPTER, "title": "The Missing Winter Dispatch",
             "day": day, "phase": phase, "epoch": epoch, "revision": revision,
+            "city": atlas(state, day, SCENES),
             "scene": {"key": state["scene"], "title": scene["title"],
                       "description": scene["description"], "art": scene["art"],
                       "hotspots": [{"key": k, "label": r["label"], "x": r["x"], "y": r["y"]}
@@ -220,9 +246,8 @@ def adventure_action(store, season, user, now, *, day, epoch, revision, action, 
             return _view(record, day, "live", repeated=True)
         if revision != rev:
             raise ValueError("Adventure changed in another tab. Refresh before continuing.")
-        if state["complete"]:
-            raise ValueError("This adventure is already complete.")
-        rule = _rule(state, action, target)
+        normalize_location(state, day)
+        rule = _rule(state, action, target, day)
         _apply(state, rule)
         con.execute("""UPDATE web_adventure_progress SET revision=?,state_json=?,
             last_request=?,last_signature=? WHERE season_key=? AND player_id=? AND chapter=?""",

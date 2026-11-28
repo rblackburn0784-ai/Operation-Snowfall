@@ -1470,3 +1470,10 @@ html[data-atmosphere="off"] body.has-city-wallpaper{background-image:none}
 .adventure-dossier li{margin:.5rem 0;overflow-wrap:anywhere}
 .adventure-panel .subtle{color:#c5d7df}
 @media(max-width:580px){.adventure-dossier{grid-template-columns:1fr}.adventure-options button{flex:1 1 45%}.adventure-hotspot{font-size:.9rem}.adventure-scene{margin-inline:0}}
+
+/* v2.9.10a — the city atlas is a schematic, not new bespoke artwork. */
+.adventure-city-nav{display:flex;align-items:center;flex-wrap:wrap;gap:.7rem;margin:.75rem 0}
+.adventure-city-map{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(3,minmax(78px,auto));gap:clamp(8px,2vw,18px);padding:clamp(8px,2vw,20px);border:1px solid #718c9c;border-radius:12px;background:linear-gradient(#142a39d9,#142a39eb),url('/static/snowfall-city-wallpaper.webp') center/cover}
+.adventure-location{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.3rem;min-height:78px;min-width:0;padding:.5rem .25rem;border:2px solid #d3b779;border-radius:8px;background:#294859;color:#fff5dc;text-align:center;cursor:pointer;touch-action:manipulation;overflow-wrap:anywhere}
+.adventure-location small{color:#d9e6ee;font-size:.75rem}.adventure-location:focus-visible{outline:3px solid white;outline-offset:2px}.adventure-location:hover:not(:disabled){background:#466271}.adventure-location.location-locked{border-color:#81929a;background:#26333c;color:#c1cbd2;cursor:default}.adventure-location:disabled{cursor:default}.adventure-discoveries{margin-top:.8rem;padding:.75rem;background:#142b38;border:1px solid #577485;border-radius:8px}.adventure-discoveries ul{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem;padding-left:1.2rem}
+@media(max-width:580px){.adventure-city-map{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto}.adventure-location{grid-column:auto!important;grid-row:auto!important;min-height:70px}.adventure-discoveries ul{grid-template-columns:1fr}}

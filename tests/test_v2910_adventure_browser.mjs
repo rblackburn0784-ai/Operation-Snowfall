@@ -22,8 +22,8 @@ const scene={key:"office",title:"Office",description:"Find the dispatch",
 const state={title:"The dispatch",scene,phase:"live",message:"Search",complete:false,
  inventory:[],evidence:[],dialogue:null};
 test("adventure panel and bundled artwork are present, touch and keyboard accessible",()=>{
- assert.match(html,/snowfall-adventure-release" content="2\.9\.10"/);
- assert.match(html,/snowfall-interactive-arcade-release" content="2\.9\.10"/);
+ assert.match(html,/snowfall-adventure-release" content="2\.9\.10a"/);
+ assert.match(html,/snowfall-interactive-arcade-release" content="2\.9\.10a"/);
  assert.match(html,/id="adventureContent"/);
  for(const name of ["office","alley"])assert.match(readFileSync(root+"adventure-"+name+".svg","utf8"),/viewBox="0 0 960 540"/);
  assert.match(css,/\.adventure-hotspot\{[^}]*width:44px;height:44px/);

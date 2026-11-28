@@ -131,7 +131,7 @@ class AdventureBody(BaseModel):
     day: int = Field(ge=1, le=7)
     epoch: str = Field(pattern=r"^[a-f0-9]{32}$")
     revision: int = Field(ge=0, le=2147483646)
-    action: Literal["inspect", "choose", "use"]
+    action: Literal["inspect", "choose", "use", "travel"]
     target: str = Field(pattern=r"^[a-z_]{1,48}$")
 
 

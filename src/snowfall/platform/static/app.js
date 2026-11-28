@@ -1807,10 +1807,13 @@ function showAdventure(a,locked){
  if(root.dataset.renderKey===renderKey)return;
  root.dataset.renderKey=renderKey;
  if(!a){root.innerHTML="<h3>Winter Adventure</h3><p>Sign in, register and start the event to explore.</p>";return}
- const disabled=locked||a.complete||a.phase!=="live";
+ const travelDisabled=locked||a.phase!=="live";
  const scene=a.scene||{};
+ const inMap=scene.key==="city";
+ const caseFinished=a.complete&&(!a.city||["office","alley"].includes(scene.key));
+ const disabled=travelDisabled||caseFinished;
  const spots=Array.isArray(scene.hotspots)?scene.hotspots:[];
- const art=scene.key==="office"?"/static/adventure-office.svg":"/static/adventure-alley.svg";
+ const art=typeof scene.art==="string"&&/^\/(?:static\/adventure-(?:office|alley)\.svg|static\/snowfall-city-wallpaper\.webp|art\/v290\/mysteries\/(?:day_[1-7]|classified_dossier)\.webp)$/.test(scene.art)?scene.art:(scene.key==="office"?"/static/adventure-office.svg":"/static/adventure-alley.svg");
  const focus=document.activeElement?.closest?.("button[data-adventure]");
  const focusKey=focus&&root.contains(focus)?[focus.dataset.adventure,focus.dataset.target]:null;
  const hotspot=spots.map((h,i)=>{
@@ -1818,9 +1821,17 @@ function showAdventure(a,locked){
   return "<button type='button' class='adventure-hotspot' data-adventure='inspect' data-target='"+esc(h.key)+"' style='left:"+x+"%;top:"+y+"%' aria-label='"+esc("Inspect "+h.label)+"' title='"+esc(h.label)+"'"+(disabled||a.dialogue?" disabled":"")+"><span>"+(i+1)+"</span></button>";
  }).join("");
  const choices=a.dialogue?"<section class='adventure-dialogue'><h4>"+esc(a.dialogue.speaker)+"</h4><p>"+esc(a.dialogue.text)+"</p><div class='adventure-options'>"+(a.dialogue.choices||[]).map(c=>adventureButton("choose",c.key,c.label,disabled)).join("")+"</div></section>":"<div class='adventure-options' aria-label='Accessible scene objects'>"+spots.map((h,i)=>adventureButton("inspect",h.key,(i+1)+". "+h.label,disabled)).join("")+"</div>";
+ const city=a.city;
+ const cityNav=city&&!inMap?"<div class='adventure-city-nav'>"+adventureButton("travel","city","Open city map",travelDisabled)+"<span>"+esc(city.visited)+" / "+esc(city.visible)+" locations visited</span></div>":"";
+ const map=inMap&&city?"<div class='adventure-city-map' aria-label='Interactive winter city map'>"+(city.locations||[]).map(l=>{
+  const col=Math.max(1,Math.min(4,Number(l.column)||1)),row=Math.max(1,Math.min(3,Number(l.row)||1));
+  const open=l.status==="open";
+  return "<button type='button' class='adventure-location "+(open?"":"location-locked")+"' style='grid-column:"+col+";grid-row:"+row+"' data-adventure='travel' data-target='"+esc(l.key)+"'"+(!open||travelDisabled?" disabled":"")+"><strong>"+esc(l.title)+"</strong><small>"+esc(open?(l.visited?"Visited":"Explore"):l.reason||"Locked")+"</small></button>";
+ }).join("")+"</div><p class='subtle'>Select an open building to explore. New places unlock each event day.</p>":"";
+ const discoveries=city?"<section class='adventure-discoveries'><h4>City discoveries · "+esc((city.discoveries||[]).length)+"</h4><ul>"+((city.discoveries||[]).map(d=>"<li><strong>"+esc(d.label)+"</strong><p>"+esc(d.description)+"</p></li>").join("")||"<li>No city souvenirs found yet.</li>")+"</ul></section>":"";
  const inventory=(a.inventory||[]).map(i=>"<li><strong>"+esc(i.label)+"</strong><p>"+esc(i.description)+"</p>"+(i.use?adventureButton("use",i.key,i.use,disabled||!!a.dialogue):"")+"</li>").join("");
  const evidence=(a.evidence||[]).map(e=>"<li><strong>"+esc(e.label)+"</strong><p>"+esc(e.text)+"</p></li>").join("");
- root.innerHTML="<header class='adventure-heading'><div><p class='eyebrow'>WINTER ACTIVITIES 2.0 · EXPLORATION</p><h3>"+esc(a.title)+"</h3></div><span class='pill'>"+(a.complete?"CASE COMPLETE":"PROGRESS SAVED")+"</span></header><p>Explore the scene, examine objects and speak to characters. Your adventure satchel is separate from combat inventory.</p><h4>"+esc(scene.title)+"</h4><p>"+esc(scene.description)+"</p><div class='adventure-scene'><img src='"+art+"' alt='"+esc(scene.title+" illustration")+"' draggable='false'>"+hotspot+"</div><p class='subtle'>Tap a numbered hotspot or select an object below. No timer or snowball cost.</p><p class='adventure-message' role='status' aria-live='polite' tabindex='-1'>"+esc(a.message)+"</p>"+(a.complete?"<p class='adventure-complete'>Case complete · Collectible earned: "+esc(a.souvenir)+"</p>":choices)+"<div class='adventure-dossier'><section><h4>Satchel</h4><ul>"+(inventory||"<li>Nothing collected yet.</li>")+"</ul></section><section><h4>Evidence notebook</h4><ul>"+(evidence||"<li>No evidence discovered yet.</li>")+"</ul></section></div><p class='subtle'>Adventure progress is saved on your character. This preview is honorary and does not award official points or prizes.</p>";
+ root.innerHTML="<header class='adventure-heading'><div><p class='eyebrow'>WINTER ACTIVITIES 2.0 · EXPLORATION</p><h3>"+esc(city?"The Winter Underworld":a.title)+"</h3></div><span class='pill'>"+(a.complete?"DISPATCH SOLVED":"PROGRESS SAVED")+"</span></header><p>Explore the scene, examine objects and speak to characters. Your adventure satchel is separate from combat inventory.</p>"+cityNav+"<h4>"+esc(scene.title)+"</h4><p>"+esc(scene.description)+"</p>"+(inMap?map:"<div class='adventure-scene'><img src='"+art+"' alt='"+esc(scene.title+" illustration")+"' draggable='false'>"+hotspot+"</div><p class='subtle'>Tap a numbered hotspot or select an object below. No timer or snowball cost.</p>")+"<p class='adventure-message' role='status' aria-live='polite' tabindex='-1'>"+esc(a.message)+"</p>"+(a.complete?"<p class='adventure-complete'>Case complete · Collectible earned: "+esc(a.souvenir)+"</p>":"")+(!caseFinished&&!inMap?choices:"")+"<div class='adventure-dossier'><section><h4>Satchel</h4><ul>"+(inventory||"<li>Nothing collected yet.</li>")+"</ul></section><section><h4>Evidence notebook</h4><ul>"+(evidence||"<li>No evidence discovered yet.</li>")+"</ul></section></div>"+discoveries+"<p class='subtle'>Adventure progress is saved on your character. This preview is honorary and does not award official points or prizes.</p>";
  if(focusKey&&!disabled){const next=[...root.querySelectorAll("button[data-adventure]")].find(b=>!b.disabled&&b.dataset.adventure===focusKey[0]&&b.dataset.target===focusKey[1]);next?.focus({preventScroll:true})}
 }
 
